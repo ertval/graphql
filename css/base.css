@@ -24,6 +24,10 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+[hidden] {
+	display: none !important;
+}
+
 /* --- Glassmorphism Utilities --- */
 .glass {
 	background: var(--bg-card);
