@@ -1,78 +1,95 @@
 # GraphQL Profile
 
-A vanilla JavaScript web application that displays a user's school progression and statistics by querying a GraphQL API endpoint. This project was built to master GraphQL queries (Normal, Nested, and Parameterized), JWT authentication, and programmatic SVG generation without external libraries.
+A vanilla JavaScript web application that displays a user's school progression and statistics by querying a GraphQL API endpoint. Built to master GraphQL queries (Normal, Nested, Parameterised), JWT authentication, and programmatic SVG generation — all without a single external library.
 
 ## 🚀 Features
 
-- **JWT Authentication**: Secure login flow using Basic Auth to retrieve and store a JWT Bearer token.
-- **Dynamic GraphQL Queries**: Demonstrates advanced GraphQL querying across multiple tables (`user`, `transaction`, `progress`, `result`, `object`).
-- **Data Visualizations**: Custom, animated, interactive charts plotted purely with vanilla JavaScript and the DOM `createElementNS` method. No canvas or external charting libraries were used.
-    - **Line Chart**: Cumulative XP progression over time.
-    - **Bar Chart**: Top XP earned categorized by project.
-- **Glassmorphism UI**: Beautiful, fully responsive dark-mode dashboard reflecting modern UI/UX design patterns.
-- **Bonus Sections**: Displays recent project activity (Pass/Fail) and top acquired skills.
+- **JWT Authentication** — Secure login with Basic Auth; token stored in `localStorage`.
+- **Dynamic GraphQL Queries** — Normal, nested, and parameterised queries across `user`, `transaction`, `progress`, `result`, and `object` tables.
+- **4 SVG Data Visualisations** — Animated charts built purely with `createElementNS`, grouped by theme:
+  - **XP Analytics group**: Cumulative XP line chart + XP by project bar chart
+  - **Audit & Results group**: Audit ratio donut chart + Pass/Fail pie chart
+- **Students Leaderboard** — Browse all visible school students with live search, campus filter, sortable columns (Level, XP, Audit Ratio), and paginated results.
+- **Student Profile Overlay** — Click any student row to see their full dashboard (4 graphs + stats + skills).
+- **Interactive Projects** — Click any project in "Recent Projects" to open a detail overlay showing XP earned, grade, type, and date.
+- **Glassmorphism UI** — Dark navy + Sky/Cyan accent design with micro-animations and smooth transitions.
+- **Bonus Sections** — Top skills (animated bars) and recent project activity (Pass/Fail badges).
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: Vanilla JavaScript (ES2026 modules), HTML5, CSS3 (Custom Properties, Flexbox, CSS Grid).
-- **Visualization**: Scalable Vector Graphics (SVG).
-- **Data Fetching**: Native `fetch` API.
-- **Data Parsing/Logic**: Native ES2026 functionality (`Object.groupBy()`, `Temporal` API, immutable array methods).
-- **Zero Dependencies**: Everything is written from scratch, right down to the axes on the graphs.
+| Layer | Technology |
+|---|---|
+| Language | Vanilla JavaScript (ES2026 modules, `const`/`let`, arrow functions) |
+| HTML | HTML5 semantic elements, ARIA attributes |
+| CSS | Modular CSS Custom Properties, Flexbox, CSS Grid |
+| Charts | SVG via `document.createElementNS` — zero canvas, zero chart libs |
+| Data APIs | ES2026 `Temporal`, `Object.groupBy()`, immutable array methods (`.toSorted()`) |
+| Concurrency | `async/await` + `Promise.all()` |
+| Linting | Biome (unified lint + format) |
 
 ## 📂 Project Structure
 
 ```text
-├── index.html   # Main application entry point (Login & Dashboard views).
-├── app.css      # Design system, layout, and animations.
-├── api.js       # GraphQL client, queries, and authentication helpers.
-├── graphs.js    # Data visualization logic (SVG creation).
-└── app.js       # Application controller (routing, DOM updates).
+├── index.html          # Application shell (login + dashboard + students + overlays)
+├── app.js              # Main controller — routing, dashboard rendering, project detail
+├── api.js              # GraphQL client, JWT auth, all query functions
+├── graphs.js           # SVG graph builders (line, bar, donut, pie)
+├── students.js         # Students leaderboard — fetch, filter, sort, paginate, profile overlay
+│
+├── css/
+│   ├── theme.css       # Design tokens — colour palette, spacing, typography, radii
+│   ├── base.css        # Reset, body, glass utilities, tab-panel layout, keyframes
+│   ├── login.css       # Login card, form, background orbs
+│   ├── nav.css         # Navigation bar + tab switcher
+│   ├── dashboard.css   # Dashboard cards (user, XP, audit, graphs, skills, activity, project modal)
+│   ├── graphs.css      # SVG container styles, axis, donut/pie, tooltips
+│   └── students.css    # Leaderboard table, pagination, student profile overlay
+│
+└── docs/
+    ├── audit.md                      # Peer-review audit criteria
+    ├── audit_verification_report.md  # Implementation verification mapping
+    ├── architecture_and_learning_guide.md
+    ├── deployment_guide.md
+    └── requirements.md
 ```
 
 ## 🚀 Getting Started
 
-This application operates entirely in the browser using ES modules. Due to browser security restrictions regarding CORS and the `file:///` protocol, it must be served via a local web server to function correctly.
+The app uses ES modules and fetches data from a remote API, so it must be served via a local HTTP server.
 
-### Prerequisites
-- Node.js (for `npx serve`) or Python (for `http.server`) installed on your machine.
-- Valid Zone01 platform (or Gitea) credentials to fetch authenticated data.
-
-### Installation & Serving
-
-**Method 1: Using Node.js (npx)**
+### Run locally (Node.js)
 ```bash
-# Navigate to the project directory
-cd path/to/graphql-profile
-
-# Spin up a fast local static server
 npx serve .
 ```
 
-**Method 2: Using Python**
+### Run locally (Python)
 ```bash
-# Navigate to the project directory
-cd path/to/graphql-profile
-
-# Start a python development server
 python -m http.server 3000
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:3000` (or whichever port was specified).
+Then open `http://localhost:3000` in your browser.
 
 ## 💡 How It Works
 
-1. **Authentication**: Entering credentials on the login screen issues a Basic Auth `POST` request to `/api/auth/signin`. A JWT is returned and saved.
-2. **Data Aggregation**: The `app.js` module orchestrates several concurrent GraphQL queries (`Promise.all`) via the `api.js` module directly to the GraphQL engine using the stored JWT as a Bearer token.
-3. **Rendering Content**: Data is mapped to respective DOM elements.
-4. **Drawing SVGs**: The `graphs.js` module receives arrays of transaction data, calculates max values, applies scaling and proportions, and draws `<svg>`, `<path>`, `<rect>`, and `<circle>` elements directly into the DOM.
+1. **Login** — Submits Basic Auth credentials to `/api/auth/signin`. On success a JWT is saved and the dashboard loads.
+2. **Parallel data fetch** — `Promise.all` fires 5 concurrent GraphQL queries (user info, XP transactions, progress, skills, level, results).
+3. **Dashboard** — Data is bound to DOM elements. Four SVG graphs are rendered in two thematic groups.
+4. **Students tab** — Lazy-loaded on first visit. Fetches all visible users, enriches them with XP/level data in batches, then renders the sortable/filterable paginated table.
+5. **Student Profile** — Clicking a row opens a full dashboard overlay for that student.
+6. **Project Detail** — Clicking a project in "Recent Projects" shows a detail card with XP earned, grade, date, and path.
 
-## 🌐 Deploying to GitHub Pages
+## 🌐 Deploying
 
-Since this codebase is 100% static, deploying it is incredibly simple:
+This is 100% static — no build step needed.
 
-1. Initialize a git repository and commit the code.
-2. Push to a repository on GitHub.
-3. In the repository settings, navigate to **Pages**.
-4. Set the source branch to `main`/`master`.
-5. Your application will be live at `https://<your-username>.github.io/<your-repo-name>/`.
+| Platform | Method |
+|---|---|
+| **GitHub Pages** | Enable Pages from `main` branch root — automatic on every push |
+| **Netlify** | Drag-and-drop the project folder onto [app.netlify.com/drop](https://app.netlify.com/drop) |
+| **Vercel** | Import the repository; leave Build Command empty |
+
+See `docs/deployment_guide.md` for detailed step-by-step instructions.
+
+## ✅ Audit Compliance
+
+All requirements in `docs/audit.md` are met. See `docs/audit_verification_report.md` for a full question-by-question mapping to code.

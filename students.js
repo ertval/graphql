@@ -485,21 +485,27 @@ const renderStudentProfileContent = (content, user, xpAndLevel, xpTransactions, 
     </div>
 
     <div class="sp-graphs-row">
-      <div class="sp-graph-panel">
-        <h3>XP Progress</h3>
-        <div class="sp-graph-container" id="sp-xp-chart"></div>
+      <!-- XP group -->
+      <div class="sp-graph-group">
+        <div class="sp-graph-panel">
+          <h3>XP Progress</h3>
+          <div class="sp-graph-container" id="sp-xp-chart"></div>
+        </div>
+        <div class="sp-graph-panel">
+          <h3>XP by Project</h3>
+          <div class="sp-graph-container" id="sp-bar-chart"></div>
+        </div>
       </div>
-      <div class="sp-graph-panel">
-        <h3>Audit Ratio</h3>
-        <div class="sp-graph-container" id="sp-audit-donut"></div>
-      </div>
-      <div class="sp-graph-panel">
-        <h3>Pass / Fail</h3>
-        <div class="sp-graph-container" id="sp-passfail-pie"></div>
-      </div>
-      <div class="sp-graph-panel">
-        <h3>XP by Project</h3>
-        <div class="sp-graph-container" id="sp-bar-chart"></div>
+      <!-- Audit group -->
+      <div class="sp-graph-group">
+        <div class="sp-graph-panel">
+          <h3>Audit Distribution</h3>
+          <div class="sp-graph-container" id="sp-audit-donut"></div>
+        </div>
+        <div class="sp-graph-panel">
+          <h3>Pass / Fail</h3>
+          <div class="sp-graph-container" id="sp-passfail-pie"></div>
+        </div>
       </div>
     </div>
 

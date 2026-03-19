@@ -8,11 +8,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css">
+  <!-- Modular CSS -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/nav.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/graphs.css">
+  <link rel="stylesheet" href="css/students.css">
 </head>
 <body>
   <div id="app">
-    <!-- Login View -->
+
+    <!-- ═══════════════════════════════════════════════════════════
+         LOGIN VIEW
+         ═══════════════════════════════════════════════════════════ -->
     <section id="login-view" class="view active">
       <div class="login-container">
         <div class="login-card glass">
@@ -25,8 +35,8 @@
                 <path d="M28 20 Q34 20 34 26 Q34 32 28 32" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
                 <defs>
                   <linearGradient id="logo-grad" x1="0" y1="0" x2="48" y2="48">
-                    <stop offset="0%" stop-color="#6366f1"/>
-                    <stop offset="100%" stop-color="#a855f7"/>
+                    <stop offset="0%" stop-color="#0ea5e9"/>
+                    <stop offset="100%" stop-color="#06b6d4"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -38,25 +48,15 @@
           <form id="login-form" autocomplete="on">
             <div class="input-group">
               <label for="identifier">Username or Email</label>
-              <input
-                type="text"
-                id="identifier"
-                name="identifier"
+              <input type="text" id="identifier" name="identifier"
                 placeholder="Enter your username or email"
-                required
-                autocomplete="username"
-              >
+                required autocomplete="username">
             </div>
             <div class="input-group">
               <label for="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
+              <input type="password" id="password" name="password"
                 placeholder="Enter your password"
-                required
-                autocomplete="current-password"
-              >
+                required autocomplete="current-password">
             </div>
             <div id="login-error" class="error-message" role="alert" aria-live="polite"></div>
             <button type="submit" id="login-btn" class="btn-primary">
@@ -64,7 +64,8 @@
               <span class="btn-loader" hidden>
                 <svg class="spinner" viewBox="0 0 24 24" width="20" height="20" aria-labelledby="spinner-title">
                   <title id="spinner-title">Loading</title>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
+                    fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
                 </svg>
               </span>
             </button>
@@ -76,8 +77,11 @@
       </div>
     </section>
 
-    <!-- Profile View -->
+    <!-- ═══════════════════════════════════════════════════════════
+         PROFILE VIEW
+         ═══════════════════════════════════════════════════════════ -->
     <section id="profile-view" class="view">
+
       <!-- Top Navigation -->
       <nav id="top-nav" class="glass-nav">
         <div class="nav-inner">
@@ -89,18 +93,21 @@
               <path d="M19 14 Q23 14 23 18 Q23 22 19 22" stroke="url(#nav-grad)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
               <defs>
                 <linearGradient id="nav-grad" x1="0" y1="0" x2="32" y2="32">
-                  <stop offset="0%" stop-color="#6366f1"/>
-                  <stop offset="100%" stop-color="#a855f7"/>
+                  <stop offset="0%" stop-color="#0ea5e9"/>
+                  <stop offset="100%" stop-color="#06b6d4"/>
                 </linearGradient>
               </defs>
             </svg>
             <span>GraphQL Profile</span>
           </div>
+
           <nav class="nav-tabs" aria-label="Main navigation">
             <button id="tab-dashboard" class="nav-tab active" type="button" aria-selected="true">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
               </svg>
               Dashboard
             </button>
@@ -114,6 +121,7 @@
               Students
             </button>
           </nav>
+
           <div class="nav-actions">
             <span id="nav-username" class="nav-user"></span>
             <button id="logout-btn" class="btn-logout" type="button">
@@ -129,13 +137,12 @@
         </div>
       </nav>
 
-      <!-- Dashboard Tab Content -->
-      <main id="dashboard" class="dashboard tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
+      <!-- ─── DASHBOARD TAB ─────────────────────────────────────── -->
+      <main id="dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
+
         <!-- Section 1: User Identification -->
         <div class="card glass user-card" id="section-user">
-          <div class="card-header">
-            <h2>User Profile</h2>
-          </div>
+          <div class="card-header"><h2>User Profile</h2></div>
           <div class="user-info">
             <div class="avatar-ring" id="user-avatar">
               <span id="avatar-initials"></span>
@@ -151,9 +158,7 @@
 
         <!-- Section 2: XP & Level -->
         <div class="card glass xp-card" id="section-xp">
-          <div class="card-header">
-            <h2>Experience Points</h2>
-          </div>
+          <div class="card-header"><h2>Experience Points</h2></div>
           <div class="xp-stats">
             <div class="stat-block">
               <span class="stat-value" id="total-xp">—</span>
@@ -172,9 +177,7 @@
 
         <!-- Section 3: Audit Ratio -->
         <div class="card glass audit-card" id="section-audit">
-          <div class="card-header">
-            <h2>Audit Ratio</h2>
-          </div>
+          <div class="card-header"><h2>Audit Ratio</h2></div>
           <div class="audit-stats">
             <div class="audit-ratio-display">
               <span class="ratio-number" id="audit-ratio">—</span>
@@ -202,53 +205,58 @@
           </div>
         </div>
 
-        <!-- Section 4: Statistics Graphs -->
-        <div class="card glass graph-card full-width" id="section-graphs">
-          <div class="card-header">
-            <h2>Statistics</h2>
-          </div>
+        <!-- Section 4: Statistics — two grouped columns -->
+        <div class="card glass full-width" id="section-graphs">
+          <div class="card-header"><h2>Statistics</h2></div>
           <div class="graphs-container">
-            <div class="graph-panel" id="graph-xp-over-time">
-              <h3>XP Progress Over Time</h3>
-              <div class="graph-svg-container" id="xp-line-chart"></div>
+
+            <!-- GROUP 1: XP Analytics -->
+            <div class="graph-group">
+              <p class="graph-group-label">XP Analytics</p>
+              <div class="graph-panel" id="graph-xp-over-time">
+                <h3>XP Progress Over Time</h3>
+                <div class="graph-svg-container" id="xp-line-chart"></div>
+              </div>
+              <div class="graph-panel" id="graph-project-xp">
+                <h3>XP by Project</h3>
+                <div class="graph-svg-container" id="project-bar-chart"></div>
+              </div>
             </div>
-            <div class="graph-panel" id="graph-project-xp">
-              <h3>XP by Project</h3>
-              <div class="graph-svg-container" id="project-bar-chart"></div>
+
+            <!-- GROUP 2: Audit & Results -->
+            <div class="graph-group">
+              <p class="graph-group-label">Audit &amp; Results</p>
+              <div class="graph-panel" id="graph-audit-donut">
+                <h3>Audit Distribution</h3>
+                <div class="graph-svg-container graph-svg-donut" id="audit-donut-chart"></div>
+              </div>
+              <div class="graph-panel" id="graph-passfail">
+                <h3>Pass / Fail Rate</h3>
+                <div class="graph-svg-container graph-svg-donut" id="passfail-pie-chart"></div>
+              </div>
             </div>
-            <!-- Bonus Graph 3: Audit Donut -->
-            <div class="graph-panel" id="graph-audit-donut">
-              <h3>Audit Distribution</h3>
-              <div class="graph-svg-container graph-svg-donut" id="audit-donut-chart"></div>
-            </div>
-            <!-- Bonus Graph 4: Pass/Fail Pie -->
-            <div class="graph-panel" id="graph-passfail">
-              <h3>Pass / Fail Rate</h3>
-              <div class="graph-svg-container graph-svg-donut" id="passfail-pie-chart"></div>
-            </div>
+
           </div>
         </div>
 
-        <!-- Bonus: Skills Radar / Additional Info -->
+        <!-- Bonus: Top Skills -->
         <div class="card glass skills-card" id="section-skills">
-          <div class="card-header">
-            <h2>Top Skills</h2>
-          </div>
+          <div class="card-header"><h2>Top Skills</h2></div>
           <div class="skills-list" id="skills-list"></div>
         </div>
 
-        <!-- Bonus: Recent Activity -->
+        <!-- Bonus: Recent Activity (clickable) -->
         <div class="card glass activity-card" id="section-activity">
-          <div class="card-header">
-            <h2>Recent Projects</h2>
-          </div>
+          <div class="card-header"><h2>Recent Projects</h2></div>
           <div class="activity-list" id="activity-list"></div>
         </div>
+
       </main>
 
-      <!-- Students Tab Content -->
-      <div id="students-view" class="tab-panel" role="tabpanel" aria-labelledby="tab-students" hidden>
+      <!-- ─── STUDENTS TAB ──────────────────────────────────────── -->
+      <div id="students-view" class="tab-panel" role="tabpanel" aria-labelledby="tab-students">
         <div class="students-container">
+
           <!-- Controls -->
           <div class="students-controls card glass">
             <div class="students-controls-left">
@@ -258,15 +266,11 @@
             <div class="students-controls-right">
               <div class="search-wrap">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="search-icon" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input
-                  type="search"
-                  id="students-search"
-                  class="students-search"
-                  placeholder="Search by name or login…"
-                  aria-label="Search students"
-                >
+                <input type="search" id="students-search" class="students-search"
+                  placeholder="Search by name or login…" aria-label="Search students">
               </div>
               <select id="campus-filter" class="campus-select" aria-label="Filter by campus">
                 <option value="">All campuses</option>
@@ -281,10 +285,11 @@
             </div>
           </div>
 
-          <!-- Loading state -->
+          <!-- Loading -->
           <div id="students-loading" class="students-loading" hidden>
             <svg class="spinner" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
+                fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
             </svg>
             <p>Loading students…</p>
           </div>
@@ -294,18 +299,22 @@
             <table class="students-table" role="grid" aria-label="Students leaderboard">
               <thead>
                 <tr>
-                  <th class="th-rank" scope="col">#</th>
-                  <th class="th-sortable th-name" scope="col" data-sort="login" tabindex="0" role="columnheader" aria-sort="none">
+                  <th class="td-rank" scope="col">#</th>
+                  <th class="th-sortable th-name" scope="col" data-sort="login"
+                    tabindex="0" role="columnheader" aria-sort="none">
                     Student <span class="sort-indicator" aria-hidden="true">⇅</span>
                   </th>
                   <th scope="col" class="th-campus">Campus</th>
-                  <th class="th-sortable th-level" scope="col" data-sort="level" tabindex="0" role="columnheader" aria-sort="descending">
+                  <th class="th-sortable th-level" scope="col" data-sort="level"
+                    tabindex="0" role="columnheader" aria-sort="descending">
                     Level <span class="sort-indicator" aria-hidden="true">↓</span>
                   </th>
-                  <th class="th-sortable th-xp" scope="col" data-sort="totalXP" tabindex="0" role="columnheader" aria-sort="none">
+                  <th class="th-sortable th-xp" scope="col" data-sort="totalXP"
+                    tabindex="0" role="columnheader" aria-sort="none">
                     Total XP <span class="sort-indicator" aria-hidden="true">⇅</span>
                   </th>
-                  <th class="th-sortable th-ratio" scope="col" data-sort="auditRatio" tabindex="0" role="columnheader" aria-sort="none">
+                  <th class="th-sortable th-ratio" scope="col" data-sort="auditRatio"
+                    tabindex="0" role="columnheader" aria-sort="none">
                     Audit Ratio <span class="sort-indicator" aria-hidden="true">⇅</span>
                   </th>
                 </tr>
@@ -318,22 +327,49 @@
           <nav id="students-pagination" class="students-pagination" aria-label="Students pagination"></nav>
         </div>
       </div>
+
     </section>
 
-    <!-- Student Profile Overlay -->
-    <div id="student-profile-overlay" class="student-profile-overlay" role="dialog" aria-modal="true" aria-label="Student profile">
+    <!-- ═══════════════════════════════════════════════════════════
+         PROJECT DETAIL OVERLAY
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="project-detail-overlay" class="project-detail-overlay" role="dialog"
+      aria-modal="true" aria-label="Project details">
+      <div class="project-detail-modal glass">
+        <div class="project-detail-modal-header">
+          <h2 id="pd-title">Project</h2>
+          <button id="project-detail-close" class="modal-close-btn" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+              stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div id="project-detail-content" class="project-detail-content"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         STUDENT PROFILE OVERLAY
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="student-profile-overlay" class="student-profile-overlay" role="dialog"
+      aria-modal="true" aria-label="Student profile">
       <div class="student-profile-modal glass">
         <div class="student-profile-modal-header">
           <h2>Student Profile</h2>
           <button id="student-profile-close" class="modal-close-btn" type="button" aria-label="Close profile">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+              stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
         <div id="student-profile-content" class="student-profile-content"></div>
       </div>
     </div>
+
   </div>
 
   <script type="module" src="app.js"></script>

@@ -34,16 +34,25 @@ import {
    ------------------------------------------------------------------- */
 const $ = (sel) => document.querySelector(sel);
 
-const loginView = $("#login-view");
+const loginView  = $("#login-view");
 const profileView = $("#profile-view");
 
-const loginForm = $("#login-form");
+const loginForm  = $("#login-form");
 const loginError = $("#login-error");
-const loginBtn = $("#login-btn");
-const btnText = loginBtn?.querySelector(".btn-text");
-const btnLoader = loginBtn?.querySelector(".btn-loader");
+const loginBtn   = $("#login-btn");
+const btnText    = loginBtn?.querySelector(".btn-text");
+const btnLoader  = loginBtn?.querySelector(".btn-loader");
+const logoutBtn  = $("#logout-btn");
 
-const logoutBtn = $("#logout-btn");
+/* -------------------------------------------------------------------
+   Module-level state (needed for project detail cross-reference)
+   ------------------------------------------------------------------- */
+
+/** @type {Array<{amount:number, createdAt:string, path:string, object:{name:string,type:string}}>} */
+let _xpTransactions = [];
+
+/** @type {Array<{grade:number, createdAt:string, object:{name:string,type:string}}>} */
+let _results = [];
 
 /* -------------------------------------------------------------------
    Tab Routing
@@ -52,10 +61,10 @@ const logoutBtn = $("#logout-btn");
 /** @type {'dashboard'|'students'} */
 let activeTab = "dashboard";
 
-const tabDashboard = $("#tab-dashboard");
-const tabStudents = $("#tab-students");
+const tabDashboard  = $("#tab-dashboard");
+const tabStudents   = $("#tab-students");
 const dashboardPanel = $("#dashboard");
-const studentsPanel = $("#students-view");
+const studentsPanel  = $("#students-view");
 
 /** @param {'dashboard'|'students'} tab */
 const switchTab = (tab) => {
@@ -68,17 +77,17 @@ const switchTab = (tab) => {
 
 	if (tab === "dashboard") {
 		dashboardPanel?.classList.add("active");
-		studentsPanel?.setAttribute("hidden", "");
+		studentsPanel?.classList.remove("active");
 	} else {
 		dashboardPanel?.classList.remove("active");
-		studentsPanel?.removeAttribute("hidden");
+		studentsPanel?.classList.add("active");
 	}
 };
 
 tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
 tabStudents?.addEventListener("click", () => {
 	switchTab("students");
-	// Lazy-init the students view only once
+	// Lazy-init the students view only on first visit
 	if (!studentsPanel?.dataset.loaded) {
 		studentsPanel.dataset.loaded = "1";
 		initStudentsView();
@@ -86,21 +95,18 @@ tabStudents?.addEventListener("click", () => {
 });
 
 /* -------------------------------------------------------------------
-   View Routing
+   View Routing (Login ↔ Profile)
    ------------------------------------------------------------------- */
 
-/** Shows the profile view, hides login. */
 const showProfile = () => {
 	loginView.classList.remove("active");
 	profileView.classList.add("active");
 };
 
-/** Shows the login view, hides profile. */
 const showLogin = () => {
 	profileView.classList.remove("active");
 	loginView.classList.add("active");
 	loginError.textContent = "";
-	// Reset students panel state on logout
 	switchTab("dashboard");
 };
 
@@ -113,17 +119,16 @@ loginForm?.addEventListener("submit", async (e) => {
 	loginError.textContent = "";
 
 	const identifier = $("#identifier").value.trim();
-	const password = $("#password").value;
+	const password   = $("#password").value;
 
 	if (!identifier || !password) {
 		loginError.textContent = "Please fill in all fields.";
 		return;
 	}
 
-	// UI loading state
-	loginBtn.disabled = true;
-	btnText.hidden = true;
-	btnLoader.hidden = false;
+	loginBtn.disabled  = true;
+	btnText.hidden     = true;
+	btnLoader.hidden   = false;
 
 	try {
 		const token = await login(identifier, password);
@@ -133,9 +138,9 @@ loginForm?.addEventListener("submit", async (e) => {
 	} catch (err) {
 		loginError.textContent = err.message;
 	} finally {
-		loginBtn.disabled = false;
-		btnText.hidden = false;
-		btnLoader.hidden = true;
+		loginBtn.disabled  = false;
+		btnText.hidden     = false;
+		btnLoader.hidden   = true;
 	}
 });
 
@@ -145,19 +150,14 @@ loginForm?.addEventListener("submit", async (e) => {
 
 logoutBtn?.addEventListener("click", () => {
 	clearToken();
-	// Clear profile data from DOM
 	resetDashboard();
 	resetStudentsState();
 	showLogin();
-	// Prevent back-navigation to profile
 	history.replaceState(null, "", location.pathname);
 });
 
-// Block back-button navigation to profile when logged out
 globalThis.addEventListener("popstate", () => {
-	if (!isAuthenticated()) {
-		showLogin();
-	}
+	if (!isAuthenticated()) showLogin();
 });
 
 /* -------------------------------------------------------------------
@@ -171,46 +171,42 @@ globalThis.addEventListener("popstate", () => {
  */
 const formatXP = (bytes) => {
 	if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
-	if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} kB`;
+	if (bytes >= 1_000)     return `${(bytes / 1_000).toFixed(1)} kB`;
 	return `${bytes} B`;
 };
 
-/** Resets all dashboard DOM content. */
 const resetDashboard = () => {
-	$("#avatar-initials").textContent = "";
-	$("#user-fullname").textContent = "";
-	$("#user-login").textContent = "";
-	$("#user-email").textContent = "";
-	$("#user-campus").textContent = "";
-	$("#total-xp").textContent = "—";
-	$("#user-level").textContent = "—";
+	$("#avatar-initials").textContent  = "";
+	$("#user-fullname").textContent    = "";
+	$("#user-login").textContent       = "";
+	$("#user-email").textContent       = "";
+	$("#user-campus").textContent      = "";
+	$("#total-xp").textContent         = "—";
+	$("#user-level").textContent       = "—";
 	$("#completed-projects").textContent = "—";
-	$("#audit-ratio").textContent = "—";
+	$("#audit-ratio").textContent      = "—";
 	$("#audit-done-value").textContent = "";
 	$("#audit-received-value").textContent = "";
-	$("#audit-done-bar").style.width = "0";
+	$("#audit-done-bar").style.width   = "0";
 	$("#audit-received-bar").style.width = "0";
-	$("#xp-line-chart").innerHTML = "";
-	$("#project-bar-chart").innerHTML = "";
-	$("#audit-donut-chart").innerHTML = "";
+	$("#xp-line-chart").innerHTML      = "";
+	$("#project-bar-chart").innerHTML  = "";
+	$("#audit-donut-chart").innerHTML  = "";
 	$("#passfail-pie-chart").innerHTML = "";
-	$("#skills-list").innerHTML = "";
-	$("#activity-list").innerHTML = "";
-	$("#nav-username").textContent = "";
+	$("#skills-list").innerHTML        = "";
+	$("#activity-list").innerHTML      = "";
+	$("#nav-username").textContent     = "";
+	_xpTransactions = [];
+	_results = [];
 };
 
-/** Loads all dashboard data and renders the UI. */
 const loadDashboard = async () => {
 	try {
-		// Fetch user info first to get the ID
 		const user = await fetchUserInfo();
-		if (!user) {
-			throw new Error("Could not load user data.");
-		}
+		if (!user) throw new Error("Could not load user data.");
 
 		renderUserSection(user);
 
-		// Fetch remaining data in parallel
 		const [xpTransactions, progress, skills, level, results] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
@@ -220,26 +216,24 @@ const loadDashboard = async () => {
 				fetchResults(user.id),
 			]);
 
+		// Store for project detail cross-referencing
+		_xpTransactions = xpTransactions;
+		_results = results;
+
 		renderXPSection(xpTransactions, level, progress);
 		renderAuditSection(user);
 		renderGraphs(xpTransactions, user, results);
 		renderSkills(skills);
-		renderActivity(results);
+		renderActivity(results, xpTransactions);
 
 		// Bonus: demonstrate fetching a specific object by ID (parameterized query)
 		if (xpTransactions.length > 0) {
-			const firstTx = xpTransactions[0];
-			const objDetail = await fetchObjectById(firstTx.id);
-			if (objDetail) {
-				console.log("[Bonus] Object by ID demo:", objDetail);
-			}
+			const objDetail = await fetchObjectById(xpTransactions[0].id);
+			if (objDetail) console.log("[Bonus] fetchObjectById demo:", objDetail);
 		}
 	} catch (err) {
 		console.error("Dashboard loading error:", err);
-		if (
-			err.message.includes("Session expired") ||
-			err.message.includes("Not authenticated")
-		) {
+		if (err.message.includes("Session expired") || err.message.includes("Not authenticated")) {
 			clearToken();
 			showLogin();
 		}
@@ -250,15 +244,11 @@ const loadDashboard = async () => {
    Section Renderers
    ------------------------------------------------------------------- */
 
-/**
- * Renders the User Profile section.
- * @param {object} user
- */
+/** @param {object} user */
 const renderUserSection = (user) => {
 	const initials =
 		`${(user.firstName?.[0] ?? "").toUpperCase()}${(user.lastName?.[0] ?? "").toUpperCase()}` ||
-		user.login?.[0]?.toUpperCase() ||
-		"?";
+		user.login?.[0]?.toUpperCase() || "?";
 
 	$("#avatar-initials").textContent = initials;
 	$("#user-fullname").textContent =
@@ -270,7 +260,6 @@ const renderUserSection = (user) => {
 };
 
 /**
- * Renders the XP & Level section.
  * @param {Array} transactions
  * @param {number} level
  * @param {Array} progress
@@ -281,74 +270,58 @@ const renderXPSection = (transactions, level, progress) => {
 		(p) => p.grade >= 1 && p.object?.type === "project",
 	).length;
 
-	$("#total-xp").textContent = formatXP(totalXP);
-	$("#user-level").textContent = String(level);
+	$("#total-xp").textContent          = formatXP(totalXP);
+	$("#user-level").textContent        = String(level);
 	$("#completed-projects").textContent = String(completedProjects);
 };
 
-/**
- * Renders the audit ratio section.
- * @param {object} user
- */
+/** @param {object} user */
 const renderAuditSection = (user) => {
-	const ratio = user.auditRatio ?? 0;
-	const totalUp = user.totalUp ?? 0;
+	const ratio     = user.auditRatio ?? 0;
+	const totalUp   = user.totalUp   ?? 0;
 	const totalDown = user.totalDown ?? 0;
-	const maxAudit = Math.max(totalUp, totalDown, 1);
+	const maxAudit  = Math.max(totalUp, totalDown, 1);
 
-	$("#audit-ratio").textContent = ratio.toFixed(1);
-	$("#audit-done-value").textContent = formatXP(totalUp);
+	$("#audit-ratio").textContent          = ratio.toFixed(1);
+	$("#audit-done-value").textContent     = formatXP(totalUp);
 	$("#audit-received-value").textContent = formatXP(totalDown);
 
-	// Animate bars
 	requestAnimationFrame(() => {
-		$("#audit-done-bar").style.width = `${(totalUp / maxAudit) * 100}%`;
+		$("#audit-done-bar").style.width     = `${(totalUp   / maxAudit) * 100}%`;
 		$("#audit-received-bar").style.width = `${(totalDown / maxAudit) * 100}%`;
 	});
 };
 
 /**
- * Renders all four SVG graphs.
  * @param {Array} transactions
  * @param {object} user
  * @param {Array} results
  */
 const renderGraphs = (transactions, user, results) => {
-	renderXPLineChart($("#xp-line-chart"), transactions);
+	renderXPLineChart(    $("#xp-line-chart"),     transactions);
 	renderProjectBarChart($("#project-bar-chart"), transactions);
 	renderAuditDonutChart($("#audit-donut-chart"), user.totalUp ?? 0, user.totalDown ?? 0);
 	renderPassFailPieChart($("#passfail-pie-chart"), results);
 };
 
-/**
- * Renders top skills (bonus section).
- * @param {Array} skills
- */
+/** @param {Array} skills */
 const renderSkills = (skills) => {
 	const list = $("#skills-list");
 	list.innerHTML = "";
 
 	if (!skills.length) {
-		list.innerHTML =
-			'<p style="color:var(--text-muted);font-size:0.875rem;">No skill data available.</p>';
+		list.innerHTML = '<p style="color:var(--text-muted);font-size:0.875rem">No skill data available.</p>';
 		return;
 	}
 
-	// De-duplicate skills — keep highest amount per type
 	const skillMap = new Map();
 	for (const s of skills) {
 		const name = s.type.replace("skill_", "");
 		const existing = skillMap.get(name);
-		if (!existing || s.amount > existing) {
-			skillMap.set(name, s.amount);
-		}
+		if (!existing || s.amount > existing) skillMap.set(name, s.amount);
 	}
 
-	// Top 8 skills
-	const topSkills = [...skillMap.entries()]
-		.toSorted(([, a], [, b]) => b - a)
-		.slice(0, 8);
-
+	const topSkills = [...skillMap.entries()].toSorted(([, a], [, b]) => b - a).slice(0, 8);
 	const maxAmount = Math.max(...topSkills.map(([, v]) => v));
 
 	for (const [name, amount] of topSkills) {
@@ -362,67 +335,66 @@ const renderSkills = (skills) => {
       <span class="skill-value">${amount}%</span>
     `;
 		list.append(item);
-
-		// Animate bar
 		requestAnimationFrame(() => {
-			item.querySelector(".skill-bar-fill").style.width =
-				`${(amount / maxAmount) * 100}%`;
+			item.querySelector(".skill-bar-fill").style.width = `${(amount / maxAmount) * 100}%`;
 		});
 	}
 };
 
 /**
- * Renders recent project results (bonus section).
+ * Renders recent project results. Each item is clickable for project detail.
  * @param {Array} results
+ * @param {Array} xpTransactions
  */
-const renderActivity = (results) => {
+const renderActivity = (results, xpTransactions) => {
 	const list = $("#activity-list");
 	list.innerHTML = "";
 
-	// Filter to project-type results with a valid object
 	const projectResults = results
 		.filter((r) => r.object?.name && r.object?.type === "project")
 		.slice(0, 10);
 
-	if (!projectResults.length) {
-		// Fallback: show any results with objects
-		const anyResults = results.filter((r) => r.object?.name).slice(0, 10);
-		if (!anyResults.length) {
-			list.innerHTML =
-				'<p style="color:var(--text-muted);font-size:0.875rem;">No recent activity.</p>';
-			return;
-		}
-		renderActivityItems(list, anyResults);
+	const items = projectResults.length
+		? projectResults
+		: results.filter((r) => r.object?.name).slice(0, 10);
+
+	if (!items.length) {
+		list.innerHTML = '<p style="color:var(--text-muted);font-size:0.875rem">No recent activity.</p>';
 		return;
 	}
 
-	renderActivityItems(list, projectResults);
+	// Build XP lookup by object name
+	const xpByName = new Map();
+	for (const tx of xpTransactions) {
+		const name = tx.object?.name;
+		if (name) xpByName.set(name, (xpByName.get(name) ?? 0) + tx.amount);
+	}
+
+	renderActivityItems(list, items, xpByName);
 };
 
 /**
- * Renders activity item elements into a list.
  * @param {HTMLElement} list
  * @param {Array} items
+ * @param {Map<string,number>} xpByName
  */
-const renderActivityItems = (list, items) => {
+const renderActivityItems = (list, items, xpByName) => {
 	for (const result of items) {
-		const passed = result.grade >= 1;
+		const passed  = result.grade >= 1;
 		const dateStr = (() => {
 			try {
 				const instant = Temporal.Instant.from(result.createdAt);
 				const zdt = instant.toZonedDateTimeISO(Temporal.Now.timeZoneId());
-				return zdt.toLocaleString("en", {
-					month: "short",
-					day: "numeric",
-					year: "numeric",
-				});
-			} catch {
-				return "";
-			}
+				return zdt.toLocaleString("en", { month: "short", day: "numeric", year: "numeric" });
+			} catch { return ""; }
 		})();
 
 		const item = document.createElement("div");
 		item.className = "activity-item";
+		item.setAttribute("role", "button");
+		item.setAttribute("tabindex", "0");
+		item.setAttribute("aria-label", `View details for ${result.object?.name ?? "project"}`);
+
 		item.innerHTML = `
       <span class="activity-name">${result.object?.name ?? "Unknown"}</span>
       <div class="activity-meta">
@@ -430,8 +402,82 @@ const renderActivityItems = (list, items) => {
         <span class="activity-date">${dateStr}</span>
       </div>
     `;
+
+		const open = () => openProjectDetail(result, xpByName);
+		item.addEventListener("click", open);
+		item.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+		});
+
 		list.append(item);
 	}
+};
+
+/* -------------------------------------------------------------------
+   Project Detail Overlay
+   ------------------------------------------------------------------- */
+
+/**
+ * Shows the project detail modal for a given result record.
+ * @param {{grade:number, createdAt:string, path?:string, objectId:number, object:{name:string,type:string}}} result
+ * @param {Map<string,number>} xpByName
+ */
+const openProjectDetail = (result, xpByName) => {
+	const overlay = $("#project-detail-overlay");
+	const content = $("#project-detail-content");
+	const title   = $("#pd-title");
+	if (!overlay || !content) return;
+
+	const name    = result.object?.name ?? "Unknown Project";
+	const passed  = result.grade >= 1;
+	const xp      = xpByName.get(name) ?? 0;
+	const dateStr = (() => {
+		try {
+			const zdt = Temporal.Instant.from(result.createdAt)
+				.toZonedDateTimeISO(Temporal.Now.timeZoneId());
+			return zdt.toLocaleString("en", { dateStyle: "long" });
+		} catch { return "—"; }
+	})();
+
+	title.textContent = name;
+
+	content.innerHTML = `
+    <div class="project-detail-grid">
+      <div class="pd-stat">
+        <span class="stat-value">${passed ? "✓ PASS" : "✗ FAIL"}</span>
+        <span class="stat-label">Result</span>
+      </div>
+      <div class="pd-stat">
+        <span class="stat-value">${result.grade.toFixed(2)}</span>
+        <span class="stat-label">Grade</span>
+      </div>
+      <div class="pd-stat">
+        <span class="stat-value">${xp ? formatXP(xp) : "—"}</span>
+        <span class="stat-label">XP Earned</span>
+      </div>
+      <div class="pd-stat">
+        <span class="stat-value">${result.object?.type ?? "—"}</span>
+        <span class="stat-label">Type</span>
+      </div>
+    </div>
+    <p class="stat-label" style="margin-bottom:0.5rem">Completed</p>
+    <p style="color:var(--text-primary);font-size:0.9rem;margin-bottom:0.75rem">${dateStr}</p>
+    ${result.path ? `<p class="stat-label" style="margin-bottom:0.25rem">Path</p><div class="pd-path">${result.path}</div>` : ""}
+  `;
+
+	overlay.classList.add("active");
+};
+
+const initProjectDetailClose = () => {
+	const overlay   = $("#project-detail-overlay");
+	const closeBtn  = $("#project-detail-close");
+	closeBtn?.addEventListener("click", () => overlay?.classList.remove("active"));
+	overlay?.addEventListener("click", (e) => {
+		if (e.target === overlay) overlay.classList.remove("active");
+	});
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") overlay?.classList.remove("active");
+	});
 };
 
 /* -------------------------------------------------------------------
@@ -440,6 +486,7 @@ const renderActivityItems = (list, items) => {
 
 const init = () => {
 	initStudentOverlayClose();
+	initProjectDetailClose();
 
 	if (isAuthenticated()) {
 		showProfile();

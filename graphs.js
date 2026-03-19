@@ -111,8 +111,8 @@ export const renderXPLineChart = (container, transactions) => {
 		y2: "0%",
 	});
 	lineGrad.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#6366f1" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#a855f7" }),
+		svgEl("stop", { offset: "0%", "stop-color": "#0ea5e9" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#06b6d4" }),
 	);
 	const areaGrad = svgEl("linearGradient", {
 		id: "area-gradient",
@@ -124,12 +124,12 @@ export const renderXPLineChart = (container, transactions) => {
 	areaGrad.append(
 		svgEl("stop", {
 			offset: "0%",
-			"stop-color": "#6366f1",
+			"stop-color": "#0ea5e9",
 			"stop-opacity": "0.3",
 		}),
 		svgEl("stop", {
 			offset: "100%",
-			"stop-color": "#6366f1",
+			"stop-color": "#0ea5e9",
 			"stop-opacity": "0.0",
 		}),
 	);
@@ -324,8 +324,8 @@ export const renderProjectBarChart = (container, transactions) => {
 		y2: "0%",
 	});
 	barGrad.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#6366f1" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#a855f7" }),
+		svgEl("stop", { offset: "0%", "stop-color": "#0ea5e9" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#06b6d4" }),
 	);
 	defs.append(barGrad);
 	svg.append(defs);
@@ -478,13 +478,13 @@ export const renderAuditDonutChart = (container, totalUp, totalDown) => {
 	const defs = svgEl("defs");
 	const gUp = svgEl("linearGradient", { id: "donut-up", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
 	gUp.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#6366f1" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#818cf8" }),
+		svgEl("stop", { offset: "0%", "stop-color": "#0ea5e9" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#38bdf8" }),
 	);
 	const gDown = svgEl("linearGradient", { id: "donut-down", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
 	gDown.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#a855f7" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#c084fc" }),
+		svgEl("stop", { offset: "0%", "stop-color": "#06b6d4" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#22d3ee" }),
 	);
 	defs.append(gUp, gDown);
 	svg.append(defs);

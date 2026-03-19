@@ -1,0 +1,408 @@
+/* ===================================================================
+   DASHBOARD — Grid, cards (User, XP, Audit, Graphs, Skills, Activity)
+   =================================================================== */
+
+/* ── User Card ── */
+.user-info {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xl);
+}
+
+.avatar-ring {
+	width: 80px;
+	height: 80px;
+	min-width: 80px;
+	border-radius: 50%;
+	background: var(--accent-gradient);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-xl);
+	font-weight: 700;
+	color: white;
+	box-shadow: 0 0 24px rgba(14, 165, 233, 0.3);
+}
+
+.user-name {
+	font-size: var(--font-xl);
+	font-weight: 700;
+	margin-bottom: var(--space-xs);
+}
+
+.user-login {
+	color: var(--accent-start);
+	font-size: var(--font-sm);
+	font-weight: 500;
+	margin-bottom: var(--space-xs);
+}
+
+.user-email,
+.user-campus {
+	color: var(--text-secondary);
+	font-size: var(--font-sm);
+}
+
+/* ── XP Card ── */
+.xp-stats {
+	display: flex;
+	gap: var(--space-xl);
+	flex-wrap: wrap;
+}
+
+.stat-block {
+	flex: 1;
+	min-width: 90px;
+	text-align: center;
+	padding: var(--space-md);
+	background: rgba(255, 255, 255, 0.02);
+	border-radius: var(--radius-md);
+	border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.stat-value {
+	display: block;
+	font-size: var(--font-2xl);
+	font-weight: 800;
+	background: var(--accent-gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	margin-bottom: var(--space-xs);
+}
+
+.stat-label {
+	font-size: var(--font-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+/* ── Audit Card ── */
+.audit-stats {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xl);
+}
+
+.audit-ratio-display {
+	text-align: center;
+	min-width: 90px;
+}
+
+.ratio-number {
+	font-size: var(--font-3xl);
+	font-weight: 800;
+	background: var(--accent-gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+.audit-bars {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+}
+
+.audit-bar-label {
+	display: flex;
+	justify-content: space-between;
+	font-size: var(--font-sm);
+	color: var(--text-secondary);
+	margin-bottom: var(--space-xs);
+	gap: var(--space-sm);
+}
+
+.audit-value {
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.audit-bar-track {
+	height: 10px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+}
+
+.audit-bar-fill {
+	height: 100%;
+	border-radius: var(--radius-full);
+	transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+	width: 0;
+}
+
+.audit-bar-fill.done     { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.audit-bar-fill.received { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+
+/* ── Graphs Section ── (two grouped columns) ── */
+.graphs-container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-xl);
+}
+
+.graph-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-lg);
+}
+
+.graph-group-label {
+	font-size: var(--font-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--accent-start);
+	padding-bottom: var(--space-xs);
+	border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+}
+
+.graph-panel {
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid rgba(255, 255, 255, 0.04);
+	border-radius: var(--radius-md);
+	padding: var(--space-lg);
+}
+
+.graph-panel h3 {
+	font-size: var(--font-xs);
+	font-weight: 600;
+	color: var(--text-secondary);
+	margin-bottom: var(--space-md);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* ── Skills (Bonus) ── */
+.skills-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+}
+
+.skill-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-md);
+}
+
+.skill-name {
+	min-width: 100px;
+	font-size: var(--font-sm);
+	color: var(--text-secondary);
+	text-transform: capitalize;
+}
+
+.skill-bar-track {
+	flex: 1;
+	height: 8px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+}
+
+.skill-bar-fill {
+	height: 100%;
+	border-radius: var(--radius-full);
+	background: var(--accent-gradient);
+	transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skill-value {
+	min-width: 40px;
+	text-align: right;
+	font-size: var(--font-xs);
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+/* ── Recent Activity (Bonus) ── */
+.activity-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+}
+
+.activity-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-md);
+	background: rgba(255, 255, 255, 0.02);
+	border-radius: var(--radius-sm);
+	border: 1px solid rgba(255, 255, 255, 0.03);
+	transition: background var(--transition-fast);
+	cursor: pointer;
+}
+
+.activity-item:hover {
+	background: rgba(14, 165, 233, 0.07);
+	border-color: rgba(14, 165, 233, 0.12);
+}
+
+.activity-name {
+	font-size: var(--font-sm);
+	font-weight: 500;
+	transition: color var(--transition-fast);
+}
+
+.activity-item:hover .activity-name {
+	color: var(--accent-start);
+}
+
+.activity-meta {
+	display: flex;
+	align-items: center;
+	gap: var(--space-md);
+}
+
+.activity-date {
+	font-size: var(--font-xs);
+	color: var(--text-muted);
+}
+
+.activity-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.15rem 0.5rem;
+	border-radius: var(--radius-full);
+	font-size: 0.65rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.badge-pass {
+	background: rgba(16, 185, 129, 0.1);
+	color: var(--success);
+	border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-fail {
+	background: rgba(251, 113, 133, 0.1);
+	color: var(--danger);
+	border: 1px solid rgba(251, 113, 133, 0.2);
+}
+
+/* ── Project Detail Overlay ── */
+.project-detail-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.65);
+	backdrop-filter: blur(8px);
+	z-index: 400;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-xl);
+}
+
+.project-detail-overlay.active {
+	display: flex;
+	animation: overlayFadeIn 0.2s ease;
+}
+
+.project-detail-modal {
+	width: 100%;
+	max-width: 560px;
+	border-radius: var(--radius-xl);
+	animation: modalSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.project-detail-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-xl) var(--space-xl) 0;
+}
+
+.project-detail-modal-header h2 {
+	font-size: var(--font-xl);
+	font-weight: 700;
+	background: var(--accent-gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+.modal-close-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 50%;
+	color: var(--text-secondary);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+	background: rgba(251, 113, 133, 0.15);
+	border-color: rgba(251, 113, 133, 0.3);
+	color: var(--danger);
+}
+
+.project-detail-content {
+	padding: var(--space-xl);
+}
+
+.project-detail-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-md);
+	margin-bottom: var(--space-lg);
+}
+
+.pd-stat {
+	text-align: center;
+	padding: var(--space-md);
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	border-radius: var(--radius-md);
+}
+
+.pd-stat .stat-value { font-size: var(--font-xl); }
+
+.pd-path {
+	margin-top: var(--space-md);
+	padding: var(--space-md);
+	background: rgba(255, 255, 255, 0.02);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-xs);
+	color: var(--text-muted);
+	word-break: break-all;
+	font-family: monospace;
+}
+
+/* ── Responsive Dashboard ── */
+@media (max-width: 1024px) {
+	#dashboard.tab-panel.active {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.user-card {
+		grid-column: 1 / -1;
+	}
+
+	.graphs-container {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 768px) {
+	#dashboard.tab-panel.active {
+		grid-template-columns: 1fr;
+		padding: var(--space-md);
+	}
+
+	.user-info     { flex-direction: column; text-align: center; }
+	.audit-stats   { flex-direction: column; }
+	.xp-stats      { flex-direction: column; }
+}
