@@ -384,3 +384,99 @@ export const fetchUserLevel = async (userId) => {
 	const data = await graphqlQuery(query, { userId });
 	return data.transaction?.[0]?.amount ?? 0;
 };
+
+/* -------------------------------------------------------------------
+   Student / Leaderboard Queries
+   ------------------------------------------------------------------- */
+
+/**
+ * Fetches all users visible to the authenticated token.
+ * Returns id, login, campus, auditRatio, totalUp, totalDown.
+ * The platform exposes all school users via the user table.
+ * @returns {Promise<Array>} List of user records
+ */
+export const fetchAllStudents = async () => {
+	const query = `
+    {
+      user(order_by: { login: asc }) {
+        id
+        login
+        firstName
+        lastName
+        campus
+        auditRatio
+        totalUp
+        totalDown
+      }
+    }
+  `;
+	const data = await graphqlQuery(query);
+	return data.user ?? [];
+};
+
+/**
+ * Fetches total XP and level for a specific student by their userId.
+ * @param {number} userId
+ * @returns {Promise<{totalXP: number, level: number}>}
+ */
+export const fetchStudentXPAndLevel = async (userId) => {
+	const query = `
+    query GetStudentXPAndLevel($userId: Int!) {
+      xp: transaction_aggregate(
+        where: {
+          userId: { _eq: $userId }
+          type: { _eq: "xp" }
+          path: { _nlike: "%piscine%" }
+        }
+      ) {
+        aggregate {
+          sum {
+            amount
+          }
+        }
+      }
+      level: transaction(
+        where: {
+          userId: { _eq: $userId }
+          type: { _eq: "level" }
+          path: { _nlike: "%piscine%" }
+        }
+        order_by: { amount: desc }
+        limit: 1
+      ) {
+        amount
+      }
+    }
+  `;
+	const data = await graphqlQuery(query, { userId });
+	return {
+		totalXP: data.xp?.aggregate?.sum?.amount ?? 0,
+		level: data.level?.[0]?.amount ?? 0,
+	};
+};
+
+/**
+ * Fetches basic info for a specific student by userId.
+ * Same as fetchUserInfo but scoped to a given ID.
+ * @param {number} userId
+ * @returns {Promise<object|null>}
+ */
+export const fetchStudentInfo = async (userId) => {
+	const query = `
+    query GetStudentInfo($userId: Int!) {
+      user(where: { id: { _eq: $userId } }) {
+        id
+        login
+        firstName
+        lastName
+        email
+        campus
+        auditRatio
+        totalUp
+        totalDown
+      }
+    }
+  `;
+	const data = await graphqlQuery(query, { userId });
+	return data.user?.[0] ?? null;
+};

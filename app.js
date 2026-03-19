@@ -17,7 +17,17 @@ import {
 	login,
 	saveToken,
 } from "./api.js";
-import { renderProjectBarChart, renderXPLineChart } from "./graphs.js";
+import {
+	renderAuditDonutChart,
+	renderPassFailPieChart,
+	renderProjectBarChart,
+	renderXPLineChart,
+} from "./graphs.js";
+import {
+	initStudentOverlayClose,
+	initStudentsView,
+	resetStudentsState,
+} from "./students.js";
 
 /* -------------------------------------------------------------------
    DOM References
@@ -36,6 +46,46 @@ const btnLoader = loginBtn?.querySelector(".btn-loader");
 const logoutBtn = $("#logout-btn");
 
 /* -------------------------------------------------------------------
+   Tab Routing
+   ------------------------------------------------------------------- */
+
+/** @type {'dashboard'|'students'} */
+let activeTab = "dashboard";
+
+const tabDashboard = $("#tab-dashboard");
+const tabStudents = $("#tab-students");
+const dashboardPanel = $("#dashboard");
+const studentsPanel = $("#students-view");
+
+/** @param {'dashboard'|'students'} tab */
+const switchTab = (tab) => {
+	activeTab = tab;
+
+	tabDashboard?.classList.toggle("active", tab === "dashboard");
+	tabStudents?.classList.toggle("active", tab === "students");
+	tabDashboard?.setAttribute("aria-selected", String(tab === "dashboard"));
+	tabStudents?.setAttribute("aria-selected", String(tab === "students"));
+
+	if (tab === "dashboard") {
+		dashboardPanel?.classList.add("active");
+		studentsPanel?.setAttribute("hidden", "");
+	} else {
+		dashboardPanel?.classList.remove("active");
+		studentsPanel?.removeAttribute("hidden");
+	}
+};
+
+tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
+tabStudents?.addEventListener("click", () => {
+	switchTab("students");
+	// Lazy-init the students view only once
+	if (!studentsPanel?.dataset.loaded) {
+		studentsPanel.dataset.loaded = "1";
+		initStudentsView();
+	}
+});
+
+/* -------------------------------------------------------------------
    View Routing
    ------------------------------------------------------------------- */
 
@@ -50,6 +100,8 @@ const showLogin = () => {
 	profileView.classList.remove("active");
 	loginView.classList.add("active");
 	loginError.textContent = "";
+	// Reset students panel state on logout
+	switchTab("dashboard");
 };
 
 /* -------------------------------------------------------------------
@@ -95,6 +147,7 @@ logoutBtn?.addEventListener("click", () => {
 	clearToken();
 	// Clear profile data from DOM
 	resetDashboard();
+	resetStudentsState();
 	showLogin();
 	// Prevent back-navigation to profile
 	history.replaceState(null, "", location.pathname);
@@ -139,6 +192,8 @@ const resetDashboard = () => {
 	$("#audit-received-bar").style.width = "0";
 	$("#xp-line-chart").innerHTML = "";
 	$("#project-bar-chart").innerHTML = "";
+	$("#audit-donut-chart").innerHTML = "";
+	$("#passfail-pie-chart").innerHTML = "";
 	$("#skills-list").innerHTML = "";
 	$("#activity-list").innerHTML = "";
 	$("#nav-username").textContent = "";
@@ -167,7 +222,7 @@ const loadDashboard = async () => {
 
 		renderXPSection(xpTransactions, level, progress);
 		renderAuditSection(user);
-		renderGraphs(xpTransactions);
+		renderGraphs(xpTransactions, user, results);
 		renderSkills(skills);
 		renderActivity(results);
 
@@ -253,15 +308,16 @@ const renderAuditSection = (user) => {
 };
 
 /**
- * Renders the SVG graphs section.
+ * Renders all four SVG graphs.
  * @param {Array} transactions
+ * @param {object} user
+ * @param {Array} results
  */
-const renderGraphs = (transactions) => {
-	const lineContainer = $("#xp-line-chart");
-	const barContainer = $("#project-bar-chart");
-
-	renderXPLineChart(lineContainer, transactions);
-	renderProjectBarChart(barContainer, transactions);
+const renderGraphs = (transactions, user, results) => {
+	renderXPLineChart($("#xp-line-chart"), transactions);
+	renderProjectBarChart($("#project-bar-chart"), transactions);
+	renderAuditDonutChart($("#audit-donut-chart"), user.totalUp ?? 0, user.totalDown ?? 0);
+	renderPassFailPieChart($("#passfail-pie-chart"), results);
 };
 
 /**
@@ -383,6 +439,8 @@ const renderActivityItems = (list, items) => {
    ------------------------------------------------------------------- */
 
 const init = () => {
+	initStudentOverlayClose();
+
 	if (isAuthenticated()) {
 		showProfile();
 		loadDashboard();

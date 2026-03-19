@@ -407,3 +407,216 @@ export const renderProjectBarChart = (container, transactions) => {
 
 	container.prepend(svg);
 };
+
+/* -------------------------------------------------------------------
+   GRAPH 3: Donut Chart — Audit Ratio (Done vs Received)
+   ------------------------------------------------------------------- */
+
+/**
+ * Renders an animated donut chart for audit data (bytes done vs bytes received).
+ * @param {HTMLElement} container - The container to render into
+ * @param {number} totalUp - Bytes audited (done by user)
+ * @param {number} totalDown - Bytes received / audited on user
+ */
+export const renderAuditDonutChart = (container, totalUp, totalDown) => {
+	container.innerHTML = "";
+
+	if (!totalUp && !totalDown) {
+		container.textContent = "No audit data available.";
+		return;
+	}
+
+	const width = 320;
+	const height = 320;
+	const cx = width / 2;
+	const cy = height / 2;
+	const outerR = 110;
+	const innerR = 70;
+
+	const total = totalUp + totalDown || 1;
+	const upFrac = totalUp / total;
+	const downFrac = totalDown / total;
+
+	/** @param {number} frac @param {number} startAngle */
+	const sliceCoords = (frac, startAngle) => {
+		const endAngle = startAngle + frac * 2 * Math.PI;
+		const x1 = cx + outerR * Math.cos(startAngle - Math.PI / 2);
+		const y1 = cy + outerR * Math.sin(startAngle - Math.PI / 2);
+		const x2 = cx + outerR * Math.cos(endAngle - Math.PI / 2);
+		const y2 = cy + outerR * Math.sin(endAngle - Math.PI / 2);
+		const ix1 = cx + innerR * Math.cos(endAngle - Math.PI / 2);
+		const iy1 = cy + innerR * Math.sin(endAngle - Math.PI / 2);
+		const ix2 = cx + innerR * Math.cos(startAngle - Math.PI / 2);
+		const iy2 = cy + innerR * Math.sin(startAngle - Math.PI / 2);
+		const largeArc = frac > 0.5 ? 1 : 0;
+		return { x1, y1, x2, y2, ix1, iy1, ix2, iy2, largeArc };
+	};
+
+	const makeSlice = (c, fill, titleText) => {
+		const d = `M ${c.x1} ${c.y1} A ${outerR} ${outerR} 0 ${c.largeArc} 1 ${c.x2} ${c.y2} L ${c.ix1} ${c.iy1} A ${innerR} ${innerR} 0 ${c.largeArc} 0 ${c.ix2} ${c.iy2} Z`;
+		const path = svgEl("path", { d, fill, class: "donut-slice" });
+		const t = svgEl("title");
+		t.textContent = titleText;
+		path.append(t);
+		return path;
+	};
+
+	/** @param {number} bytes @returns {string} */
+	const fmt = (bytes) => {
+		if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
+		if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} kB`;
+		return `${bytes} B`;
+	};
+
+	const svg = svgEl("svg", {
+		viewBox: `0 0 ${width} ${height}`,
+		preserveAspectRatio: "xMidYMid meet",
+		"aria-label": "Audit ratio donut chart",
+		role: "img",
+	});
+
+	const defs = svgEl("defs");
+	const gUp = svgEl("linearGradient", { id: "donut-up", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+	gUp.append(
+		svgEl("stop", { offset: "0%", "stop-color": "#6366f1" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#818cf8" }),
+	);
+	const gDown = svgEl("linearGradient", { id: "donut-down", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+	gDown.append(
+		svgEl("stop", { offset: "0%", "stop-color": "#a855f7" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#c084fc" }),
+	);
+	defs.append(gUp, gDown);
+	svg.append(defs);
+
+	svg.append(makeSlice(sliceCoords(upFrac, 0), "url(#donut-up)", `Done: ${fmt(totalUp)}`));
+	svg.append(makeSlice(sliceCoords(downFrac, upFrac * 2 * Math.PI), "url(#donut-down)", `Received: ${fmt(totalDown)}`));
+
+	// Center label
+	const ratioVal = svgEl("text", {
+		x: cx, y: cy - 10,
+		class: "donut-center-value",
+		"text-anchor": "middle",
+		"dominant-baseline": "middle",
+	});
+	ratioVal.textContent = (totalUp / (totalDown || 1)).toFixed(2);
+	const ratioLbl = svgEl("text", { x: cx, y: cy + 18, class: "donut-center-label", "text-anchor": "middle" });
+	ratioLbl.textContent = "Audit Ratio";
+	svg.append(ratioVal, ratioLbl);
+
+	// Legend
+	[
+		{ color: "#6366f1", label: `Done: ${fmt(totalUp)}` },
+		{ color: "#a855f7", label: `Received: ${fmt(totalDown)}` },
+	].forEach(({ color, label }, i) => {
+		const rect = svgEl("rect", { x: 20, y: height - 50 + i * 22, width: 14, height: 14, rx: 3, fill: color });
+		const text = svgEl("text", { x: 42, y: height - 39 + i * 22, class: "graph-label", "dominant-baseline": "middle" });
+		text.textContent = label;
+		svg.append(rect, text);
+	});
+
+	container.append(svg);
+};
+
+/* -------------------------------------------------------------------
+   GRAPH 4: Pie Chart — Pass / Fail Project Ratio
+   ------------------------------------------------------------------- */
+
+/**
+ * Renders an animated donut-style pie chart for PASS vs FAIL project ratio.
+ * @param {HTMLElement} container - The container to render into
+ * @param {Array<{grade:number, object:{type:string}}>} results - Result records
+ */
+export const renderPassFailPieChart = (container, results) => {
+	container.innerHTML = "";
+
+	const projects = results.filter((r) => r.object?.type === "project");
+	if (!projects.length) {
+		container.textContent = "No project data available.";
+		return;
+	}
+
+	const passed = projects.filter((r) => r.grade >= 1).length;
+	const failed = projects.length - passed;
+	const total = projects.length;
+
+	const width = 320;
+	const height = 320;
+	const cx = width / 2;
+	const cy = height / 2;
+	const outerR = 110;
+	const innerR = 65;
+
+	/** @param {number} frac @param {number} startAngle @returns {string} */
+	const arcPath = (frac, startAngle) => {
+		const endAngle = startAngle + frac * 2 * Math.PI;
+		const x1 = cx + outerR * Math.cos(startAngle - Math.PI / 2);
+		const y1 = cy + outerR * Math.sin(startAngle - Math.PI / 2);
+		const x2 = cx + outerR * Math.cos(endAngle - Math.PI / 2);
+		const y2 = cy + outerR * Math.sin(endAngle - Math.PI / 2);
+		const ix1 = cx + innerR * Math.cos(endAngle - Math.PI / 2);
+		const iy1 = cy + innerR * Math.sin(endAngle - Math.PI / 2);
+		const ix2 = cx + innerR * Math.cos(startAngle - Math.PI / 2);
+		const iy2 = cy + innerR * Math.sin(startAngle - Math.PI / 2);
+		const la = frac > 0.5 ? 1 : 0;
+		return `M ${x1} ${y1} A ${outerR} ${outerR} 0 ${la} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${la} 0 ${ix2} ${iy2} Z`;
+	};
+
+	const svg = svgEl("svg", {
+		viewBox: `0 0 ${width} ${height}`,
+		preserveAspectRatio: "xMidYMid meet",
+		"aria-label": "Pass/Fail ratio pie chart",
+		role: "img",
+	});
+
+	const defs = svgEl("defs");
+	const gPass = svgEl("linearGradient", { id: "pie-pass", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+	gPass.append(
+		svgEl("stop", { offset: "0%", "stop-color": "#34d399" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#6ee7b7" }),
+	);
+	const gFail = svgEl("linearGradient", { id: "pie-fail", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+	gFail.append(
+		svgEl("stop", { offset: "0%", "stop-color": "#f87171" }),
+		svgEl("stop", { offset: "100%", "stop-color": "#fca5a5" }),
+	);
+	defs.append(gPass, gFail);
+	svg.append(defs);
+
+	const passFrac = passed / total;
+	const failFrac = failed / total;
+
+	if (passFrac > 0) {
+		const passPath = svgEl("path", { d: arcPath(passFrac, 0), fill: "url(#pie-pass)", class: "donut-slice" });
+		const t = svgEl("title"); t.textContent = `Passed: ${passed}`;
+		passPath.append(t);
+		svg.append(passPath);
+	}
+	if (failFrac > 0) {
+		const failPath = svgEl("path", { d: arcPath(failFrac, passFrac * 2 * Math.PI), fill: "url(#pie-fail)", class: "donut-slice" });
+		const t = svgEl("title"); t.textContent = `Failed: ${failed}`;
+		failPath.append(t);
+		svg.append(failPath);
+	}
+
+	// Center text
+	const pct = Math.round(passFrac * 100);
+	const centerVal = svgEl("text", { x: cx, y: cy - 10, class: "donut-center-value", "text-anchor": "middle", "dominant-baseline": "middle" });
+	centerVal.textContent = `${pct}%`;
+	const centerLbl = svgEl("text", { x: cx, y: cy + 18, class: "donut-center-label", "text-anchor": "middle" });
+	centerLbl.textContent = "Pass Rate";
+	svg.append(centerVal, centerLbl);
+
+	// Legend
+	[
+		{ color: "#34d399", label: `Passed: ${passed}` },
+		{ color: "#f87171", label: `Failed: ${failed}` },
+	].forEach(({ color, label }, i) => {
+		const rect = svgEl("rect", { x: 20, y: height - 50 + i * 22, width: 14, height: 14, rx: 3, fill: color });
+		const text = svgEl("text", { x: 42, y: height - 39 + i * 22, class: "graph-label", "dominant-baseline": "middle" });
+		text.textContent = label;
+		svg.append(rect, text);
+	});
+
+	container.append(svg);
+};

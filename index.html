@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="GraphQL Profile Dashboard — Interactive school progression viewer with SVG statistics">
+  <meta name="description" content="GraphQL Profile Dashboard — Interactive school progression viewer with SVG statistics and student leaderboard">
   <title>GraphQL Profile</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -96,6 +96,24 @@
             </svg>
             <span>GraphQL Profile</span>
           </div>
+          <nav class="nav-tabs" aria-label="Main navigation">
+            <button id="tab-dashboard" class="nav-tab active" type="button" aria-selected="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              Dashboard
+            </button>
+            <button id="tab-students" class="nav-tab" type="button" aria-selected="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Students
+            </button>
+          </nav>
           <div class="nav-actions">
             <span id="nav-username" class="nav-user"></span>
             <button id="logout-btn" class="btn-logout" type="button">
@@ -111,8 +129,8 @@
         </div>
       </nav>
 
-      <!-- Dashboard Content -->
-      <main id="dashboard" class="dashboard">
+      <!-- Dashboard Tab Content -->
+      <main id="dashboard" class="dashboard tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
         <!-- Section 1: User Identification -->
         <div class="card glass user-card" id="section-user">
           <div class="card-header">
@@ -198,6 +216,16 @@
               <h3>XP by Project</h3>
               <div class="graph-svg-container" id="project-bar-chart"></div>
             </div>
+            <!-- Bonus Graph 3: Audit Donut -->
+            <div class="graph-panel" id="graph-audit-donut">
+              <h3>Audit Distribution</h3>
+              <div class="graph-svg-container graph-svg-donut" id="audit-donut-chart"></div>
+            </div>
+            <!-- Bonus Graph 4: Pass/Fail Pie -->
+            <div class="graph-panel" id="graph-passfail">
+              <h3>Pass / Fail Rate</h3>
+              <div class="graph-svg-container graph-svg-donut" id="passfail-pie-chart"></div>
+            </div>
           </div>
         </div>
 
@@ -217,7 +245,95 @@
           <div class="activity-list" id="activity-list"></div>
         </div>
       </main>
+
+      <!-- Students Tab Content -->
+      <div id="students-view" class="tab-panel" role="tabpanel" aria-labelledby="tab-students" hidden>
+        <div class="students-container">
+          <!-- Controls -->
+          <div class="students-controls card glass">
+            <div class="students-controls-left">
+              <h2 class="students-title">Students Leaderboard</h2>
+              <span id="students-count" class="students-count"></span>
+            </div>
+            <div class="students-controls-right">
+              <div class="search-wrap">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="search-icon" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="search"
+                  id="students-search"
+                  class="students-search"
+                  placeholder="Search by name or login…"
+                  aria-label="Search students"
+                >
+              </div>
+              <select id="campus-filter" class="campus-select" aria-label="Filter by campus">
+                <option value="">All campuses</option>
+              </select>
+              <button id="students-reset" class="btn-reset" type="button" title="Reset filters">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div id="students-loading" class="students-loading" hidden>
+            <svg class="spinner" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+            </svg>
+            <p>Loading students…</p>
+          </div>
+
+          <!-- Table -->
+          <div id="students-table-wrap" class="students-table-wrap card glass" hidden>
+            <table class="students-table" role="grid" aria-label="Students leaderboard">
+              <thead>
+                <tr>
+                  <th class="th-rank" scope="col">#</th>
+                  <th class="th-sortable th-name" scope="col" data-sort="login" tabindex="0" role="columnheader" aria-sort="none">
+                    Student <span class="sort-indicator" aria-hidden="true">⇅</span>
+                  </th>
+                  <th scope="col" class="th-campus">Campus</th>
+                  <th class="th-sortable th-level" scope="col" data-sort="level" tabindex="0" role="columnheader" aria-sort="descending">
+                    Level <span class="sort-indicator" aria-hidden="true">↓</span>
+                  </th>
+                  <th class="th-sortable th-xp" scope="col" data-sort="totalXP" tabindex="0" role="columnheader" aria-sort="none">
+                    Total XP <span class="sort-indicator" aria-hidden="true">⇅</span>
+                  </th>
+                  <th class="th-sortable th-ratio" scope="col" data-sort="auditRatio" tabindex="0" role="columnheader" aria-sort="none">
+                    Audit Ratio <span class="sort-indicator" aria-hidden="true">⇅</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="students-tbody" aria-live="polite"></tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <nav id="students-pagination" class="students-pagination" aria-label="Students pagination"></nav>
+        </div>
+      </div>
     </section>
+
+    <!-- Student Profile Overlay -->
+    <div id="student-profile-overlay" class="student-profile-overlay" role="dialog" aria-modal="true" aria-label="Student profile">
+      <div class="student-profile-modal glass">
+        <div class="student-profile-modal-header">
+          <h2>Student Profile</h2>
+          <button id="student-profile-close" class="modal-close-btn" type="button" aria-label="Close profile">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div id="student-profile-content" class="student-profile-content"></div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="app.js"></script>

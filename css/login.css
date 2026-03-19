@@ -1,0 +1,167 @@
+/* ===================================================================
+   LOGIN — Login view, card, form, background orbs
+   =================================================================== */
+
+.login-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	padding: var(--space-xl);
+	position: relative;
+	overflow: hidden;
+}
+
+.login-card {
+	width: 100%;
+	max-width: 420px;
+	padding: var(--space-2xl);
+	border-radius: var(--radius-xl);
+	position: relative;
+	z-index: 2;
+	animation: cardAppear 0.6s var(--transition-base) both;
+}
+
+@keyframes cardAppear {
+	from { opacity: 0; transform: translateY(30px) scale(0.96); }
+	to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-header {
+	text-align: center;
+	margin-bottom: var(--space-2xl);
+}
+
+.logo-mark {
+	margin-bottom: var(--space-md);
+	display: inline-block;
+	animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+	0%, 100% { transform: translateY(0); }
+	50%       { transform: translateY(-6px); }
+}
+
+.login-header h1 {
+	font-size: var(--font-2xl);
+	font-weight: 700;
+	background: var(--accent-gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	margin-bottom: var(--space-xs);
+}
+
+.login-header .subtitle {
+	color: var(--text-secondary);
+	font-size: var(--font-sm);
+}
+
+/* Form */
+.input-group { margin-bottom: var(--space-lg); }
+
+.input-group label {
+	display: block;
+	font-size: var(--font-sm);
+	font-weight: 500;
+	color: var(--text-secondary);
+	margin-bottom: var(--space-sm);
+}
+
+.input-group input {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-family: var(--font-family);
+	font-size: var(--font-base);
+	transition:
+		border-color var(--transition-fast),
+		box-shadow var(--transition-fast);
+	outline: none;
+}
+
+.input-group input::placeholder { color: var(--text-muted); }
+
+.input-group input:focus {
+	border-color: var(--accent-start);
+	box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.error-message {
+	color: var(--danger);
+	font-size: var(--font-sm);
+	min-height: 1.25rem;
+	margin-bottom: var(--space-sm);
+	text-align: center;
+	transition: opacity var(--transition-fast);
+}
+
+/* Buttons */
+.btn-primary {
+	width: 100%;
+	padding: 0.8rem;
+	background: var(--accent-gradient);
+	color: white;
+	border: none;
+	border-radius: var(--radius-md);
+	font-family: var(--font-family);
+	font-size: var(--font-base);
+	font-weight: 600;
+	cursor: pointer;
+	position: relative;
+	overflow: hidden;
+	transition:
+		transform var(--transition-fast),
+		box-shadow var(--transition-fast);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-sm);
+}
+
+.btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 6px 24px rgba(14, 165, 233, 0.35);
+}
+
+.btn-primary:active  { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* Background orbs */
+.login-bg-orb {
+	position: absolute;
+	border-radius: 50%;
+	filter: blur(80px);
+	opacity: 0.28;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.orb-1 {
+	width: 400px; height: 400px;
+	background: var(--accent-start);
+	top: -100px; right: -100px;
+	animation: orbFloat 8s ease-in-out infinite;
+}
+.orb-2 {
+	width: 300px; height: 300px;
+	background: var(--accent-end);
+	bottom: -80px; left: -80px;
+	animation: orbFloat 10s ease-in-out infinite reverse;
+}
+.orb-3 {
+	width: 200px; height: 200px;
+	background: #0d9488;
+	top: 50%; left: 60%;
+	animation: orbFloat 12s ease-in-out infinite;
+}
+
+@keyframes orbFloat {
+	0%, 100% { transform: translate(0, 0) scale(1); }
+	33%       { transform: translate(30px, -20px) scale(1.05); }
+	66%       { transform: translate(-20px, 20px) scale(0.95); }
+}
