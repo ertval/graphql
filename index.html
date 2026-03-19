@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GraphQL Profile Dashboard — Interactive school progression viewer with SVG statistics">
+  <title>GraphQL Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login View -->
+    <section id="login-view" class="view active">
+      <div class="login-container">
+        <div class="login-card glass">
+          <div class="login-header">
+            <div class="logo-mark">
+              <svg viewBox="0 0 48 48" width="48" height="48" fill="none" aria-labelledby="logo-title">
+                <title id="logo-title">GraphQL Profile Logo</title>
+                <circle cx="24" cy="24" r="22" stroke="url(#logo-grad)" stroke-width="3"/>
+                <path d="M16 28 L22 18 L28 28 M19 24 H25" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M28 20 Q34 20 34 26 Q34 32 28 32" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <defs>
+                  <linearGradient id="logo-grad" x1="0" y1="0" x2="48" y2="48">
+                    <stop offset="0%" stop-color="#6366f1"/>
+                    <stop offset="100%" stop-color="#a855f7"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <h1>GraphQL Profile</h1>
+            <p class="subtitle">Sign in to view your school progression</p>
+          </div>
+
+          <form id="login-form" autocomplete="on">
+            <div class="input-group">
+              <label for="identifier">Username or Email</label>
+              <input
+                type="text"
+                id="identifier"
+                name="identifier"
+                placeholder="Enter your username or email"
+                required
+                autocomplete="username"
+              >
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                required
+                autocomplete="current-password"
+              >
+            </div>
+            <div id="login-error" class="error-message" role="alert" aria-live="polite"></div>
+            <button type="submit" id="login-btn" class="btn-primary">
+              <span class="btn-text">Sign In</span>
+              <span class="btn-loader" hidden>
+                <svg class="spinner" viewBox="0 0 24 24" width="20" height="20" aria-labelledby="spinner-title">
+                  <title id="spinner-title">Loading</title>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+                </svg>
+              </span>
+            </button>
+          </form>
+        </div>
+        <div class="login-bg-orb orb-1"></div>
+        <div class="login-bg-orb orb-2"></div>
+        <div class="login-bg-orb orb-3"></div>
+      </div>
+    </section>
+
+    <!-- Profile View -->
+    <section id="profile-view" class="view">
+      <!-- Top Navigation -->
+      <nav id="top-nav" class="glass-nav">
+        <div class="nav-inner">
+          <div class="nav-brand">
+            <svg viewBox="0 0 32 32" width="28" height="28" fill="none" aria-labelledby="nav-logo-title">
+              <title id="nav-logo-title">GraphQL Profile</title>
+              <circle cx="16" cy="16" r="14" stroke="url(#nav-grad)" stroke-width="2"/>
+              <path d="M11 20 L15 12 L19 20 M13 17 H17" stroke="url(#nav-grad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 14 Q23 14 23 18 Q23 22 19 22" stroke="url(#nav-grad)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+              <defs>
+                <linearGradient id="nav-grad" x1="0" y1="0" x2="32" y2="32">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span>GraphQL Profile</span>
+          </div>
+          <div class="nav-actions">
+            <span id="nav-username" class="nav-user"></span>
+            <button id="logout-btn" class="btn-logout" type="button">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-labelledby="logout-icon-title">
+                <title id="logout-icon-title">Log Out</title>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Log Out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Dashboard Content -->
+      <main id="dashboard" class="dashboard">
+        <!-- Section 1: User Identification -->
+        <div class="card glass user-card" id="section-user">
+          <div class="card-header">
+            <h2>User Profile</h2>
+          </div>
+          <div class="user-info">
+            <div class="avatar-ring" id="user-avatar">
+              <span id="avatar-initials"></span>
+            </div>
+            <div class="user-details">
+              <h3 id="user-fullname" class="user-name"></h3>
+              <p id="user-login" class="user-login"></p>
+              <p id="user-email" class="user-email"></p>
+              <p id="user-campus" class="user-campus"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: XP & Level -->
+        <div class="card glass xp-card" id="section-xp">
+          <div class="card-header">
+            <h2>Experience Points</h2>
+          </div>
+          <div class="xp-stats">
+            <div class="stat-block">
+              <span class="stat-value" id="total-xp">—</span>
+              <span class="stat-label">Total XP</span>
+            </div>
+            <div class="stat-block">
+              <span class="stat-value" id="user-level">—</span>
+              <span class="stat-label">Level</span>
+            </div>
+            <div class="stat-block">
+              <span class="stat-value" id="completed-projects">—</span>
+              <span class="stat-label">Projects Done</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Audit Ratio -->
+        <div class="card glass audit-card" id="section-audit">
+          <div class="card-header">
+            <h2>Audit Ratio</h2>
+          </div>
+          <div class="audit-stats">
+            <div class="audit-ratio-display">
+              <span class="ratio-number" id="audit-ratio">—</span>
+            </div>
+            <div class="audit-bars">
+              <div class="audit-bar-group">
+                <div class="audit-bar-label">
+                  <span>Done</span>
+                  <span id="audit-done-value" class="audit-value"></span>
+                </div>
+                <div class="audit-bar-track">
+                  <div class="audit-bar-fill done" id="audit-done-bar"></div>
+                </div>
+              </div>
+              <div class="audit-bar-group">
+                <div class="audit-bar-label">
+                  <span>Received</span>
+                  <span id="audit-received-value" class="audit-value"></span>
+                </div>
+                <div class="audit-bar-track">
+                  <div class="audit-bar-fill received" id="audit-received-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Statistics Graphs -->
+        <div class="card glass graph-card full-width" id="section-graphs">
+          <div class="card-header">
+            <h2>Statistics</h2>
+          </div>
+          <div class="graphs-container">
+            <div class="graph-panel" id="graph-xp-over-time">
+              <h3>XP Progress Over Time</h3>
+              <div class="graph-svg-container" id="xp-line-chart"></div>
+            </div>
+            <div class="graph-panel" id="graph-project-xp">
+              <h3>XP by Project</h3>
+              <div class="graph-svg-container" id="project-bar-chart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bonus: Skills Radar / Additional Info -->
+        <div class="card glass skills-card" id="section-skills">
+          <div class="card-header">
+            <h2>Top Skills</h2>
+          </div>
+          <div class="skills-list" id="skills-list"></div>
+        </div>
+
+        <!-- Bonus: Recent Activity -->
+        <div class="card glass activity-card" id="section-activity">
+          <div class="card-header">
+            <h2>Recent Projects</h2>
+          </div>
+          <div class="activity-list" id="activity-list"></div>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
