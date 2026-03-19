@@ -2,7 +2,9 @@
    BASE — Reset, Body, Utilities
    =================================================================== */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
 	margin: 0;
 	padding: 0;
 	box-sizing: border-box;
@@ -45,11 +47,17 @@ body {
 }
 
 /* --- View Switcher --- */
-.view { display: none; }
-.view.active { display: block; }
+.view {
+	display: none;
+}
+.view.active {
+	display: block;
+}
 
 /* --- Tab Panels --- */
-.tab-panel { display: none; }
+.tab-panel {
+	display: none;
+}
 
 .tab-panel.active {
 	display: block;
@@ -59,9 +67,12 @@ body {
 /* Dashboard gets its own grid inside tab-panel */
 #dashboard.tab-panel.active {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(4, 1fr);
+	grid-template-areas:
+		"user xp audit skills"
+		"graphs graphs graphs activity";
 	gap: var(--space-xl);
-	max-width: 1280px;
+	max-width: 1400px;
 	margin: 0 auto;
 	padding: var(--space-xl);
 }
@@ -111,17 +122,29 @@ body {
 
 /* --- Keyframes --- */
 @keyframes fadeUp {
-	from { opacity: 0; transform: translateY(20px); }
-	to   { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @keyframes shimmer {
-	0%   { background-position:  200% 0; }
-	100% { background-position: -200% 0; }
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 @keyframes spin {
-	to { transform: rotate(360deg); }
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .spinner {

@@ -3,6 +3,9 @@
    =================================================================== */
 
 /* ── User Card ── */
+.user-card {
+	grid-area: user;
+}
 .user-info {
 	display: flex;
 	align-items: center;
@@ -44,6 +47,9 @@
 }
 
 /* ── XP Card ── */
+.xp-card {
+	grid-area: xp;
+}
 .xp-stats {
 	display: flex;
 	gap: var(--space-xl);
@@ -80,6 +86,9 @@
 }
 
 /* ── Audit Card ── */
+.audit-card {
+	grid-area: audit;
+}
 .audit-stats {
 	display: flex;
 	align-items: center;
@@ -135,10 +144,17 @@
 	width: 0;
 }
 
-.audit-bar-fill.done     { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
-.audit-bar-fill.received { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+.audit-bar-fill.done {
+	background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+}
+.audit-bar-fill.received {
+	background: linear-gradient(90deg, #06b6d4, #22d3ee);
+}
 
 /* ── Graphs Section ── (two grouped columns) ── */
+#section-graphs {
+	grid-area: graphs;
+}
 .graphs-container {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -178,6 +194,9 @@
 }
 
 /* ── Skills (Bonus) ── */
+#section-skills {
+	grid-area: skills;
+}
 .skills-list {
 	display: flex;
 	flex-direction: column;
@@ -221,6 +240,9 @@
 }
 
 /* ── Recent Activity (Bonus) ── */
+#section-activity {
+	grid-area: activity;
+}
 .activity-list {
 	display: flex;
 	flex-direction: column;
@@ -368,7 +390,9 @@
 	border-radius: var(--radius-md);
 }
 
-.pd-stat .stat-value { font-size: var(--font-xl); }
+.pd-stat .stat-value {
+	font-size: var(--font-xl);
+}
 
 .pd-path {
 	margin-top: var(--space-md);
@@ -385,10 +409,11 @@
 @media (max-width: 1024px) {
 	#dashboard.tab-panel.active {
 		grid-template-columns: 1fr 1fr;
-	}
-
-	.user-card {
-		grid-column: 1 / -1;
+		grid-template-areas:
+			"user user"
+			"xp audit"
+			"skills activity"
+			"graphs graphs";
 	}
 
 	.graphs-container {
@@ -399,10 +424,24 @@
 @media (max-width: 768px) {
 	#dashboard.tab-panel.active {
 		grid-template-columns: 1fr;
+		grid-template-areas:
+			"user"
+			"xp"
+			"audit"
+			"skills"
+			"graphs"
+			"activity";
 		padding: var(--space-md);
 	}
 
-	.user-info     { flex-direction: column; text-align: center; }
-	.audit-stats   { flex-direction: column; }
-	.xp-stats      { flex-direction: column; }
+	.user-info {
+		flex-direction: column;
+		text-align: center;
+	}
+	.audit-stats {
+		flex-direction: column;
+	}
+	.xp-stats {
+		flex-direction: column;
+	}
 }

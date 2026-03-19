@@ -56,7 +56,9 @@
 	stroke-linejoin: round;
 }
 
-.line-area { fill: url(#area-gradient); }
+.line-area {
+	fill: url(#area-gradient);
+}
 
 .line-dot {
 	fill: var(--accent-start);
@@ -66,7 +68,9 @@
 	transition: r 150ms ease;
 }
 
-.line-dot:hover { r: 6; }
+.line-dot:hover {
+	r: 6;
+}
 
 /* ── Bar Chart ── */
 .bar-rect {
@@ -76,7 +80,9 @@
 	transition: opacity 150ms ease;
 }
 
-.bar-rect:hover { opacity: 0.85; }
+.bar-rect:hover {
+	opacity: 0.85;
+}
 
 /* ── Donut / Pie ── */
 .donut-slice {

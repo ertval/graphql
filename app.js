@@ -17,32 +17,28 @@ import {
 	login,
 	saveToken,
 } from "./api.js";
+import { initCollaborationsView, resetCollabsState } from "./collaborations.js";
 import {
 	renderAuditDonutChart,
 	renderPassFailPieChart,
 	renderProjectBarChart,
 	renderXPLineChart,
 } from "./graphs.js";
-import {
-	initStudentOverlayClose,
-	initStudentsView,
-	resetStudentsState,
-} from "./students.js";
 
 /* -------------------------------------------------------------------
    DOM References
    ------------------------------------------------------------------- */
 const $ = (sel) => document.querySelector(sel);
 
-const loginView  = $("#login-view");
+const loginView = $("#login-view");
 const profileView = $("#profile-view");
 
-const loginForm  = $("#login-form");
+const loginForm = $("#login-form");
 const loginError = $("#login-error");
-const loginBtn   = $("#login-btn");
-const btnText    = loginBtn?.querySelector(".btn-text");
-const btnLoader  = loginBtn?.querySelector(".btn-loader");
-const logoutBtn  = $("#logout-btn");
+const loginBtn = $("#login-btn");
+const btnText = loginBtn?.querySelector(".btn-text");
+const btnLoader = loginBtn?.querySelector(".btn-loader");
+const logoutBtn = $("#logout-btn");
 
 /* -------------------------------------------------------------------
    Module-level state (needed for project detail cross-reference)
@@ -54,6 +50,9 @@ let _xpTransactions = [];
 /** @type {Array<{grade:number, createdAt:string, object:{name:string,type:string}}>} */
 let _results = [];
 
+/** @type {number|null} */
+let _userId = null;
+
 /* -------------------------------------------------------------------
    Tab Routing
    ------------------------------------------------------------------- */
@@ -61,36 +60,35 @@ let _results = [];
 /** @type {'dashboard'|'students'} */
 let activeTab = "dashboard";
 
-const tabDashboard  = $("#tab-dashboard");
-const tabStudents   = $("#tab-students");
+const tabDashboard = $("#tab-dashboard");
+const tabCollabs = $("#tab-collaborations");
 const dashboardPanel = $("#dashboard");
-const studentsPanel  = $("#students-view");
+const collabsPanel = $("#collaborations-view");
 
-/** @param {'dashboard'|'students'} tab */
+/** @param {'dashboard'|'collabs'} tab */
 const switchTab = (tab) => {
 	activeTab = tab;
 
 	tabDashboard?.classList.toggle("active", tab === "dashboard");
-	tabStudents?.classList.toggle("active", tab === "students");
+	tabCollabs?.classList.toggle("active", tab === "collabs");
 	tabDashboard?.setAttribute("aria-selected", String(tab === "dashboard"));
-	tabStudents?.setAttribute("aria-selected", String(tab === "students"));
+	tabCollabs?.setAttribute("aria-selected", String(tab === "collabs"));
 
 	if (tab === "dashboard") {
 		dashboardPanel?.classList.add("active");
-		studentsPanel?.classList.remove("active");
+		collabsPanel?.classList.remove("active");
 	} else {
 		dashboardPanel?.classList.remove("active");
-		studentsPanel?.classList.add("active");
+		collabsPanel?.classList.add("active");
 	}
 };
 
 tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
-tabStudents?.addEventListener("click", () => {
-	switchTab("students");
-	// Lazy-init the students view only on first visit
-	if (!studentsPanel?.dataset.loaded) {
-		studentsPanel.dataset.loaded = "1";
-		initStudentsView();
+tabCollabs?.addEventListener("click", () => {
+	switchTab("collabs");
+	if (!collabsPanel?.dataset.loaded) {
+		collabsPanel.dataset.loaded = "1";
+		if (_userId) initCollaborationsView(_userId);
 	}
 });
 
@@ -119,16 +117,16 @@ loginForm?.addEventListener("submit", async (e) => {
 	loginError.textContent = "";
 
 	const identifier = $("#identifier").value.trim();
-	const password   = $("#password").value;
+	const password = $("#password").value;
 
 	if (!identifier || !password) {
 		loginError.textContent = "Please fill in all fields.";
 		return;
 	}
 
-	loginBtn.disabled  = true;
-	btnText.hidden     = true;
-	btnLoader.hidden   = false;
+	loginBtn.disabled = true;
+	btnText.hidden = true;
+	btnLoader.hidden = false;
 
 	try {
 		const token = await login(identifier, password);
@@ -138,9 +136,9 @@ loginForm?.addEventListener("submit", async (e) => {
 	} catch (err) {
 		loginError.textContent = err.message;
 	} finally {
-		loginBtn.disabled  = false;
-		btnText.hidden     = false;
-		btnLoader.hidden   = true;
+		loginBtn.disabled = false;
+		btnText.hidden = false;
+		btnLoader.hidden = true;
 	}
 });
 
@@ -151,7 +149,7 @@ loginForm?.addEventListener("submit", async (e) => {
 logoutBtn?.addEventListener("click", () => {
 	clearToken();
 	resetDashboard();
-	resetStudentsState();
+	resetCollabsState();
 	showLogin();
 	history.replaceState(null, "", location.pathname);
 });
@@ -171,33 +169,34 @@ globalThis.addEventListener("popstate", () => {
  */
 const formatXP = (bytes) => {
 	if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
-	if (bytes >= 1_000)     return `${(bytes / 1_000).toFixed(1)} kB`;
+	if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} kB`;
 	return `${bytes} B`;
 };
 
 const resetDashboard = () => {
-	$("#avatar-initials").textContent  = "";
-	$("#user-fullname").textContent    = "";
-	$("#user-login").textContent       = "";
-	$("#user-email").textContent       = "";
-	$("#user-campus").textContent      = "";
-	$("#total-xp").textContent         = "—";
-	$("#user-level").textContent       = "—";
+	$("#avatar-initials").textContent = "";
+	$("#user-fullname").textContent = "";
+	$("#user-login").textContent = "";
+	$("#user-email").textContent = "";
+	$("#user-campus").textContent = "";
+	$("#total-xp").textContent = "—";
+	$("#user-level").textContent = "—";
 	$("#completed-projects").textContent = "—";
-	$("#audit-ratio").textContent      = "—";
+	$("#audit-ratio").textContent = "—";
 	$("#audit-done-value").textContent = "";
 	$("#audit-received-value").textContent = "";
-	$("#audit-done-bar").style.width   = "0";
+	$("#audit-done-bar").style.width = "0";
 	$("#audit-received-bar").style.width = "0";
-	$("#xp-line-chart").innerHTML      = "";
-	$("#project-bar-chart").innerHTML  = "";
-	$("#audit-donut-chart").innerHTML  = "";
+	$("#xp-line-chart").innerHTML = "";
+	$("#project-bar-chart").innerHTML = "";
+	$("#audit-donut-chart").innerHTML = "";
 	$("#passfail-pie-chart").innerHTML = "";
-	$("#skills-list").innerHTML        = "";
-	$("#activity-list").innerHTML      = "";
-	$("#nav-username").textContent     = "";
+	$("#skills-list").innerHTML = "";
+	$("#activity-list").innerHTML = "";
+	$("#nav-username").textContent = "";
 	_xpTransactions = [];
 	_results = [];
+	_userId = null;
 };
 
 const loadDashboard = async () => {
@@ -219,10 +218,11 @@ const loadDashboard = async () => {
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;
 		_results = results;
+		_userId = user.id;
 
 		renderXPSection(xpTransactions, level, progress);
 		renderAuditSection(user);
-		renderGraphs(xpTransactions, user, results);
+		renderGraphs(xpTransactions, user, progress);
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
@@ -233,7 +233,10 @@ const loadDashboard = async () => {
 		}
 	} catch (err) {
 		console.error("Dashboard loading error:", err);
-		if (err.message.includes("Session expired") || err.message.includes("Not authenticated")) {
+		if (
+			err.message.includes("Session expired") ||
+			err.message.includes("Not authenticated")
+		) {
 			clearToken();
 			showLogin();
 		}
@@ -248,7 +251,8 @@ const loadDashboard = async () => {
 const renderUserSection = (user) => {
 	const initials =
 		`${(user.firstName?.[0] ?? "").toUpperCase()}${(user.lastName?.[0] ?? "").toUpperCase()}` ||
-		user.login?.[0]?.toUpperCase() || "?";
+		user.login?.[0]?.toUpperCase() ||
+		"?";
 
 	$("#avatar-initials").textContent = initials;
 	$("#user-fullname").textContent =
@@ -270,24 +274,24 @@ const renderXPSection = (transactions, level, progress) => {
 		(p) => p.grade >= 1 && p.object?.type === "project",
 	).length;
 
-	$("#total-xp").textContent          = formatXP(totalXP);
-	$("#user-level").textContent        = String(level);
+	$("#total-xp").textContent = formatXP(totalXP);
+	$("#user-level").textContent = String(level);
 	$("#completed-projects").textContent = String(completedProjects);
 };
 
 /** @param {object} user */
 const renderAuditSection = (user) => {
-	const ratio     = user.auditRatio ?? 0;
-	const totalUp   = user.totalUp   ?? 0;
+	const ratio = user.auditRatio ?? 0;
+	const totalUp = user.totalUp ?? 0;
 	const totalDown = user.totalDown ?? 0;
-	const maxAudit  = Math.max(totalUp, totalDown, 1);
+	const maxAudit = Math.max(totalUp, totalDown, 1);
 
-	$("#audit-ratio").textContent          = ratio.toFixed(1);
-	$("#audit-done-value").textContent     = formatXP(totalUp);
+	$("#audit-ratio").textContent = ratio.toFixed(1);
+	$("#audit-done-value").textContent = formatXP(totalUp);
 	$("#audit-received-value").textContent = formatXP(totalDown);
 
 	requestAnimationFrame(() => {
-		$("#audit-done-bar").style.width     = `${(totalUp   / maxAudit) * 100}%`;
+		$("#audit-done-bar").style.width = `${(totalUp / maxAudit) * 100}%`;
 		$("#audit-received-bar").style.width = `${(totalDown / maxAudit) * 100}%`;
 	});
 };
@@ -295,13 +299,17 @@ const renderAuditSection = (user) => {
 /**
  * @param {Array} transactions
  * @param {object} user
- * @param {Array} results
+ * @param {Array} progress
  */
-const renderGraphs = (transactions, user, results) => {
-	renderXPLineChart(    $("#xp-line-chart"),     transactions);
+const renderGraphs = (transactions, user, progress) => {
+	renderXPLineChart($("#xp-line-chart"), transactions);
 	renderProjectBarChart($("#project-bar-chart"), transactions);
-	renderAuditDonutChart($("#audit-donut-chart"), user.totalUp ?? 0, user.totalDown ?? 0);
-	renderPassFailPieChart($("#passfail-pie-chart"), results);
+	renderAuditDonutChart(
+		$("#audit-donut-chart"),
+		user.totalUp ?? 0,
+		user.totalDown ?? 0,
+	);
+	renderPassFailPieChart($("#passfail-pie-chart"), progress);
 };
 
 /** @param {Array} skills */
@@ -310,7 +318,8 @@ const renderSkills = (skills) => {
 	list.innerHTML = "";
 
 	if (!skills.length) {
-		list.innerHTML = '<p style="color:var(--text-muted);font-size:0.875rem">No skill data available.</p>';
+		list.innerHTML =
+			'<p style="color:var(--text-muted);font-size:0.875rem">No skill data available.</p>';
 		return;
 	}
 
@@ -321,7 +330,9 @@ const renderSkills = (skills) => {
 		if (!existing || s.amount > existing) skillMap.set(name, s.amount);
 	}
 
-	const topSkills = [...skillMap.entries()].toSorted(([, a], [, b]) => b - a).slice(0, 8);
+	const topSkills = [...skillMap.entries()]
+		.toSorted(([, a], [, b]) => b - a)
+		.slice(0, 8);
 	const maxAmount = Math.max(...topSkills.map(([, v]) => v));
 
 	for (const [name, amount] of topSkills) {
@@ -336,7 +347,8 @@ const renderSkills = (skills) => {
     `;
 		list.append(item);
 		requestAnimationFrame(() => {
-			item.querySelector(".skill-bar-fill").style.width = `${(amount / maxAmount) * 100}%`;
+			item.querySelector(".skill-bar-fill").style.width =
+				`${(amount / maxAmount) * 100}%`;
 		});
 	}
 };
@@ -359,7 +371,8 @@ const renderActivity = (results, xpTransactions) => {
 		: results.filter((r) => r.object?.name).slice(0, 10);
 
 	if (!items.length) {
-		list.innerHTML = '<p style="color:var(--text-muted);font-size:0.875rem">No recent activity.</p>';
+		list.innerHTML =
+			'<p style="color:var(--text-muted);font-size:0.875rem">No recent activity.</p>';
 		return;
 	}
 
@@ -380,20 +393,29 @@ const renderActivity = (results, xpTransactions) => {
  */
 const renderActivityItems = (list, items, xpByName) => {
 	for (const result of items) {
-		const passed  = result.grade >= 1;
+		const passed = result.grade >= 1;
 		const dateStr = (() => {
 			try {
 				const instant = Temporal.Instant.from(result.createdAt);
 				const zdt = instant.toZonedDateTimeISO(Temporal.Now.timeZoneId());
-				return zdt.toLocaleString("en", { month: "short", day: "numeric", year: "numeric" });
-			} catch { return ""; }
+				return zdt.toLocaleString("en", {
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				});
+			} catch {
+				return "";
+			}
 		})();
 
 		const item = document.createElement("div");
 		item.className = "activity-item";
 		item.setAttribute("role", "button");
 		item.setAttribute("tabindex", "0");
-		item.setAttribute("aria-label", `View details for ${result.object?.name ?? "project"}`);
+		item.setAttribute(
+			"aria-label",
+			`View details for ${result.object?.name ?? "project"}`,
+		);
 
 		item.innerHTML = `
       <span class="activity-name">${result.object?.name ?? "Unknown"}</span>
@@ -406,7 +428,10 @@ const renderActivityItems = (list, items, xpByName) => {
 		const open = () => openProjectDetail(result, xpByName);
 		item.addEventListener("click", open);
 		item.addEventListener("keydown", (e) => {
-			if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				open();
+			}
 		});
 
 		list.append(item);
@@ -425,18 +450,21 @@ const renderActivityItems = (list, items, xpByName) => {
 const openProjectDetail = (result, xpByName) => {
 	const overlay = $("#project-detail-overlay");
 	const content = $("#project-detail-content");
-	const title   = $("#pd-title");
+	const title = $("#pd-title");
 	if (!overlay || !content) return;
 
-	const name    = result.object?.name ?? "Unknown Project";
-	const passed  = result.grade >= 1;
-	const xp      = xpByName.get(name) ?? 0;
+	const name = result.object?.name ?? "Unknown Project";
+	const passed = result.grade >= 1;
+	const xp = xpByName.get(name) ?? 0;
 	const dateStr = (() => {
 		try {
-			const zdt = Temporal.Instant.from(result.createdAt)
-				.toZonedDateTimeISO(Temporal.Now.timeZoneId());
+			const zdt = Temporal.Instant.from(result.createdAt).toZonedDateTimeISO(
+				Temporal.Now.timeZoneId(),
+			);
 			return zdt.toLocaleString("en", { dateStyle: "long" });
-		} catch { return "—"; }
+		} catch {
+			return "—";
+		}
 	})();
 
 	title.textContent = name;
@@ -469,14 +497,40 @@ const openProjectDetail = (result, xpByName) => {
 };
 
 const initProjectDetailClose = () => {
-	const overlay   = $("#project-detail-overlay");
-	const closeBtn  = $("#project-detail-close");
-	closeBtn?.addEventListener("click", () => overlay?.classList.remove("active"));
+	const overlay = $("#project-detail-overlay");
+	const closeBtn = $("#project-detail-close");
+	closeBtn?.addEventListener("click", () =>
+		overlay?.classList.remove("active"),
+	);
 	overlay?.addEventListener("click", (e) => {
 		if (e.target === overlay) overlay.classList.remove("active");
 	});
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape") overlay?.classList.remove("active");
+	});
+
+	// Connect Project Bar Chart clicks to the Project Detail Overlay
+	$("#project-bar-chart")?.addEventListener("projectClick", (e) => {
+		const projectName = e.detail;
+		// Build a mock result object using global state
+		const xpAmount =
+			_xpTransactions.find((t) => t.object?.name === projectName)?.amount ?? 0;
+		const passDone = _xpTransactions.find(
+			(t) => t.object?.name === projectName,
+		); // Use transaction date/path
+
+		const mockResult = {
+			object: { name: projectName, type: "project" },
+			grade: 1, // Assume passed if they got XP
+			createdAt: passDone?.createdAt ?? new Date().toISOString(),
+			path: passDone?.path ?? "",
+		};
+
+		// Create a temporary lookup map specifically for this project
+		const tempXpMap = new Map();
+		tempXpMap.set(projectName, xpAmount);
+
+		openProjectDetail(mockResult, tempXpMap);
 	});
 };
 
@@ -485,7 +539,6 @@ const initProjectDetailClose = () => {
    ------------------------------------------------------------------- */
 
 const init = () => {
-	initStudentOverlayClose();
 	initProjectDetailClose();
 
 	if (isAuthenticated()) {

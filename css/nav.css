@@ -104,7 +104,13 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-	.nav-inner { padding: var(--space-md); }
-	.nav-tabs  { display: none; }
-	.nav-user  { display: none; }
+	.nav-inner {
+		padding: var(--space-md);
+	}
+	.nav-tabs {
+		display: none;
+	}
+	.nav-user {
+		display: none;
+	}
 }

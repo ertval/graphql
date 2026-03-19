@@ -111,14 +111,14 @@
               </svg>
               Dashboard
             </button>
-            <button id="tab-students" class="nav-tab" type="button" aria-selected="false">
+            <button id="tab-collaborations" class="nav-tab" type="button" aria-selected="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              Students
+              Collaborations
             </button>
           </nav>
 
@@ -206,7 +206,7 @@
         </div>
 
         <!-- Section 4: Statistics — two grouped columns -->
-        <div class="card glass full-width" id="section-graphs">
+        <div class="card glass" id="section-graphs">
           <div class="card-header"><h2>Statistics</h2></div>
           <div class="graphs-container">
 
@@ -253,15 +253,15 @@
 
       </main>
 
-      <!-- ─── STUDENTS TAB ──────────────────────────────────────── -->
-      <div id="students-view" class="tab-panel" role="tabpanel" aria-labelledby="tab-students">
+      <!-- ─── COLLABORATIONS TAB ──────────────────────────────────────── -->
+      <div id="collaborations-view" class="tab-panel" role="tabpanel" aria-labelledby="tab-collaborations">
         <div class="students-container">
 
           <!-- Controls -->
           <div class="students-controls card glass">
             <div class="students-controls-left">
-              <h2 class="students-title">Students Leaderboard</h2>
-              <span id="students-count" class="students-count"></span>
+              <h2 class="students-title">Collaborations</h2>
+              <span id="collabs-count" class="students-count"></span>
             </div>
             <div class="students-controls-right">
               <div class="search-wrap">
@@ -269,13 +269,16 @@
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="search" id="students-search" class="students-search"
-                  placeholder="Search by name or login…" aria-label="Search students">
+                <input type="search" id="collabs-search" class="students-search"
+                  placeholder="Search by name, login, or project…" aria-label="Search collaborations">
               </div>
-              <select id="campus-filter" class="campus-select" aria-label="Filter by campus">
-                <option value="">All campuses</option>
+              <select id="role-filter" class="campus-select" aria-label="Filter by role">
+                <option value="">All roles</option>
+                <option value="Partner">Partner</option>
+                <option value="Auditor">Auditor</option>
+                <option value="Captain">Captain</option>
               </select>
-              <button id="students-reset" class="btn-reset" type="button" title="Reset filters">
+              <button id="collabs-reset" class="btn-reset" type="button" title="Reset filters">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                   <path d="M3 3v5h5"/>
@@ -286,45 +289,44 @@
           </div>
 
           <!-- Loading -->
-          <div id="students-loading" class="students-loading" hidden>
+          <div id="collabs-loading" class="students-loading" hidden>
             <svg class="spinner" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
                 fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
             </svg>
-            <p>Loading students…</p>
+            <p>Loading collaborations…</p>
           </div>
 
           <!-- Table -->
-          <div id="students-table-wrap" class="students-table-wrap card glass" hidden>
-            <table class="students-table" role="grid" aria-label="Students leaderboard">
+          <div id="collabs-table-wrap" class="students-table-wrap card glass" hidden>
+            <table class="students-table" role="grid" aria-label="Collaborations list">
               <thead>
                 <tr>
                   <th class="td-rank" scope="col">#</th>
                   <th class="th-sortable th-name" scope="col" data-sort="login"
                     tabindex="0" role="columnheader" aria-sort="none">
-                    Student <span class="sort-indicator" aria-hidden="true">⇅</span>
+                    Collaborator <span class="sort-indicator" aria-hidden="true">⇅</span>
                   </th>
-                  <th scope="col" class="th-campus">Campus</th>
-                  <th class="th-sortable th-level" scope="col" data-sort="level"
+                  <th class="th-sortable th-campus" scope="col" data-sort="project"
+                    tabindex="0" role="columnheader" aria-sort="none">
+                    Project <span class="sort-indicator" aria-hidden="true">⇅</span>
+                  </th>
+                  <th class="th-sortable th-level" scope="col" data-sort="role"
+                    tabindex="0" role="columnheader" aria-sort="none">
+                    Role <span class="sort-indicator" aria-hidden="true">⇅</span>
+                  </th>
+                  <th class="th-sortable th-xp" scope="col" data-sort="date"
                     tabindex="0" role="columnheader" aria-sort="descending">
-                    Level <span class="sort-indicator" aria-hidden="true">↓</span>
-                  </th>
-                  <th class="th-sortable th-xp" scope="col" data-sort="totalXP"
-                    tabindex="0" role="columnheader" aria-sort="none">
-                    Total XP <span class="sort-indicator" aria-hidden="true">⇅</span>
-                  </th>
-                  <th class="th-sortable th-ratio" scope="col" data-sort="auditRatio"
-                    tabindex="0" role="columnheader" aria-sort="none">
-                    Audit Ratio <span class="sort-indicator" aria-hidden="true">⇅</span>
+                    Date <span class="sort-indicator" aria-hidden="true">↓</span>
                   </th>
                 </tr>
               </thead>
-              <tbody id="students-tbody" aria-live="polite"></tbody>
+              <tbody id="collabs-tbody" aria-live="polite"></tbody>
             </table>
           </div>
 
           <!-- Pagination -->
-          <nav id="students-pagination" class="students-pagination" aria-label="Students pagination"></nav>
+          <nav id="collabs-pagination" class="students-pagination" aria-label="Collaborations pagination"></nav>
         </div>
       </div>
 

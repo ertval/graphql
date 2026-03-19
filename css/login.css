@@ -23,8 +23,14 @@
 }
 
 @keyframes cardAppear {
-	from { opacity: 0; transform: translateY(30px) scale(0.96); }
-	to   { opacity: 1; transform: translateY(0) scale(1); }
+	from {
+		opacity: 0;
+		transform: translateY(30px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
 
 .login-header {
@@ -39,8 +45,13 @@
 }
 
 @keyframes logoFloat {
-	0%, 100% { transform: translateY(0); }
-	50%       { transform: translateY(-6px); }
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-6px);
+	}
 }
 
 .login-header h1 {
@@ -59,7 +70,9 @@
 }
 
 /* Form */
-.input-group { margin-bottom: var(--space-lg); }
+.input-group {
+	margin-bottom: var(--space-lg);
+}
 
 .input-group label {
 	display: block;
@@ -84,7 +97,9 @@
 	outline: none;
 }
 
-.input-group input::placeholder { color: var(--text-muted); }
+.input-group input::placeholder {
+	color: var(--text-muted);
+}
 
 .input-group input:focus {
 	border-color: var(--accent-start);
@@ -128,8 +143,14 @@
 	box-shadow: 0 6px 24px rgba(14, 165, 233, 0.35);
 }
 
-.btn-primary:active  { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-primary:active {
+	transform: translateY(0);
+}
+.btn-primary:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+}
 
 /* Background orbs */
 .login-bg-orb {
@@ -142,26 +163,39 @@
 }
 
 .orb-1 {
-	width: 400px; height: 400px;
+	width: 400px;
+	height: 400px;
 	background: var(--accent-start);
-	top: -100px; right: -100px;
+	top: -100px;
+	right: -100px;
 	animation: orbFloat 8s ease-in-out infinite;
 }
 .orb-2 {
-	width: 300px; height: 300px;
+	width: 300px;
+	height: 300px;
 	background: var(--accent-end);
-	bottom: -80px; left: -80px;
+	bottom: -80px;
+	left: -80px;
 	animation: orbFloat 10s ease-in-out infinite reverse;
 }
 .orb-3 {
-	width: 200px; height: 200px;
+	width: 200px;
+	height: 200px;
 	background: #0d9488;
-	top: 50%; left: 60%;
+	top: 50%;
+	left: 60%;
 	animation: orbFloat 12s ease-in-out infinite;
 }
 
 @keyframes orbFloat {
-	0%, 100% { transform: translate(0, 0) scale(1); }
-	33%       { transform: translate(30px, -20px) scale(1.05); }
-	66%       { transform: translate(-20px, 20px) scale(0.95); }
+	0%,
+	100% {
+		transform: translate(0, 0) scale(1);
+	}
+	33% {
+		transform: translate(30px, -20px) scale(1.05);
+	}
+	66% {
+		transform: translate(-20px, 20px) scale(0.95);
+	}
 }
