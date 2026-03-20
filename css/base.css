@@ -26,6 +26,12 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+#app {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+
 [hidden] {
 	display: none !important;
 }
@@ -67,14 +73,26 @@ body {
 /* Dashboard gets its own grid inside tab-panel */
 #dashboard.tab-panel.active {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(12, minmax(0, 1fr));
 	grid-template-areas:
-		"user xp audit skills"
-		"graphs graphs graphs activity";
+		"user user user xp xp xp audit audit audit skills skills skills"
+		"graphs graphs graphs graphs graphs graphs graphs graphs activity activity activity activity";
 	gap: var(--space-xl);
-	max-width: 1400px;
+	max-width: min(1920px, 100%);
 	margin: 0 auto;
-	padding: var(--space-xl);
+	padding: clamp(1rem, 1.8vw, 2rem);
+}
+
+.site-footer {
+	margin-top: auto;
+	padding: 0.75rem 1rem 1.25rem;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-xs);
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	background: rgba(6, 11, 20, 0.55);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
 }
 
 /* --- Shared Card Base --- */

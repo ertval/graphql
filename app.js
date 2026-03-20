@@ -39,6 +39,8 @@ const loginBtn = $("#login-btn");
 const btnText = loginBtn?.querySelector(".btn-text");
 const btnLoader = loginBtn?.querySelector(".btn-loader");
 const logoutBtn = $("#logout-btn");
+const identifierInput = $("#identifier");
+const passwordInput = $("#password");
 
 /* -------------------------------------------------------------------
    Module-level state (needed for project detail cross-reference)
@@ -104,6 +106,9 @@ const showProfile = () => {
 const showLogin = () => {
 	profileView.classList.remove("active");
 	loginView.classList.add("active");
+	loginForm?.reset();
+	if (identifierInput) identifierInput.value = "";
+	if (passwordInput) passwordInput.value = "";
 	loginError.textContent = "";
 	switchTab("dashboard");
 };
@@ -511,26 +516,29 @@ const initProjectDetailClose = () => {
 
 	// Connect Project Bar Chart clicks to the Project Detail Overlay
 	$("#project-bar-chart")?.addEventListener("projectClick", (e) => {
-		const projectName = e.detail;
-		// Build a mock result object using global state
-		const xpAmount =
-			_xpTransactions.find((t) => t.object?.name === projectName)?.amount ?? 0;
-		const passDone = _xpTransactions.find(
+		const projectName = e.detail?.name ?? e.detail;
+		const matchingTxs = _xpTransactions.filter(
 			(t) => t.object?.name === projectName,
-		); // Use transaction date/path
+		);
+		const xpAmount = matchingTxs.reduce((sum, tx) => sum + tx.amount, 0);
+		const latestTx = matchingTxs.toSorted((a, b) =>
+			Temporal.Instant.from(b.createdAt).epochMilliseconds -
+			Temporal.Instant.from(a.createdAt).epochMilliseconds,
+		)[0];
 
-		const mockResult = {
+		const resultRecord = _results.find((r) => r.object?.name === projectName);
+		const fallbackCreatedAt = Temporal.Now.instant().toString();
+
+		const detailResult = {
 			object: { name: projectName, type: "project" },
-			grade: 1, // Assume passed if they got XP
-			createdAt: passDone?.createdAt ?? new Date().toISOString(),
-			path: passDone?.path ?? "",
+			grade: resultRecord?.grade ?? (xpAmount > 0 ? 1 : 0),
+			createdAt:
+				resultRecord?.createdAt ?? latestTx?.createdAt ?? fallbackCreatedAt,
+			path: latestTx?.path ?? "",
 		};
 
-		// Create a temporary lookup map specifically for this project
-		const tempXpMap = new Map();
-		tempXpMap.set(projectName, xpAmount);
-
-		openProjectDetail(mockResult, tempXpMap);
+		const tempXpMap = new Map([[projectName, xpAmount]]);
+		openProjectDetail(detailResult, tempXpMap);
 	});
 };
 

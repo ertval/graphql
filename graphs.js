@@ -339,6 +339,17 @@ export const renderProjectBarChart = (container, transactions) => {
 	projectEntries.forEach((project, i) => {
 		const y = padding.top + i * (barHeight + barGap);
 		const barW = (project.total / maxXP) * chartW;
+		const emitProjectClick = () => {
+			container.dispatchEvent(
+				new CustomEvent("projectClick", {
+					detail: {
+						name: project.name,
+						totalXP: project.total,
+					},
+					bubbles: true,
+				}),
+			);
+		};
 
 		// Project label
 		const label = svgEl("text", {
@@ -346,10 +357,21 @@ export const renderProjectBarChart = (container, transactions) => {
 			y: y + barHeight / 2 + 4,
 			class: "graph-label",
 			"text-anchor": "end",
+			tabindex: 0,
+			role: "button",
+			"aria-label": `View details for ${project.name}`,
 		});
 		// Truncate long names
 		label.textContent =
 			project.name.length > 18 ? `${project.name.slice(0, 16)}…` : project.name;
+		label.classList.add("graph-project-label");
+		label.addEventListener("click", emitProjectClick);
+		label.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				emitProjectClick();
+			}
+		});
 		svg.append(label);
 
 		// Background track
@@ -403,6 +425,7 @@ export const renderProjectBarChart = (container, transactions) => {
 		bar.addEventListener("mouseleave", () =>
 			tooltip.classList.remove("visible"),
 		);
+		bar.addEventListener("click", emitProjectClick);
 	});
 
 	container.prepend(svg);

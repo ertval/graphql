@@ -406,14 +406,25 @@
 }
 
 /* ── Responsive Dashboard ── */
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
+	#dashboard.tab-panel.active {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-areas:
+			"user xp audit"
+			"skills graphs graphs"
+			"activity activity activity";
+	}
+}
+
+@media (max-width: 1200px) {
 	#dashboard.tab-panel.active {
 		grid-template-columns: 1fr 1fr;
 		grid-template-areas:
 			"user user"
 			"xp audit"
-			"skills activity"
-			"graphs graphs";
+			"skills skills"
+			"graphs graphs"
+			"activity activity";
 	}
 
 	.graphs-container {
@@ -443,5 +454,20 @@
 	}
 	.xp-stats {
 		flex-direction: column;
+	}
+}
+
+@media (max-width: 480px) {
+	#dashboard.tab-panel.active {
+		padding: 0.75rem;
+		gap: var(--space-md);
+	}
+
+	.card {
+		padding: var(--space-md);
+	}
+
+	.graph-panel {
+		padding: var(--space-md);
 	}
 }

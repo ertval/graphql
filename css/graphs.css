@@ -40,6 +40,17 @@
 	font-size: 11px;
 }
 
+.graph-project-label {
+	cursor: pointer;
+	transition: fill var(--transition-fast);
+}
+
+.graph-project-label:hover,
+.graph-project-label:focus-visible {
+	fill: var(--accent-start);
+	outline: none;
+}
+
 .graph-title {
 	fill: var(--text-secondary);
 	font-family: var(--font-family);

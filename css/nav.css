@@ -9,7 +9,7 @@
 }
 
 .nav-inner {
-	max-width: 1280px;
+	max-width: 1760px;
 	margin: 0 auto;
 	padding: var(--space-md) var(--space-xl);
 	display: flex;
@@ -105,12 +105,20 @@
 /* ── Responsive ── */
 @media (max-width: 768px) {
 	.nav-inner {
-		padding: var(--space-md);
-	}
-	.nav-tabs {
-		display: none;
+		padding: var(--space-sm) var(--space-md);
+		flex-wrap: wrap;
+		justify-content: center;
 	}
 	.nav-user {
 		display: none;
+	}
+	.nav-tabs {
+		order: 3;
+		width: 100%;
+		justify-content: center;
+	}
+	.nav-tab {
+		padding: 0.38rem 0.7rem;
+		font-size: 0.78rem;
 	}
 }

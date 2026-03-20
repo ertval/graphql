@@ -4,7 +4,7 @@
 
 /* ── Page Container ── */
 .students-container {
-	max-width: 1280px;
+	max-width: 1760px;
 	margin: 0 auto;
 	padding: var(--space-xl);
 	display: flex;
@@ -144,12 +144,14 @@
 /* ── Table ── */
 .students-table-wrap {
 	border-radius: var(--radius-lg);
-	overflow: hidden;
+	overflow-x: auto;
+	overflow-y: hidden;
 	padding: 0;
 }
 
 .students-table {
 	width: 100%;
+	min-width: 760px;
 	border-collapse: collapse;
 	font-size: var(--font-sm);
 }
@@ -607,8 +609,13 @@
 	.students-search {
 		width: 100%;
 	}
-	.td-campus,
-	.th-campus {
+	.students-table {
+		min-width: 0;
+	}
+	.td-rank,
+	.th-rank,
+	.td-date,
+	.th-xp {
 		display: none;
 	}
 	.sp-header {
