@@ -306,6 +306,7 @@ const openCollaboratorDetail = (login) => {
 		summary.login[0].toUpperCase();
 
 	const identity = document.createElement("div");
+	identity.className = "sp-identity";
 	const name = document.createElement("h3");
 	name.className = "sp-name";
 	name.textContent = summary.displayName;
@@ -316,29 +317,23 @@ const openCollaboratorDetail = (login) => {
 	campus.className = "sp-campus";
 	campus.textContent = `Campus: ${summary.campus}`;
 	identity.append(name, loginTag, campus);
-	header.append(initialsEl, identity);
 
-	const stats = document.createElement("div");
-	stats.className = "sp-stats-grid collab-stats-grid";
+	const statsRight = document.createElement("div");
+	statsRight.className = "sp-stats-right";
 
-	const appendStat = (value, label) => {
-		const stat = document.createElement("div");
-		stat.className = "sp-stat";
+	const stat = document.createElement("div");
+	stat.className = "sp-stat";
+	const valueEl = document.createElement("span");
+	valueEl.className = "stat-value";
+	valueEl.textContent = String(summary.totalProjects);
+	const labelEl = document.createElement("span");
+	labelEl.className = "stat-label";
+	labelEl.textContent = "Shared Projects";
 
-		const valueEl = document.createElement("span");
-		valueEl.className = "stat-value";
-		valueEl.textContent = value;
+	stat.append(valueEl, labelEl);
+	statsRight.append(stat);
 
-		const labelEl = document.createElement("span");
-		labelEl.className = "stat-label";
-		labelEl.textContent = label;
-
-		stat.append(valueEl, labelEl);
-		stats.append(stat);
-	};
-
-	appendStat(String(summary.totalProjects), "Shared Projects");
-	appendStat(String(summary.totalCollaborations), "Shared Interactions");
+	header.append(initialsEl, identity, statsRight);
 
 	const rolesSection = document.createElement("section");
 	rolesSection.className = "sp-skills";
@@ -388,7 +383,7 @@ const openCollaboratorDetail = (login) => {
 	}
 
 	projectsSection.append(list);
-	content.append(header, stats, rolesSection, projectsSection);
+	content.append(header, rolesSection, projectsSection);
 
 	overlay.classList.add("active");
 };

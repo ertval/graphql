@@ -495,6 +495,14 @@
 	box-shadow: 0 0 30px rgba(14, 165, 233, 0.35);
 }
 
+.sp-identity {
+	flex: 1;
+}
+
+.sp-stats-right {
+	flex: 0 0 33.333%;
+}
+
 .sp-name {
 	font-size: var(--font-2xl);
 	font-weight: 800;
@@ -713,6 +721,10 @@ a.collab-project-item:focus-visible {
 	.sp-header {
 		flex-direction: column;
 		text-align: center;
+	}
+	.sp-stats-right {
+		width: 100%;
+		flex: none;
 	}
 	.sp-stats-grid {
 		grid-template-columns: repeat(2, 1fr);
