@@ -1,10 +1,9 @@
 /**
- * Dashboard Activity Module — renders the recent activity list
- * and handles the project detail modal.
- * @module dashboard.activity
+ * Dashboard Popups — project detail modal and activity rendering.
+ * @module dashboard.popup
  */
 
-import { formatXP } from "./graphs.helpers.js";
+import { formatXP } from "./charts.helpers.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -17,6 +16,7 @@ const $ = (sel) => document.querySelector(sel);
  */
 export const renderActivity = (results, xpTransactions) => {
 	const list = $("#activity-list");
+	if (!list) return;
 	list.innerHTML = "";
 
 	const projectResults = results

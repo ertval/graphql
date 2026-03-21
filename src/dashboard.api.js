@@ -1,11 +1,11 @@
 /**
- * GraphQL query definitions — each function encapsulates a typed query.
- * Returns Result wrappers via mapResult for safe downstream consumption.
- * @module graphql.queries
+ * Dashboard Data API.
+ * Encapsulates GraphQL query execution for dashboard features.
+ * @module dashboard.api
  */
 
-import { graphqlQuery } from "./graphql.client.js";
-import { mapResult } from "./graphql.result.js";
+import { graphqlQuery } from "./infra.graphql.js";
+import { mapResult } from "./infra.result.js";
 
 // ── User profile ───────────────────────────────────────────────────
 
@@ -211,39 +211,4 @@ export const fetchUserLevel = async (userId) => {
 		await graphqlQuery(query, { userId }),
 		(data) => data.transaction?.[0]?.amount ?? 0,
 	);
-};
-
-// ── Collaboration data (groups + audits given / received) ──────────
-
-export const fetchCollaborations = async (userId) => {
-	const query = `
-    query GetCollabs($userId: Int!) {
-      group_user(where: {userId: {_eq: $userId}}) {
-        group {
-          object { name }
-          members {
-            userId
-            user { login firstName lastName campus }
-          }
-        }
-        createdAt
-      }
-      audit(where: {auditorId: {_eq: $userId}}) {
-        grade
-        createdAt
-        group { captainLogin object { name } }
-      }
-      audit_received: audit(where: {group: {members: {userId: {_eq: $userId}}}}) {
-        grade
-        createdAt
-        auditor { login firstName lastName campus }
-        group { object { name } }
-      }
-    }
-  `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => ({
-		groups: data.group_user ?? [],
-		auditsGiven: data.audit ?? [],
-		auditsReceived: data.audit_received ?? [],
-	}));
 };

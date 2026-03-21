@@ -1,7 +1,7 @@
 /**
  * Result pattern helpers for typed success/failure propagation.
  * Centralises ok/fail constructors, mapResult, and unwrapResult.
- * @module graphql.result
+ * @module infra.result
  */
 
 // ── Success constructor ────────────────────────────────────────────

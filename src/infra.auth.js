@@ -1,10 +1,10 @@
 /**
  * Authentication service — login, token storage, and JWT utilities.
  * All auth state flows through localStorage with the shared TOKEN_KEY.
- * @module graphql.auth
+ * @module infra.auth
  */
 
-import { fail, ok } from "./graphql.result.js";
+import { fail, ok } from "./infra.result.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";

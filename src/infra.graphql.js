@@ -1,11 +1,11 @@
 /**
  * GraphQL HTTP transport — executes queries against the platform API.
  * Handles auth headers, response validation, and token expiry detection.
- * @module graphql.client
+ * @module infra.graphql
  */
 
-import { clearToken, getToken } from "./graphql.auth.js";
-import { fail, ok } from "./graphql.result.js";
+import { clearToken, getToken } from "./infra.auth.js";
+import { fail, ok } from "./infra.result.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";

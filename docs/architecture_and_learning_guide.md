@@ -60,22 +60,20 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 │                                                              │
 │  index.html  ──links──►  css/ (7 files)                      │
 │       │                                                      │
-│       └──module──► src/features/dashboard.index.js            │
-│                         │                                     │
-│                         ├──► src/features/*.js                │
-│                         └──► src/infrastructure/*.js          │
+│       └──module──► src/dashboard.view.js                     │
+│                         │                                    │
+│                         ├──► src/collaborations.*.js         │
+│                         ├──► src/charts.*.js                 │
+│                         └──► src/infra.*.js                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### File Responsibilities
-
-| File | Responsibility |
+| File Group | Responsibility |
 |---|---|
-| `src/features/dashboard.app.js` | App orchestration: login/logout flow, tab routing, dashboard load pipeline |
-| `src/features/dashboard.graphs.render.js` | SVG builders — line/bar/donut/pie renderers |
-| `src/features/collaborations.view.js` | Collaborations DOM rendering, filters, pagination, and detail modal |
-| `src/features/collaborations.core.js` | Pure collaborator normalization and summary domain transforms |
-| `src/infrastructure/graphql.*.js` | Auth, request client, and GraphQL query adapters |
+| `dashboard.*.js` | Tab routing, dashboard load pipeline, project detail overlays (`.popup`), pure transform logic (`.core`), and GraphQL queries (`.api`). |
+| `collaborations.*.js` | Collaborations domain normalisation (`.core`), API fetching (`.api`), DOM orchestration and filtering (`.view`), and profile overlays (`.popup`). |
+| `charts.*.js` | Shared native SVG graph rendering components and math formatters. |
+| `infra.*.js` | Auth token management, HTTP/GraphQL transport wrapper, and the Result logic pattern. |
 
 ### CSS Module Split
 
@@ -97,7 +95,7 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 ```js
 const switchTab = (tab) => {
   dashboardPanel.classList.toggle('active', tab === 'dashboard');
-  studentsPanel.classList.toggle('active', tab === 'students');
+  collabsPanel.classList.toggle('active', tab === 'collabs');
 };
 ```
 `.tab-panel { display: none }` / `#dashboard.tab-panel.active { display: grid }` in CSS.  

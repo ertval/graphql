@@ -4,7 +4,7 @@
  * @module graphs.pie
  */
 
-import { svgEl } from "./graphs.helpers.js";
+import { svgEl } from "./charts.helpers.js";
 
 // ── Public renderer ────────────────────────────────────────────────
 /**

@@ -1,6 +1,7 @@
 /**
- * Collaborations Initialization — Data loading and integration.
- * @module collaborations.init
+ * Collaborations Data API.
+ * Handles fetching and initial normalization of collaboration records.
+ * @module collaborations.api
  */
 
 import { normalizeCollaboratorNamesByLogin } from "./collaborations.core.js";
@@ -9,10 +10,45 @@ import {
 	renderCollabsList,
 	setAllCollabsData,
 } from "./collaborations.view.js";
-import { fetchCollaborations } from "./graphql.queries.js";
-import { unwrapResult } from "./graphql.result.js";
+import { graphqlQuery } from "./infra.graphql.js";
+import { mapResult, unwrapResult } from "./infra.result.js";
 
 const $ = (sel) => document.querySelector(sel);
+
+// ── Collaboration data (groups + audits given / received) ──────────
+
+export const fetchCollaborations = async (userId) => {
+	const query = `
+    query GetCollabs($userId: Int!) {
+      group_user(where: {userId: {_eq: $userId}}) {
+        group {
+          object { name }
+          members {
+            userId
+            user { login firstName lastName campus }
+          }
+        }
+        createdAt
+      }
+      audit(where: {auditorId: {_eq: $userId}}) {
+        grade
+        createdAt
+        group { captainLogin object { name } }
+      }
+      audit_received: audit(where: {group: {members: {userId: {_eq: $userId}}}}) {
+        grade
+        createdAt
+        auditor { login firstName lastName campus }
+        group { object { name } }
+      }
+    }
+  `;
+	return mapResult(await graphqlQuery(query, { userId }), (data) => ({
+		groups: data.group_user ?? [],
+		auditsGiven: data.audit ?? [],
+		auditsReceived: data.audit_received ?? [],
+	}));
+};
 
 /** Fetches collaboration data and initialises the view. */
 export const initCollaborationsView = async (userId) => {
