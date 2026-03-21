@@ -28,7 +28,7 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	if (!overlay || !content || !title) return;
 
 	title.textContent = summary.displayName;
-	content.innerHTML = "";
+	content.replaceChildren();
 
 	// Header with avatar, identity, and stats
 	const header = document.createElement("div");

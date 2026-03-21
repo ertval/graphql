@@ -25,7 +25,6 @@ import {
 } from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
 import { isAuthenticated } from "./infra.auth.js";
-import { unwrapResult } from "./infra.result.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -74,7 +73,7 @@ export const resetDashboard = () => {
 
 	const htmlOf = (id) => {
 		const el = $(id);
-		if (el) el.innerHTML = "";
+		if (el) el.replaceChildren();
 	};
 	htmlOf("#xp-line-chart");
 	htmlOf("#project-bar-chart");
@@ -90,8 +89,15 @@ export const resetDashboard = () => {
 /** Fetches all dashboard data and renders every section. */
 export const loadDashboard = async (onAuthFailure) => {
 	try {
-		const user = unwrapResult(await fetchUserInfo());
-		if (!user) throw new Error("Could not load user data.");
+		const userResult = await fetchUserInfo();
+		if (!userResult.ok) {
+			if (isAuthFailureError(userResult.error) || !isAuthenticated()) {
+				onAuthFailure();
+			}
+			return;
+		}
+
+		const user = userResult.data;
 
 		renderUserSection(user);
 		// Fetch all data in parallel for performance
@@ -104,11 +110,26 @@ export const loadDashboard = async (onAuthFailure) => {
 				fetchResults(user.id),
 			]);
 
-		const xpTransactions = unwrapResult(xpResult);
-		const progress = unwrapResult(progressResult);
-		const skills = unwrapResult(skillsResult);
-		const level = unwrapResult(levelResult);
-		const results = unwrapResult(resultsResult);
+		const firstError = [
+			xpResult,
+			progressResult,
+			skillsResult,
+			levelResult,
+			resultsResult,
+		].find((result) => !result.ok);
+
+		if (firstError && !firstError.ok) {
+			if (isAuthFailureError(firstError.error) || !isAuthenticated()) {
+				onAuthFailure();
+			}
+			return;
+		}
+
+		const xpTransactions = xpResult.data;
+		const progress = progressResult.data;
+		const skills = skillsResult.data;
+		const level = levelResult.data;
+		const results = resultsResult.data;
 
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;
@@ -129,7 +150,7 @@ export const loadDashboard = async (onAuthFailure) => {
 			}
 		}
 	} catch (err) {
-		if (isAuthFailureError(err) || !isAuthenticated()) {
+		if (err instanceof Error && (isAuthFailureError(err) || !isAuthenticated())) {
 			onAuthFailure();
 		}
 	}
@@ -239,7 +260,7 @@ const renderGraphs = (transactions, user, progress) => {
 const renderSkills = (skills) => {
 	const list = $("#skills-list");
 	if (!list) return;
-	list.innerHTML = "";
+	list.replaceChildren();
 
 	if (!skills.length) {
 		const empty = document.createElement("p");

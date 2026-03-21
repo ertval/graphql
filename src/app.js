@@ -11,7 +11,13 @@ import {
 	loadDashboard,
 	resetDashboard,
 } from "./dashboard.view.js";
-import { clearToken, isAuthenticated, login, saveToken } from "./infra.auth.js";
+import {
+	clearToken,
+	decodeToken,
+	isAuthenticated,
+	login,
+	saveToken,
+} from "./infra.auth.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -27,7 +33,6 @@ const btnLoader = loginBtn?.querySelector(".btn-loader");
 const logoutBtn = $("#logout-btn");
 const identifierInput = $("#identifier");
 const passwordInput = $("#password");
-const TOKEN_STORAGE_KEY = "graphql_jwt";
 
 // ── Tab Routing ────────────────────────────────────────────────────
 const tabDashboard = $("#tab-dashboard");
@@ -56,15 +61,10 @@ tabCollabs?.addEventListener("click", () => {
 	switchTab("collabs");
 	if (!collabsPanel?.dataset.loaded) {
 		collabsPanel.dataset.loaded = "1";
-		// The `loadDashboard` payload saved the user ID in the DOM or state.
-		// For simplicity, we decode the JWT token to get the user ID for collaborations.
-		const token = localStorage.getItem(TOKEN_STORAGE_KEY) || "";
-		if (token) {
-			try {
-				const payloadBase64 = token.split(".")[1];
-				const decoded = JSON.parse(atob(payloadBase64));
-				if (decoded.sub) initCollaborationsView(Number(decoded.sub));
-			} catch (_) {}
+		const decoded = decodeToken();
+		const userId = Number(decoded?.sub);
+		if (Number.isInteger(userId) && userId > 0) {
+			initCollaborationsView(userId);
 		}
 	}
 });
@@ -122,7 +122,10 @@ loginForm?.addEventListener("submit", async (e) => {
 		showProfile();
 		await loadDashboard(performLogout);
 	} catch (err) {
-		if (loginError) loginError.textContent = err.message;
+		if (loginError) {
+			loginError.textContent =
+				err instanceof Error ? err.message : "Unexpected login error.";
+		}
 	} finally {
 		if (loginBtn) loginBtn.disabled = false;
 		if (btnText) btnText.hidden = false;
@@ -142,7 +145,7 @@ globalThis.addEventListener("popstate", () => {
 
 // Synchronise logout across browser tabs via storage event
 globalThis.addEventListener("storage", (event) => {
-	if (event.key === TOKEN_STORAGE_KEY && event.newValue === null) {
+	if (event.key === "graphql_jwt" && event.newValue === null) {
 		performLogout();
 	}
 });

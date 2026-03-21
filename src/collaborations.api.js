@@ -11,7 +11,7 @@ import {
 	setAllCollabsData,
 } from "./collaborations.view.js";
 import { graphqlQuery } from "./infra.graphql.js";
-import { mapResult, unwrapResult } from "./infra.result.js";
+import { mapResult } from "./infra.result.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -54,14 +54,26 @@ export const fetchCollaborations = async (userId) => {
 export const initCollaborationsView = async (userId) => {
 	const loadingEl = $("#collabs-loading");
 	const tableWrap = $("#collabs-table-wrap");
+	const showLoadError = () => {
+		if (!loadingEl) return;
+		loadingEl.replaceChildren();
+		const errorMsg = document.createElement("p");
+		errorMsg.style.color = "var(--danger)";
+		errorMsg.textContent = "Failed to load collaborations data.";
+		loadingEl.append(errorMsg);
+	};
 
 	if (loadingEl) loadingEl.hidden = false;
 	if (tableWrap) tableWrap.hidden = true;
 
 	try {
-		const { groups, auditsGiven, auditsReceived } = unwrapResult(
-			await fetchCollaborations(userId),
-		);
+		const collabsResult = await fetchCollaborations(userId);
+		if (!collabsResult.ok) {
+			showLoadError();
+			return;
+		}
+
+		const { groups, auditsGiven, auditsReceived } = collabsResult.data;
 
 		const collabs = [];
 
@@ -93,13 +105,9 @@ export const initCollaborationsView = async (userId) => {
 
 		// Audits Given (they were the Captain)
 		for (const a of auditsGiven) {
-			if (
-				a.grade !== null &&
-				a.group?.captainLogin &&
-				a.group.captainLogin !== "ekaramet"
-			) {
+			if (a.grade !== null && a.group?.captainLogin) {
 				collabs.push({
-					id: `a_${Math.random()}`,
+					id: `a_${a.group.captainLogin}_${a.createdAt}`,
 					login: a.group.captainLogin,
 					firstName: "",
 					lastName: "",
@@ -117,7 +125,7 @@ export const initCollaborationsView = async (userId) => {
 		for (const a of auditsReceived) {
 			if (a.grade !== null && a.auditor?.login) {
 				collabs.push({
-					id: `r_${Math.random()}`,
+					id: `r_${a.auditor.login}_${a.createdAt}`,
 					login: a.auditor.login,
 					firstName: a.auditor.firstName,
 					lastName: a.auditor.lastName,
@@ -150,11 +158,12 @@ export const initCollaborationsView = async (userId) => {
 				(totalCollabsByLogin.get(c.login) ?? 0) + 1,
 			);
 		}
-		for (const c of unique) {
-			c.totalCollaborations = totalCollabsByLogin.get(c.login);
-		}
+		const withTotalCollabs = unique.map((collab) => ({
+			...collab,
+			totalCollaborations: totalCollabsByLogin.get(collab.login) ?? 0,
+		}));
 
-		const allCollabs = normalizeCollaboratorNamesByLogin(unique);
+		const allCollabs = normalizeCollaboratorNamesByLogin(withTotalCollabs);
 
 		if (loadingEl) loadingEl.hidden = true;
 		if (tableWrap) tableWrap.hidden = false;
@@ -162,13 +171,7 @@ export const initCollaborationsView = async (userId) => {
 		setAllCollabsData(allCollabs);
 		renderCollabsList();
 		bindEvents();
-	} catch (err) {
-		if (loadingEl) {
-			loadingEl.innerHTML = "";
-			const errorMsg = document.createElement("p");
-			errorMsg.style.color = "var(--danger)";
-			errorMsg.textContent = `Failed to load data: ${err instanceof Error ? err.message : "Unexpected error"}`;
-			loadingEl.append(errorMsg);
-		}
+	} catch {
+		showLoadError();
 	}
 };

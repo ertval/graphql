@@ -111,7 +111,7 @@ export const renderCollabsList = () => {
 	);
 
 	// Clear and rebuild tbody
-	tbody.innerHTML = "";
+	tbody.replaceChildren();
 	if (!pageSlice.length) {
 		const tr = document.createElement("tr");
 		const td = document.createElement("td");
@@ -291,7 +291,7 @@ export const renderCollabsList = () => {
 const renderPagination = (totalPages) => {
 	const container = $("#collabs-pagination");
 	if (!container) return;
-	container.innerHTML = "";
+	container.replaceChildren();
 	if (totalPages <= 1) return;
 
 	// Helper to create a pagination button
@@ -449,8 +449,8 @@ export const resetCollabsState = () => {
 	currentPage = 1;
 	eventsbound = false;
 	const tbody = $("#collabs-tbody");
-	if (tbody) tbody.innerHTML = "";
+	if (tbody) tbody.replaceChildren();
 	const pagination = $("#collabs-pagination");
-	if (pagination) pagination.innerHTML = "";
+	if (pagination) pagination.replaceChildren();
 	closeCollaboratorDetail();
 };
