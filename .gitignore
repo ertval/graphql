@@ -39,3 +39,4 @@ playwright-report/
 
 #tests
 /tests/*
+playwright.config.mjs
