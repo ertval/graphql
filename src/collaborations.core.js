@@ -166,6 +166,8 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		campus: primary.campus || "—",
 		totalCollaborations: matches.length,
 		totalProjects: projects.length,
+		latestTs: primary.ts,
+		latestDate: primary.date,
 		byRole: [...byRole.entries()]
 			.toSorted(([a], [b]) => a.localeCompare(b))
 			.map(([role, count]) => ({ role, count })),

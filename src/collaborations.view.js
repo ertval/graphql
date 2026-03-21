@@ -5,6 +5,7 @@
  * @module collaborations.view
  */
 
+import { buildCollaboratorSummary } from "./collaborations.core.js";
 import {
 	closeCollaboratorDetail,
 	openCollaboratorDetail,
@@ -13,9 +14,12 @@ import {
 // ── Module state ───────────────────────────────────────────────────
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */
 export let allCollabs = [];
+let uniqueCollabs = [];
 
 export const setAllCollabsData = (data) => {
 	allCollabs = data;
+	const logins = [...new Set(data.map((c) => c.login))];
+	uniqueCollabs = logins.map((login) => buildCollaboratorSummary(data, login));
 };
 
 /** @type {'login'|'project'|'role'|'date'} */
@@ -35,34 +39,47 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 // ── Filter & Sort pipeline ─────────────────────────────────────────
 
-/** @returns {typeof allCollabs} Filtered subset matching search and role. */
+/** @returns {typeof uniqueCollabs} Filtered subset matching search and role. */
 const getFiltered = () => {
 	const query = filterText.toLowerCase();
-	return allCollabs.filter((c) => {
+	return uniqueCollabs.filter((c) => {
 		const matchText =
 			!query ||
 			c.login.toLowerCase().includes(query) ||
-			(c.firstName?.toLowerCase() ?? "").includes(query) ||
-			(c.lastName?.toLowerCase() ?? "").includes(query) ||
-			c.project.toLowerCase().includes(query);
-		const matchRole = !filterRole || c.role === filterRole;
+			c.displayName.toLowerCase().includes(query) ||
+			c.projects.some((p) => p.name.toLowerCase().includes(query));
+		const matchRole =
+			!filterRole || c.byRole.some((r) => r.role === filterRole);
 		return matchText && matchRole;
 	});
 };
 
-/** @returns {typeof allCollabs} Filtered and sorted collaborations. */
+/** @returns {typeof uniqueCollabs} Filtered and sorted collaborations. */
 const getSorted = () => {
 	const filtered = getFiltered();
 	return filtered.toSorted((a, b) => {
 		if (sortField === "date")
-			return sortDir === "asc" ? a.ts - b.ts : b.ts - a.ts;
+			return sortDir === "asc"
+				? a.latestTs - b.latestTs
+				: b.latestTs - a.latestTs;
 		if (sortField === "totalCollaborations")
 			return sortDir === "asc"
 				? a.totalCollaborations - b.totalCollaborations
 				: b.totalCollaborations - a.totalCollaborations;
 
-		const av = a[sortField] || "";
-		const bv = b[sortField] || "";
+		let av = "";
+		let bv = "";
+		if (sortField === "project") {
+			av = a.projects.map((p) => p.name).join(", ");
+			bv = b.projects.map((p) => p.name).join(", ");
+		} else if (sortField === "role") {
+			av = a.byRole.map((r) => r.role).join(", ");
+			bv = b.byRole.map((r) => r.role).join(", ");
+		} else {
+			av = a[sortField] || "";
+			bv = b[sortField] || "";
+		}
+
 		return sortDir === "asc"
 			? String(av).localeCompare(String(bv))
 			: String(bv).localeCompare(String(av));
@@ -101,12 +118,12 @@ export const renderCollabsList = () => {
 
 	for (const [rank, collab] of pageSlice.entries()) {
 		const globalRank = (currentPage - 1) * PAGE_SIZE + rank + 1;
+		const firstPart = collab.displayName.split(" ")[0];
+		const secondPart = collab.displayName.split(" ")[1];
 		const initials =
-			`${(collab.firstName?.[0] ?? "").toUpperCase()}${(collab.lastName?.[0] ?? "").toUpperCase()}` ||
+			`${firstPart?.[0] ?? ""}${secondPart?.[0] ?? ""}`.toUpperCase() ||
 			collab.login[0].toUpperCase();
-		const displayName =
-			[collab.firstName, collab.lastName].filter(Boolean).join(" ") ||
-			collab.login;
+		const displayName = collab.displayName || collab.login;
 
 		// Clickable row that opens collaborator detail
 		const tr = document.createElement("tr");
@@ -166,32 +183,55 @@ export const renderCollabsList = () => {
 		// Project cell
 		const projectCell = document.createElement("td");
 		projectCell.className = "td-campus";
-		const projectTag = document.createElement("span");
-		projectTag.className = "campus-tag";
-		projectTag.style.background = "rgba(255,255,255,0.05)";
-		projectTag.textContent = collab.project;
-		projectCell.append(projectTag);
+
+		const maxProjects = 4;
+		const visibleProjects = collab.projects.slice(0, maxProjects);
+		for (const proj of visibleProjects) {
+			const projectTag = document.createElement("span");
+			projectTag.className = "campus-tag";
+			projectTag.style.background = "rgba(255,255,255,0.05)";
+			projectTag.style.marginRight = "6px";
+			projectTag.style.marginBottom = "6px";
+			projectTag.style.display = "inline-block";
+			projectTag.textContent =
+				proj.count > 1 ? `${proj.name} x${proj.count}` : proj.name;
+			projectCell.append(projectTag);
+		}
+
+		if (collab.projects.length > maxProjects) {
+			const overflowTag = document.createElement("span");
+			overflowTag.className = "campus-tag";
+			overflowTag.style.background = "rgba(255,255,255,0.02)";
+			overflowTag.style.marginRight = "6px";
+			overflowTag.style.marginBottom = "6px";
+			overflowTag.style.display = "inline-block";
+			overflowTag.textContent = "...";
+			projectCell.append(overflowTag);
+		}
 
 		// Role cell with conditional styling
 		const roleCell = document.createElement("td");
 		roleCell.className = "td-level";
-		const roleBadge = document.createElement("span");
-		roleBadge.className = "level-badge";
-		roleBadge.style.background =
-			collab.role === "Partner"
-				? "var(--accent-start)"
-				: "rgba(255,255,255,0.1)";
-		roleBadge.style.color =
-			collab.role === "Partner" ? "#fff" : "var(--text-secondary)";
-		roleBadge.textContent = collab.role;
-		roleCell.append(roleBadge);
+		for (const r of collab.byRole) {
+			const roleBadge = document.createElement("span");
+			roleBadge.className = "level-badge";
+			roleBadge.style.background =
+				r.role === "Partner" ? "var(--accent-start)" : "rgba(255,255,255,0.1)";
+			roleBadge.style.color =
+				r.role === "Partner" ? "#fff" : "var(--text-secondary)";
+			roleBadge.style.marginRight = "6px";
+			roleBadge.style.marginBottom = "6px";
+			roleBadge.style.display = "inline-block";
+			roleBadge.textContent = r.count > 1 ? `${r.role} x${r.count}` : r.role;
+			roleCell.append(roleBadge);
+		}
 
 		// Date cell
 		const dateCell = document.createElement("td");
 		dateCell.className = "td-date";
 		dateCell.style.fontSize = "0.85rem";
 		dateCell.style.color = "var(--text-muted)";
-		dateCell.textContent = collab.date.split("T")[0];
+		dateCell.textContent = collab.latestDate.split("T")[0];
 
 		tr.append(
 			rankCell,
@@ -365,6 +405,7 @@ export const bindEvents = () => {
 /** Resets all collaborations state for logout / view teardown. */
 export const resetCollabsState = () => {
 	allCollabs = [];
+	uniqueCollabs = [];
 	sortField = "date";
 	sortDir = "desc";
 	filterText = "";
