@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildCollaboratorSummary } from "../src/features/collaborations.core.js";
+import { buildCollaboratorSummary } from "../src/collaborations.core.js";
 
 test("buildCollaboratorSummary aggregates projects, roles and counts for a login", () => {
 	const records = [

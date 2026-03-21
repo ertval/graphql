@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const apiJs = fs.readFileSync(
-  path.join(process.cwd(), "src/infrastructure/graphql.queries.service.js"),
+  path.join(process.cwd(), "src/graphql.queries.js"),
   "utf8",
 );
 

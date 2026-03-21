@@ -1,20 +1,20 @@
 /**
- * Collaborations Module
- * Displays all peers the user has collaborated with (groups and audits).
- * @module collaborations
+ * Collaborations View — table rendering, pagination, sort headers,
+ * collaborator detail popup, data loading, and event bindings.
+ * Orchestrates the full collaborations tab lifecycle.
+ * @module collaborations.view
  */
 
-import { fetchCollaborations } from "../infrastructure/graphql.index.js";
+import { fetchCollaborations } from "./graphql.queries.js";
 import {
 	buildCollaboratorSummary,
 	normalizeCollaboratorNamesByLogin,
 	toLocalDate,
 	toProjectUrl,
 } from "./collaborations.core.js";
+import { unwrapResult } from "./graphql.result.js";
 
-/* -------------------------------------------------------------------
-   State
-   ------------------------------------------------------------------- */
+// ── Module state ───────────────────────────────────────────────────
 
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */
 let allCollabs = [];
@@ -29,28 +29,14 @@ let filterRole = "";
 const PAGE_SIZE = 20;
 let currentPage = 1;
 
-/* -------------------------------------------------------------------
-   DOM helpers
-   ------------------------------------------------------------------- */
+// ── DOM helpers ────────────────────────────────────────────────────
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-/**
- * @template T
- * @param {{ok: true, data: T} | {ok: false, error: Error}} result
- * @returns {T}
- */
-const unwrapResult = (result) => {
-	if (result.ok) return result.data;
-	throw result.error;
-};
+// ── Filter & Sort pipeline ─────────────────────────────────────────
 
-/* -------------------------------------------------------------------
-   Filter & Sort pipeline
-   ------------------------------------------------------------------- */
-
-/** @returns {typeof allCollabs} */
+/** @returns {typeof allCollabs} Filtered subset matching search and role. */
 const getFiltered = () => {
 	const query = filterText.toLowerCase();
 	return allCollabs.filter((c) => {
@@ -65,7 +51,7 @@ const getFiltered = () => {
 	});
 };
 
-/** @returns {typeof allCollabs} */
+/** @returns {typeof allCollabs} Filtered and sorted collaborations. */
 const getSorted = () => {
 	const filtered = getFiltered();
 	return filtered.toSorted((a, b) => {
@@ -80,11 +66,9 @@ const getSorted = () => {
 	});
 };
 
-/* -------------------------------------------------------------------
-   Render List
-   ------------------------------------------------------------------- */
+// ── Table row rendering ────────────────────────────────────────────
 
-/** Renders the collaborations table rows. */
+/** Renders the collaborations table rows and pagination controls. */
 export const renderCollabsList = () => {
 	const tbody = $("#collabs-tbody");
 	if (!tbody) return;
@@ -98,6 +82,7 @@ export const renderCollabsList = () => {
 		currentPage * PAGE_SIZE,
 	);
 
+	// Clear and rebuild tbody
 	tbody.innerHTML = "";
 	if (!pageSlice.length) {
 		const tr = document.createElement("tr");
@@ -120,6 +105,7 @@ export const renderCollabsList = () => {
 			[collab.firstName, collab.lastName].filter(Boolean).join(" ") ||
 			collab.login;
 
+		// Clickable row that opens collaborator detail
 		const tr = document.createElement("tr");
 		tr.className = "student-row collab-row-action";
 		tr.setAttribute("role", "button");
@@ -135,6 +121,7 @@ export const renderCollabsList = () => {
 			openCollaboratorDetail(collab.login);
 		});
 
+		// Rank cell
 		const rankCell = document.createElement("td");
 		rankCell.className = "td-rank";
 		const rankNum = document.createElement("span");
@@ -142,6 +129,7 @@ export const renderCollabsList = () => {
 		rankNum.textContent = String(globalRank);
 		rankCell.append(rankNum);
 
+		// Avatar + name cell
 		const avatarNameCell = document.createElement("td");
 		avatarNameCell.className = "td-avatar-name";
 		const avatar = document.createElement("div");
@@ -158,6 +146,7 @@ export const renderCollabsList = () => {
 		nameCol.append(displayNameEl, loginTag);
 		avatarNameCell.append(avatar, nameCol);
 
+		// Project cell
 		const projectCell = document.createElement("td");
 		projectCell.className = "td-campus";
 		const projectTag = document.createElement("span");
@@ -166,6 +155,7 @@ export const renderCollabsList = () => {
 		projectTag.textContent = collab.project;
 		projectCell.append(projectTag);
 
+		// Role cell with conditional styling
 		const roleCell = document.createElement("td");
 		roleCell.className = "td-level";
 		const roleBadge = document.createElement("span");
@@ -179,6 +169,7 @@ export const renderCollabsList = () => {
 		roleBadge.textContent = collab.role;
 		roleCell.append(roleBadge);
 
+		// Date cell
 		const dateCell = document.createElement("td");
 		dateCell.className = "td-date";
 		dateCell.style.fontSize = "0.85rem";
@@ -194,9 +185,7 @@ export const renderCollabsList = () => {
 	updateCount(sorted.length);
 };
 
-/* -------------------------------------------------------------------
-   Pagination
-   ------------------------------------------------------------------- */
+// ── Pagination controls ────────────────────────────────────────────
 
 /** @param {number} totalPages */
 const renderPagination = (totalPages) => {
@@ -205,6 +194,7 @@ const renderPagination = (totalPages) => {
 	container.innerHTML = "";
 	if (totalPages <= 1) return;
 
+	// Helper to create a pagination button
 	const mkBtn = (label, page, disabled = false, active = false) => {
 		const btn = document.createElement("button");
 		btn.className = `page-btn${active ? " page-active" : ""}`;
@@ -249,10 +239,9 @@ const renderPagination = (totalPages) => {
 	container.append(mkBtn("›", currentPage + 1, currentPage === totalPages));
 };
 
-/* -------------------------------------------------------------------
-   Sort Headers
-   ------------------------------------------------------------------- */
+// ── Sort header indicators ─────────────────────────────────────────
 
+/** Updates th aria-sort attributes and sort arrow indicators. */
 const updateSortHeaders = () => {
 	$$(".th-sortable").forEach((th) => {
 		const field = th.getAttribute("data-sort");
@@ -272,16 +261,21 @@ const updateSortHeaders = () => {
 	});
 };
 
+/** Updates the visible record count badge. */
 const updateCount = (count) => {
 	const el = $("#collabs-count");
 	if (el) el.textContent = `${count} record${count !== 1 ? "s" : ""}`;
 };
 
+// ── Collaborator detail popup ──────────────────────────────────────
+
+/** Close the collaborator profile overlay. */
 const closeCollaboratorDetail = () => {
 	const overlay = $("#student-profile-overlay");
 	overlay?.classList.remove("active");
 };
 
+/** Open the detail popup for a given collaborator login. */
 const openCollaboratorDetail = (login) => {
 	const summary = buildCollaboratorSummary(allCollabs, login);
 	if (!summary) return;
@@ -294,6 +288,7 @@ const openCollaboratorDetail = (login) => {
 	title.textContent = summary.displayName;
 	content.innerHTML = "";
 
+	// Header with avatar, identity, and stats
 	const header = document.createElement("div");
 	header.className = "sp-header";
 
@@ -318,9 +313,9 @@ const openCollaboratorDetail = (login) => {
 	campus.textContent = `Campus: ${summary.campus}`;
 	identity.append(name, loginTag, campus);
 
+	// Shared projects stat
 	const statsRight = document.createElement("div");
 	statsRight.className = "sp-stats-right";
-
 	const stat = document.createElement("div");
 	stat.className = "sp-stat";
 	const valueEl = document.createElement("span");
@@ -329,12 +324,12 @@ const openCollaboratorDetail = (login) => {
 	const labelEl = document.createElement("span");
 	labelEl.className = "stat-label";
 	labelEl.textContent = "Shared Projects";
-
 	stat.append(valueEl, labelEl);
 	statsRight.append(stat);
 
 	header.append(initialsEl, identity, statsRight);
 
+	// Roles section
 	const rolesSection = document.createElement("section");
 	rolesSection.className = "sp-skills";
 	const rolesTitle = document.createElement("h3");
@@ -351,9 +346,9 @@ const openCollaboratorDetail = (login) => {
 	}
 	rolesSection.append(rolesList);
 
+	// Shared projects list
 	const projectsSection = document.createElement("section");
 	projectsSection.className = "sp-skills";
-
 	const projectsTitle = document.createElement("h3");
 	projectsTitle.textContent = "Recent Shared Projects";
 	projectsSection.append(projectsTitle);
@@ -388,10 +383,78 @@ const openCollaboratorDetail = (login) => {
 	overlay.classList.add("active");
 };
 
-/* -------------------------------------------------------------------
-   Initialization
-   ------------------------------------------------------------------- */
+// ── Data loading and event wiring ──────────────────────────────────
 
+let eventsbound = false;
+
+/** Binds sort, search, filter, and overlay events (once). */
+const bindEvents = () => {
+	if (eventsbound) return;
+	eventsbound = true;
+
+	// Sort header click toggles direction
+	$$(".th-sortable").forEach((th) => {
+		th.addEventListener("click", () => {
+			const field = /** @type {typeof sortField} */ (
+				th.getAttribute("data-sort")
+			);
+			if (sortField === field) {
+				sortDir = sortDir === "asc" ? "desc" : "asc";
+			} else {
+				sortField = field;
+				sortDir = "desc";
+			}
+			currentPage = 1;
+			renderCollabsList();
+		});
+	});
+
+	// Search text input
+	const searchInput = $("#collabs-search");
+	searchInput?.addEventListener("input", () => {
+		filterText = searchInput.value;
+		currentPage = 1;
+		renderCollabsList();
+	});
+
+	// Role dropdown filter
+	const roleSelect = $("#role-filter");
+	roleSelect?.addEventListener("change", () => {
+		filterRole = roleSelect.value;
+		currentPage = 1;
+		renderCollabsList();
+	});
+
+	// Reset all filters button
+	const resetBtn = $("#collabs-reset");
+	resetBtn?.addEventListener("click", () => {
+		filterText = "";
+		filterRole = "";
+		sortField = "date";
+		sortDir = "desc";
+		currentPage = 1;
+		if ($("#collabs-search")) $("#collabs-search").value = "";
+		if ($("#role-filter")) $("#role-filter").value = "";
+		renderCollabsList();
+	});
+
+	// Profile overlay close handlers
+	const profileCloseBtn = $("#student-profile-close");
+	profileCloseBtn?.addEventListener("click", closeCollaboratorDetail);
+
+	const profileOverlay = $("#student-profile-overlay");
+	profileOverlay?.addEventListener("click", (e) => {
+		if (e.target === profileOverlay) closeCollaboratorDetail();
+	});
+
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closeCollaboratorDetail();
+	});
+};
+
+// ── Public API ─────────────────────────────────────────────────────
+
+/** Fetches collaboration data and initialises the view. */
 export const initCollaborationsView = async (userId) => {
 	const loadingEl = $("#collabs-loading");
 	const tableWrap = $("#collabs-table-wrap");
@@ -406,6 +469,7 @@ export const initCollaborationsView = async (userId) => {
 
 		const collabs = [];
 
+		// Convert ISO dates to epoch ms for sorting
 		const toEpochMs = (isoDate) =>
 			Temporal.Instant.from(isoDate).epochMilliseconds;
 
@@ -431,7 +495,7 @@ export const initCollaborationsView = async (userId) => {
 			}
 		}
 
-		// Audits Given (So they were the Captain)
+		// Audits Given (they were the Captain)
 		for (const a of auditsGiven) {
 			if (a.group?.captainLogin && a.group.captainLogin !== "ekaramet") {
 				collabs.push({
@@ -449,7 +513,7 @@ export const initCollaborationsView = async (userId) => {
 			}
 		}
 
-		// Audits Received (They were the Auditor)
+		// Audits Received (they were the Auditor)
 		for (const a of auditsReceived) {
 			if (a.auditor?.login) {
 				collabs.push({
@@ -467,7 +531,7 @@ export const initCollaborationsView = async (userId) => {
 			}
 		}
 
-		// Remove duplicate identical records (same user, project, role)
+		// Deduplicate by login|project|role composite key
 		const unique = [];
 		const seen = new Set();
 		for (const c of collabs) {
@@ -496,71 +560,7 @@ export const initCollaborationsView = async (userId) => {
 	}
 };
 
-/* -------------------------------------------------------------------
-   Event bindings
-   ------------------------------------------------------------------- */
-
-let eventsbound = false;
-
-const bindEvents = () => {
-	if (eventsbound) return;
-	eventsbound = true;
-
-	$$(".th-sortable").forEach((th) => {
-		th.addEventListener("click", () => {
-			const field = /** @type {typeof sortField} */ (
-				th.getAttribute("data-sort")
-			);
-			if (sortField === field) {
-				sortDir = sortDir === "asc" ? "desc" : "asc";
-			} else {
-				sortField = field;
-				sortDir = "desc";
-			}
-			currentPage = 1;
-			renderCollabsList();
-		});
-	});
-
-	const searchInput = $("#collabs-search");
-	searchInput?.addEventListener("input", () => {
-		filterText = searchInput.value;
-		currentPage = 1;
-		renderCollabsList();
-	});
-
-	const roleSelect = $("#role-filter");
-	roleSelect?.addEventListener("change", () => {
-		filterRole = roleSelect.value;
-		currentPage = 1;
-		renderCollabsList();
-	});
-
-	const resetBtn = $("#collabs-reset");
-	resetBtn?.addEventListener("click", () => {
-		filterText = "";
-		filterRole = "";
-		sortField = "date";
-		sortDir = "desc";
-		currentPage = 1;
-		if ($("#collabs-search")) $("#collabs-search").value = "";
-		if ($("#role-filter")) $("#role-filter").value = "";
-		renderCollabsList();
-	});
-
-	const profileCloseBtn = $("#student-profile-close");
-	profileCloseBtn?.addEventListener("click", closeCollaboratorDetail);
-
-	const profileOverlay = $("#student-profile-overlay");
-	profileOverlay?.addEventListener("click", (e) => {
-		if (e.target === profileOverlay) closeCollaboratorDetail();
-	});
-
-	document.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") closeCollaboratorDetail();
-	});
-};
-
+/** Resets all collaborations state for logout / view teardown. */
 export const resetCollabsState = () => {
 	allCollabs = [];
 	sortField = "date";

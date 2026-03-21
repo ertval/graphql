@@ -1,10 +1,18 @@
-import { fail, ok } from "./graphql.result.core.js";
+/**
+ * Authentication service — login, token storage, and JWT utilities.
+ * All auth state flows through localStorage with the shared TOKEN_KEY.
+ * @module graphql.auth
+ */
 
+import { fail, ok } from "./graphql.result.js";
+
+// ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";
 const AUTH_URL = `${PLATFORM}/api/auth/signin`;
 const TOKEN_KEY = "graphql_jwt";
 const REQUEST_TIMEOUT_MS = 12_000;
 
+/** Builds an AbortController that auto-cancels after the timeout. */
 const createRequestController = () => {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -14,7 +22,9 @@ const createRequestController = () => {
 	};
 };
 
+// ── Login ──────────────────────────────────────────────────────────
 /**
+ * Authenticates via Basic auth and returns a Result wrapping the JWT.
  * @param {string} identifier
  * @param {string} password
  * @returns {Promise<{ok:true,data:string}|{ok:false,error:Error}>}
@@ -39,6 +49,7 @@ export const login = async (identifier, password) => {
 			signal: requestControl.controller.signal,
 		});
 
+		// Reject invalid credentials explicitly
 		if (!response.ok) {
 			if (response.status === 401 || response.status === 403) {
 				return fail(new Error("Invalid username/email or password."));
@@ -48,6 +59,7 @@ export const login = async (identifier, password) => {
 			);
 		}
 
+		// Parse the JWT from either JSON or raw text
 		const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
 		const bodyText = await response.text();
 
@@ -75,6 +87,8 @@ export const login = async (identifier, password) => {
 	}
 };
 
+// ── Token persistence ──────────────────────────────────────────────
+
 /** @param {string} token */
 export const saveToken = (token) => {
 	localStorage.setItem(TOKEN_KEY, token);
@@ -83,11 +97,14 @@ export const saveToken = (token) => {
 /** @returns {string|null} */
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
+/** Remove token from storage (logout / expiry). */
 export const clearToken = () => {
 	localStorage.removeItem(TOKEN_KEY);
 };
 
-/** @returns {boolean} */
+// ── JWT inspection ─────────────────────────────────────────────────
+
+/** @returns {boolean} True when a non-expired JWT is stored. */
 export const isAuthenticated = () => {
 	const token = getToken();
 	if (!token) return false;
@@ -101,7 +118,7 @@ export const isAuthenticated = () => {
 	}
 };
 
-/** @returns {object|null} */
+/** @returns {object|null} Decoded JWT payload, or null on failure. */
 export const decodeToken = () => {
 	const token = getToken();
 	if (!token) return null;

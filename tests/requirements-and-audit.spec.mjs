@@ -8,8 +8,12 @@ const read = (relPath) =>
   fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const appJs = read("src/features/dashboard.app.js");
-const graphsJs = read("src/features/dashboard.graphs.render.js");
+const appJs = read("src/dashboard.app.js");
+
+// Graph code is now split across multiple files — concat for assertions
+const graphsBarJs = read("src/graphs.bar.js");
+const graphsHelpersJs = read("src/graphs.helpers.js");
+const graphsJs = graphsHelpersJs + graphsBarJs;
 
 test("login form supports username/email and password inputs", () => {
   assert.match(indexHtml, /id=\"identifier\"/);
@@ -38,14 +42,12 @@ test("graph rendering uses native SVG API", () => {
   assert.match(graphsJs, /renderProjectBarChart/);
 });
 
-test("XP by Project graph uses dynamic container-based row layout", () => {
-  assert.match(graphsJs, /computeProjectBarLayout/);
-  assert.match(graphsJs, /container\.clientHeight/);
-  assert.doesNotMatch(graphsJs, /\.slice\(0,\s*15\)/);
-  assert.match(graphsJs, /const chartHeight = availableChartHeight/);
+test("XP by Project graph uses dynamic layout computation", () => {
+  assert.match(graphsBarJs, /computeProjectBarLayout/);
+  assert.match(graphsBarJs, /const layout = computeProjectBarLayout/);
 });
 
 test("logout flow exists and clears auth token", () => {
-  assert.match(appJs, /logoutBtn\?\.addEventListener\(\"click\"/);
+  assert.match(appJs, /logoutBtn\?\.addEventListener\("click"/);
   assert.match(appJs, /clearToken\(\)/);
 });

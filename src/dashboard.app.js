@@ -1,11 +1,17 @@
 /**
  * Main Application Controller
  * Orchestrates login, data fetching, and UI rendering.
+ * Entry point: loaded by index.html via <script type="module">.
  * @module app
  */
 
 import {
 	clearToken,
+	isAuthenticated,
+	login,
+	saveToken,
+} from "./graphql.auth.js";
+import {
 	fetchObjectById,
 	fetchProgress,
 	fetchResults,
@@ -13,26 +19,19 @@ import {
 	fetchUserInfo,
 	fetchUserLevel,
 	fetchXPTransactions,
-	isAuthenticated,
-	login,
-	saveToken,
-} from "../infrastructure/graphql.index.js";
+} from "./graphql.queries.js";
+import { unwrapResult } from "./graphql.result.js";
 import {
 	initCollaborationsView,
 	resetCollabsState,
-} from "./collaborations.controller.js";
-import {
-	renderAuditDonutChart,
-	renderPassFailPieChart,
-	renderProjectBarChart,
-	renderXPLineChart,
-} from "./dashboard.graphs.render.js";
+} from "./collaborations.view.js";
+import { renderXPLineChart } from "./graphs.line.js";
+import { renderProjectBarChart } from "./graphs.bar.js";
+import { renderAuditDonutChart } from "./graphs.donut.js";
+import { renderPassFailPieChart } from "./graphs.pie.js";
 import { computeXpSummary, formatXP } from "./dashboard.metrics.js";
-import { unwrapResult } from "./shared.result.unwrap.js";
 
-/* -------------------------------------------------------------------
-   DOM References
-   ------------------------------------------------------------------- */
+// ── DOM References ─────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 
 const loginView = $("#login-view");
@@ -48,10 +47,7 @@ const identifierInput = $("#identifier");
 const passwordInput = $("#password");
 const TOKEN_STORAGE_KEY = "graphql_jwt";
 
-/* -------------------------------------------------------------------
-   Module-level state (needed for project detail cross-reference)
-   ------------------------------------------------------------------- */
-
+// ── Module-level state (needed for project detail cross-reference) ─
 /** @type {Array<{amount:number, createdAt:string, path:string, object:{name:string,type:string}}>} */
 let _xpTransactions = [];
 
@@ -61,9 +57,7 @@ let _results = [];
 /** @type {number|null} */
 let _userId = null;
 
-/* -------------------------------------------------------------------
-   Tab Routing
-   ------------------------------------------------------------------- */
+// ── Tab Routing ────────────────────────────────────────────────────
 
 const tabDashboard = $("#tab-dashboard");
 const tabCollabs = $("#tab-collaborations");
@@ -90,15 +84,14 @@ const switchTab = (tab) => {
 tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
 tabCollabs?.addEventListener("click", () => {
 	switchTab("collabs");
+	// Lazy-load collaborations on first tab open
 	if (!collabsPanel?.dataset.loaded) {
 		collabsPanel.dataset.loaded = "1";
 		if (_userId) initCollaborationsView(_userId);
 	}
 });
 
-/* -------------------------------------------------------------------
-   View Routing (Login ↔ Profile)
-   ------------------------------------------------------------------- */
+// ── View Routing (Login ↔ Profile) ─────────────────────────────────
 
 const showProfile = () => {
 	loginView.classList.remove("active");
@@ -115,6 +108,7 @@ const showLogin = () => {
 	switchTab("dashboard");
 };
 
+/** Checks if an error indicates the session is no longer valid. */
 /** @param {unknown} err */
 const isAuthFailureError = (err) => {
 	const message = err instanceof Error ? err.message.toLowerCase() : "";
@@ -128,6 +122,7 @@ const isAuthFailureError = (err) => {
 	);
 };
 
+/** Full logout flow — clears state and returns to login. */
 const performLogout = () => {
 	clearToken();
 	resetDashboard();
@@ -136,9 +131,7 @@ const performLogout = () => {
 	history.replaceState(null, "", location.pathname);
 };
 
-/* -------------------------------------------------------------------
-   Login Handler
-   ------------------------------------------------------------------- */
+// ── Login Handler ──────────────────────────────────────────────────
 
 loginForm?.addEventListener("submit", async (e) => {
 	e.preventDefault();
@@ -176,28 +169,27 @@ loginForm?.addEventListener("submit", async (e) => {
 	}
 });
 
-/* -------------------------------------------------------------------
-   Logout Handler
-   ------------------------------------------------------------------- */
+// ── Logout Handler ─────────────────────────────────────────────────
 
 logoutBtn?.addEventListener("click", () => {
 	performLogout();
 });
 
+// Re-check auth on browser back/forward navigation
 globalThis.addEventListener("popstate", () => {
 	if (!isAuthenticated()) showLogin();
 });
 
+// Synchronise logout across browser tabs via storage event
 globalThis.addEventListener("storage", (event) => {
 	if (event.key === TOKEN_STORAGE_KEY && event.newValue === null) {
 		performLogout();
 	}
 });
 
-/* -------------------------------------------------------------------
-   Dashboard Data Loading
-   ------------------------------------------------------------------- */
+// ── Dashboard Data Loading ─────────────────────────────────────────
 
+/** Clears all dashboard UI elements back to empty state. */
 const resetDashboard = () => {
 	$("#avatar-initials").textContent = "";
 	$("#user-fullname").textContent = "";
@@ -224,6 +216,7 @@ const resetDashboard = () => {
 	_userId = null;
 };
 
+/** Fetches all dashboard data and renders every section. */
 const loadDashboard = async () => {
 	try {
 		const user = unwrapResult(await fetchUserInfo());
@@ -231,6 +224,7 @@ const loadDashboard = async () => {
 
 		renderUserSection(user);
 
+		// Fetch all data in parallel for performance
 		const [xpResult, progressResult, skillsResult, levelResult, resultsResult] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
@@ -257,6 +251,7 @@ const loadDashboard = async () => {
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
+		// Prefetch first object detail for caching
 		if (xpTransactions.length > 0) {
 			const objDetail = unwrapResult(await fetchObjectById(xpTransactions[0].id));
 			void objDetail;
@@ -268,10 +263,9 @@ const loadDashboard = async () => {
 	}
 };
 
-/* -------------------------------------------------------------------
-   Section Renderers
-   ------------------------------------------------------------------- */
+// ── Section Renderers ──────────────────────────────────────────────
 
+/** Populates the user profile card with identity information. */
 /** @param {object} user */
 const renderUserSection = (user) => {
 	const initials =
@@ -288,6 +282,7 @@ const renderUserSection = (user) => {
 	$("#nav-username").textContent = `@${user.login}`;
 };
 
+/** Populates XP stats card with level, projects done, and total XP. */
 /**
  * @param {Array} transactions
  * @param {number} level
@@ -301,6 +296,7 @@ const renderXPSection = (transactions, level, progress) => {
 	$("#completed-projects").textContent = String(completedProjects);
 };
 
+/** Populates the audit ratio card with bar widths and values. */
 /** @param {object} user */
 const renderAuditSection = (user) => {
 	const ratio = user.auditRatio ?? 0;
@@ -312,12 +308,14 @@ const renderAuditSection = (user) => {
 	$("#audit-done-value").textContent = formatXP(totalUp);
 	$("#audit-received-value").textContent = formatXP(totalDown);
 
+	// Animate bar widths on next frame
 	requestAnimationFrame(() => {
 		$("#audit-done-bar").style.width = `${(totalUp / maxAudit) * 100}%`;
 		$("#audit-received-bar").style.width = `${(totalDown / maxAudit) * 100}%`;
 	});
 };
 
+/** Delegates chart rendering to individual graph modules. */
 /**
  * @param {Array} transactions
  * @param {object} user
@@ -334,6 +332,7 @@ const renderGraphs = (transactions, user, progress) => {
 	renderPassFailPieChart($("#passfail-pie-chart"), progress);
 };
 
+/** Renders the top-N skills as animated bar items. */
 /** @param {Array} skills */
 const renderSkills = (skills) => {
 	const list = $("#skills-list");
@@ -348,6 +347,7 @@ const renderSkills = (skills) => {
 		return;
 	}
 
+	// Deduplicate skills and keep highest amount per type
 	const skillMap = new Map();
 	for (const s of skills) {
 		const name = s.type.replace("skill_", "");
@@ -382,14 +382,18 @@ const renderSkills = (skills) => {
 
 		item.append(skillName, skillTrack, skillValue);
 		list.append(item);
+
+		// Animate fill width on next frame
 		requestAnimationFrame(() => {
 			skillFill.style.width = `${(amount / maxAmount) * 100}%`;
 		});
 	}
 };
 
+// ── Activity list rendering ────────────────────────────────────────
+
 /**
- * Renders recent project results. Each item is clickable for project detail.
+ * Renders recent project results as clickable activity items.
  * @param {Array} results
  * @param {Array} xpTransactions
  */
@@ -414,7 +418,7 @@ const renderActivity = (results, xpTransactions) => {
 		return;
 	}
 
-	// Build XP lookup by object name
+	// Build XP lookup by object name for display
 	const xpByName = new Map();
 	for (const tx of xpTransactions) {
 		const name = tx.object?.name;
@@ -425,6 +429,7 @@ const renderActivity = (results, xpTransactions) => {
 };
 
 /**
+ * Creates individual activity item elements with click-to-detail.
  * @param {HTMLElement} list
  * @param {Array} items
  * @param {Map<string,number>} xpByName
@@ -432,6 +437,8 @@ const renderActivity = (results, xpTransactions) => {
 const renderActivityItems = (list, items, xpByName) => {
 	for (const result of items) {
 		const passed = result.grade >= 1;
+
+		// Format completion date using Temporal API
 		const dateStr = (() => {
 			try {
 				const instant = Temporal.Instant.from(result.createdAt);
@@ -473,6 +480,7 @@ const renderActivityItems = (list, items, xpByName) => {
 		activityMeta.append(badge, activityDate);
 		item.append(activityName, activityMeta);
 
+		// Click and keyboard handlers open project detail
 		const open = () => openProjectDetail(result, xpByName);
 		item.addEventListener("click", open);
 		item.addEventListener("keydown", (e) => {
@@ -486,9 +494,7 @@ const renderActivityItems = (list, items, xpByName) => {
 	}
 };
 
-/* -------------------------------------------------------------------
-   Project Detail Overlay
-   ------------------------------------------------------------------- */
+// ── Project Detail Overlay ─────────────────────────────────────────
 
 /**
  * Shows the project detail modal for a given result record.
@@ -504,6 +510,8 @@ const openProjectDetail = (result, xpByName) => {
 	const name = result.object?.name ?? "Unknown Project";
 	const passed = result.grade >= 1;
 	const xp = xpByName.get(name) ?? 0;
+
+	// Format date using Temporal
 	const dateStr = (() => {
 		try {
 			const zdt = Temporal.Instant.from(result.createdAt).toZonedDateTimeISO(
@@ -518,6 +526,7 @@ const openProjectDetail = (result, xpByName) => {
 	title.textContent = name;
 	content.innerHTML = "";
 
+	// Stats grid: result, grade, XP, type
 	const grid = document.createElement("div");
 	grid.className = "project-detail-grid";
 
@@ -542,6 +551,7 @@ const openProjectDetail = (result, xpByName) => {
 	appendStat(xp ? formatXP(xp) : "—", "XP Earned");
 	appendStat(result.object?.type ?? "—", "Type");
 
+	// Completion date display
 	const completedLabel = document.createElement("p");
 	completedLabel.className = "stat-label";
 	completedLabel.style.marginBottom = "0.5rem";
@@ -555,6 +565,7 @@ const openProjectDetail = (result, xpByName) => {
 
 	content.append(grid, completedLabel, completedDate);
 
+	// Optional path display
 	if (result.path) {
 		const pathLabel = document.createElement("p");
 		pathLabel.className = "stat-label";
@@ -570,6 +581,8 @@ const openProjectDetail = (result, xpByName) => {
 
 	overlay.classList.add("active");
 };
+
+// ── Project detail overlay close + bar chart integration ───────────
 
 const initProjectDetailClose = () => {
 	const overlay = $("#project-detail-overlay");
@@ -612,9 +625,7 @@ const initProjectDetailClose = () => {
 	});
 };
 
-/* -------------------------------------------------------------------
-   App Initialization
-   ------------------------------------------------------------------- */
+// ── App Initialization ─────────────────────────────────────────────
 
 const init = () => {
 	initProjectDetailClose();

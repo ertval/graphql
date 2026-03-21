@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { clearToken, graphqlQuery, login, saveToken } from "../src/infrastructure/graphql.index.js";
+import { clearToken, login, saveToken } from "../src/graphql.auth.js";
+import { graphqlQuery } from "../src/graphql.client.js";
 
 if (!globalThis.btoa) {
 	globalThis.btoa = (value) => Buffer.from(value, "utf8").toString("base64");

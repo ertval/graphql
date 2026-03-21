@@ -6,9 +6,9 @@ import path from "node:path";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const appJs = read("src/features/dashboard.app.js");
-const collaborationsJs = read("src/features/collaborations.view.js");
-const apiJs = read("src/infrastructure/graphql.client.service.js");
+const appJs = read("src/dashboard.app.js");
+const collaborationsJs = read("src/collaborations.view.js");
+const apiJs = read("src/graphql.client.js");
 
 test("collaborations loading error does not inject err.message with innerHTML", () => {
 	assert.doesNotMatch(

@@ -1,7 +1,19 @@
+/**
+ * Collaborations domain logic — name normalisation, summary building,
+ * date formatting, and project URL construction.
+ * Pure functions with zero DOM or I/O dependencies.
+ * @module collaborations.core
+ */
+
+// ── Text helpers ───────────────────────────────────────────────────
+
+/** @param {string} value @returns {boolean} */
 const hasText = (value) => typeof value === "string" && value.trim().length > 0;
 
+/** @param {string} char @returns {boolean} */
 const isLetter = (char) => /\p{L}/u.test(char);
 
+/** Capitalise a name token respecting hyphens and apostrophes. */
 const toReadableNameToken = (token) => {
 	const lowered = token.toLowerCase();
 	let capitalizeNext = true;
@@ -15,12 +27,13 @@ const toReadableNameToken = (token) => {
 		}
 
 		result += char;
-		capitalizeNext = char === "-" || char === "'" || char === "’";
+		capitalizeNext = char === "-" || char === "'" || char === "\u2019";
 	}
 
 	return result;
 };
 
+/** Normalise a full name string to readable Title Case. */
 const toReadableName = (value) => {
 	if (!hasText(value)) return "";
 	return value
@@ -30,7 +43,10 @@ const toReadableName = (value) => {
 		.join(" ");
 };
 
+// ── Name normalisation across login records ────────────────────────
 /**
+ * Ensures every record for the same login shares the best-available
+ * firstName/lastName, normalised to readable casing.
  * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
  */
 export const normalizeCollaboratorNamesByLogin = (collabs) => {
@@ -45,11 +61,13 @@ export const normalizeCollaboratorNamesByLogin = (collabs) => {
 		const hasCandidateFull =
 			hasText(candidate.firstName) && hasText(candidate.lastName);
 
+		// Prefer a record that has both parts filled
 		if (!hasCurrentFull && hasCandidateFull) {
 			map.set(collab.login, candidate);
 			return map;
 		}
 
+		// Fill in any missing parts from the candidate
 		if (!hasCurrentFull) {
 			map.set(collab.login, {
 				firstName: hasText(current.firstName)
@@ -64,6 +82,7 @@ export const normalizeCollaboratorNamesByLogin = (collabs) => {
 		return map;
 	}, new Map());
 
+	// Apply canonical names back to every record
 	return collabs.map((collab) => {
 		const canonical = canonicalByLogin.get(collab.login);
 		if (!canonical) return collab;
@@ -76,7 +95,10 @@ export const normalizeCollaboratorNamesByLogin = (collabs) => {
 	});
 };
 
+// ── Collaborator summary builder ───────────────────────────────────
 /**
+ * Aggregates all records for a login into a summary object
+ * with role counts, project list, and display name.
  * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
  * @param {string} login
  */
@@ -88,6 +110,8 @@ export const buildCollaboratorSummary = (collabs, login) => {
 	if (!matches.length) return null;
 
 	const primary = matches[0];
+
+	// Pick the best non-empty name across all records
 	const bestName = matches.reduce(
 		(acc, collab) => ({
 			firstName: acc.firstName || collab.firstName || "",
@@ -98,11 +122,13 @@ export const buildCollaboratorSummary = (collabs, login) => {
 	const displayName =
 		[bestName.firstName, bestName.lastName].filter(Boolean).join(" ") || login;
 
+	// Count collaborations grouped by role
 	const byRole = matches.reduce((map, collab) => {
 		map.set(collab.role, (map.get(collab.role) ?? 0) + 1);
 		return map;
 	}, new Map());
 
+	// Aggregate project details including roles per project
 	const projects = [
 		...matches
 			.reduce((map, collab) => {
@@ -152,6 +178,9 @@ export const buildCollaboratorSummary = (collabs, login) => {
 	};
 };
 
+// ── Date and URL utilities ─────────────────────────────────────────
+
+/** Format an ISO date to a localised medium-style date string. */
 export const toLocalDate = (isoDate) => {
 	try {
 		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
@@ -163,6 +192,7 @@ export const toLocalDate = (isoDate) => {
 	}
 };
 
+/** Build a full platform URL from a relative project path. */
 export const toProjectUrl = (pathValue) => {
 	if (!hasText(pathValue)) return null;
 	if (pathValue.startsWith("http://") || pathValue.startsWith("https://")) {

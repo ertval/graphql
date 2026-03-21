@@ -1,5 +1,13 @@
-import { graphqlQuery } from "./graphql.client.service.js";
-import { mapResult } from "./graphql.result.core.js";
+/**
+ * GraphQL query definitions — each function encapsulates a typed query.
+ * Returns Result wrappers via mapResult for safe downstream consumption.
+ * @module graphql.queries
+ */
+
+import { graphqlQuery } from "./graphql.client.js";
+import { mapResult } from "./graphql.result.js";
+
+// ── User profile ───────────────────────────────────────────────────
 
 export const fetchUserInfo = async () => {
 	const query = `
@@ -19,6 +27,8 @@ export const fetchUserInfo = async () => {
   `;
 	return mapResult(await graphqlQuery(query), (data) => data.user?.[0] ?? null);
 };
+
+// ── XP transactions (excludes piscine) ─────────────────────────────
 
 export const fetchXPTransactions = async (userId) => {
 	const query = `
@@ -45,6 +55,8 @@ export const fetchXPTransactions = async (userId) => {
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction ?? []);
 };
 
+// ── Completed progress records ─────────────────────────────────────
+
 export const fetchProgress = async (userId) => {
 	const query = `
     query GetProgress($userId: Int!) {
@@ -70,6 +82,8 @@ export const fetchProgress = async (userId) => {
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.progress ?? []);
 };
 
+// ── Single object lookup ───────────────────────────────────────────
+
 export const fetchObjectById = async (objectId) => {
 	const query = `
     query GetObject($objectId: Int!) {
@@ -82,6 +96,8 @@ export const fetchObjectById = async (objectId) => {
   `;
 	return mapResult(await graphqlQuery(query, { objectId }), (data) => data.object?.[0] ?? null);
 };
+
+// ── Skill transactions ─────────────────────────────────────────────
 
 export const fetchSkills = async (userId) => {
 	const query = `
@@ -100,6 +116,8 @@ export const fetchSkills = async (userId) => {
   `;
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction ?? []);
 };
+
+// ── Audit detail records ───────────────────────────────────────────
 
 export const fetchAuditDetails = async (userId) => {
 	const query = `
@@ -123,6 +141,8 @@ export const fetchAuditDetails = async (userId) => {
   `;
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.audit ?? []);
 };
+
+// ── Project results ────────────────────────────────────────────────
 
 export const fetchResults = async (userId) => {
 	const query = `
@@ -151,6 +171,8 @@ export const fetchResults = async (userId) => {
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.result ?? []);
 };
 
+// ── Current level ──────────────────────────────────────────────────
+
 export const fetchUserLevel = async (userId) => {
 	const query = `
     query GetLevel($userId: Int!) {
@@ -169,6 +191,8 @@ export const fetchUserLevel = async (userId) => {
   `;
 	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction?.[0]?.amount ?? 0);
 };
+
+// ── Collaboration data (groups + audits given / received) ──────────
 
 export const fetchCollaborations = async (userId) => {
 	const query = `

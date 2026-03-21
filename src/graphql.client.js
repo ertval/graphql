@@ -1,10 +1,18 @@
-import { clearToken, getToken } from "./graphql.auth.service.js";
-import { fail, ok } from "./graphql.result.core.js";
+/**
+ * GraphQL HTTP transport — executes queries against the platform API.
+ * Handles auth headers, response validation, and token expiry detection.
+ * @module graphql.client
+ */
 
+import { clearToken, getToken } from "./graphql.auth.js";
+import { fail, ok } from "./graphql.result.js";
+
+// ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";
 const GRAPHQL_URL = `${PLATFORM}/api/graphql-engine/v1/graphql`;
 const REQUEST_TIMEOUT_MS = 12_000;
 
+/** Builds an AbortController that auto-cancels after the timeout. */
 const createRequestController = () => {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -27,7 +35,10 @@ const isAuthErrorMessage = (message) => {
 	);
 };
 
+// ── Public query executor ──────────────────────────────────────────
 /**
+ * Sends a GraphQL query and returns a Result<data>.
+ * Automatically clears the token on 401/403 or auth-related errors.
  * @param {string} query
  * @param {object} [variables={}]
  * @returns {Promise<{ok:true,data:object}|{ok:false,error:Error}>}
@@ -56,6 +67,7 @@ export const graphqlQuery = async (query, variables = {}) => {
 			signal: requestControl.controller.signal,
 		});
 
+		// Expired / revoked session — clear token and report
 		if (response.status === 401 || response.status === 403) {
 			clearToken();
 			return fail(new Error("Session expired. Please log in again."));
@@ -64,6 +76,7 @@ export const graphqlQuery = async (query, variables = {}) => {
 			return fail(new Error(`GraphQL request failed (${response.status}).`));
 		}
 
+		// Validate content type before parsing
 		const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
 		if (
 			!contentType.includes("application/json") &&
@@ -73,6 +86,8 @@ export const graphqlQuery = async (query, variables = {}) => {
 		}
 
 		const result = await response.json();
+
+		// GraphQL-level errors — clear token if auth-related
 		if (result.errors?.length) {
 			const messages = result.errors.map((e) => e.message).join("; ");
 			if (isAuthErrorMessage(messages)) {
