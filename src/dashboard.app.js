@@ -27,9 +27,9 @@ import {
 	fetchXPTransactions,
 } from "./graphql.queries.js";
 import { unwrapResult } from "./graphql.result.js";
-import { formatXP } from "./graphs.helpers.js";
 import { renderProjectBarChart } from "./graphs.bar.js";
 import { renderAuditDonutChart } from "./graphs.donut.js";
+import { formatXP } from "./graphs.helpers.js";
 import { renderXPLineChart } from "./graphs.line.js";
 import { renderPassFailPieChart } from "./graphs.pie.js";
 
