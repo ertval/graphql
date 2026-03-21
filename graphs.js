@@ -47,6 +47,61 @@ const formatDateLabel = (isoStr) => {
 	return `${zdt.toLocaleString("en", { month: "short" })} ${zdt.year.toString().slice(-2)}`;
 };
 
+/**
+ * Computes row count and row sizing for the XP-by-project bar chart.
+ * @param {number} projectCount
+ * @param {number} containerHeight
+ * @returns {{rowCount:number,barHeight:number,barGap:number,totalHeight:number,padding:{top:number,right:number,bottom:number,left:number}}}
+ */
+export const computeProjectBarLayout = (projectCount, containerHeight) => {
+	const padding = { top: 10, right: 80, bottom: 12, left: 140 };
+	const safeProjectCount = Math.max(0, Math.floor(projectCount));
+	if (!safeProjectCount) {
+		return {
+			rowCount: 0,
+			barHeight: 18,
+			barGap: 6,
+			totalHeight: padding.top + padding.bottom,
+			padding,
+		};
+	}
+
+	const fallbackHeight = 420;
+	const usableContainerHeight =
+		Number.isFinite(containerHeight) && containerHeight > 0
+			? containerHeight
+			: fallbackHeight;
+	const barGap = 6;
+	const minBarHeight = 16;
+	const maxBarHeight = 30;
+	const availableChartHeight = Math.max(
+		220,
+		usableContainerHeight - padding.top - padding.bottom,
+	);
+	const maxRowsByMinSize = Math.max(
+		1,
+		Math.floor((availableChartHeight + barGap) / (minBarHeight + barGap)),
+	);
+	const rowCount = Math.min(safeProjectCount, maxRowsByMinSize);
+	const computedBarHeight = Math.floor(
+		(availableChartHeight - Math.max(0, rowCount - 1) * barGap) / rowCount,
+	);
+	const barHeight = Math.max(
+		minBarHeight,
+		Math.min(maxBarHeight, computedBarHeight),
+	);
+	const chartHeight =
+		rowCount * barHeight + Math.max(0, rowCount - 1) * barGap;
+
+	return {
+		rowCount,
+		barHeight,
+		barGap,
+		totalHeight: padding.top + padding.bottom + chartHeight,
+		padding,
+	};
+};
+
 /* -------------------------------------------------------------------
    GRAPH 1: Line Chart — XP Progress Over Time
    ------------------------------------------------------------------- */
@@ -295,19 +350,20 @@ export const renderProjectBarChart = (container, transactions) => {
 			name,
 			total: txs.reduce((sum, tx) => sum + tx.amount, 0),
 		}))
-		.toSorted((a, b) => b.total - a.total)
-		.slice(0, 15); // Top 15
+		.toSorted((a, b) => b.total - a.total);
 
 	// Chart dimensions
-	const barHeight = 28;
-	const barGap = 8;
 	const width = 600;
-	const padding = { top: 10, right: 80, bottom: 10, left: 140 };
+	const layout = computeProjectBarLayout(
+		projectEntries.length,
+		container.clientHeight,
+	);
+	const { rowCount, barHeight, barGap, totalHeight, padding } = layout;
+	const visibleProjects = projectEntries.slice(0, rowCount);
 	const chartW = width - padding.left - padding.right;
-	const height =
-		padding.top + padding.bottom + projectEntries.length * (barHeight + barGap);
+	const height = totalHeight;
 
-	const maxXP = Math.max(...projectEntries.map((p) => p.total));
+	const maxXP = Math.max(...visibleProjects.map((p) => p.total));
 
 	const svg = svgEl("svg", {
 		viewBox: `0 0 ${width} ${height}`,
@@ -336,7 +392,7 @@ export const renderProjectBarChart = (container, transactions) => {
 	container.style.position = "relative";
 	container.append(tooltip);
 
-	projectEntries.forEach((project, i) => {
+	visibleProjects.forEach((project, i) => {
 		const y = padding.top + i * (barHeight + barGap);
 		const barW = (project.total / maxXP) * chartW;
 		const emitProjectClick = () => {

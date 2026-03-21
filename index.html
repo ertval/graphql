@@ -160,17 +160,17 @@
         <div class="card glass xp-card" id="section-xp">
           <div class="card-header"><h2>Experience Points</h2></div>
           <div class="xp-stats">
-            <div class="stat-block">
-              <span class="stat-value" id="total-xp">—</span>
-              <span class="stat-label">Total XP</span>
-            </div>
-            <div class="stat-block">
+            <div class="stat-block stat-level">
               <span class="stat-value" id="user-level">—</span>
               <span class="stat-label">Level</span>
             </div>
-            <div class="stat-block">
+            <div class="stat-block stat-projects">
               <span class="stat-value" id="completed-projects">—</span>
               <span class="stat-label">Projects Done</span>
+            </div>
+            <div class="stat-block stat-total">
+              <span class="stat-value" id="total-xp">—</span>
+              <span class="stat-label">Total XP</span>
             </div>
           </div>
         </div>
@@ -356,10 +356,10 @@
          STUDENT PROFILE OVERLAY
          ═══════════════════════════════════════════════════════════ -->
     <div id="student-profile-overlay" class="student-profile-overlay" role="dialog"
-      aria-modal="true" aria-label="Student profile">
+      aria-modal="true" aria-label="Collaborator details">
       <div class="student-profile-modal glass">
         <div class="student-profile-modal-header">
-          <h2>Student Profile</h2>
+          <h2 id="student-profile-title">Collaborator Details</h2>
           <button id="student-profile-close" class="modal-close-btn" type="button" aria-label="Close profile">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
               stroke-width="2" aria-hidden="true">

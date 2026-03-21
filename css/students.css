@@ -281,6 +281,22 @@
 	color: var(--text-primary);
 }
 
+.collab-name-btn {
+	background: transparent;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: color var(--transition-fast);
+}
+
+.collab-name-btn:hover,
+.collab-name-btn:focus-visible {
+	color: var(--accent-start);
+	outline: none;
+}
+
 .student-login-tag {
 	font-size: var(--font-xs);
 	color: var(--accent-start);
@@ -494,6 +510,10 @@
 	border-radius: var(--radius-md);
 }
 
+.collab-stats-grid {
+	grid-template-columns: repeat(3, 1fr);
+}
+
 /* Two-column graph groups inside profile */
 .sp-graphs-row {
 	display: grid;
@@ -549,6 +569,33 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 	margin-bottom: var(--space-md);
+}
+
+.collab-project-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+}
+
+.collab-project-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	padding: var(--space-md);
+	border-radius: var(--radius-md);
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.collab-project-name {
+	font-size: var(--font-sm);
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.collab-project-meta {
+	font-size: var(--font-xs);
+	color: var(--text-muted);
 }
 
 .student-profile-loading {
@@ -624,6 +671,9 @@
 	}
 	.sp-stats-grid {
 		grid-template-columns: repeat(2, 1fr);
+	}
+	.collab-stats-grid {
+		grid-template-columns: 1fr;
 	}
 	.student-profile-modal {
 		max-height: 95vh;

@@ -75,6 +75,80 @@ Then visit `http://localhost:3000`.
 
 ---
 
+## 🔐 Browser Hardening (CSP + Security Headers)
+
+Even for static hosting, add a restrictive baseline policy to reduce XSS and clickjacking risk.
+
+### Recommended baseline headers
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://platform.zone01.gr; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+X-Frame-Options: DENY
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+```
+
+### Notes for this project
+
+1. `connect-src` must allow `https://platform.zone01.gr` for GraphQL/auth requests.
+2. `style-src` and `font-src` allow Google Fonts used by `index.html`.
+3. Avoid adding `'unsafe-inline'` to `script-src`; this app does not need inline scripts.
+4. If you add analytics or CDNs later, explicitly extend CSP for those domains.
+
+### Netlify
+
+Create a `_headers` file at project root:
+
+```txt
+/*
+   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://platform.zone01.gr; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+   X-Content-Type-Options: nosniff
+   Referrer-Policy: strict-origin-when-cross-origin
+   Permissions-Policy: camera=(), microphone=(), geolocation=()
+   X-Frame-Options: DENY
+   Cross-Origin-Opener-Policy: same-origin
+   Cross-Origin-Resource-Policy: same-origin
+```
+
+### Vercel
+
+Configure headers in `vercel.json`:
+
+```json
+{
+   "headers": [
+      {
+         "source": "/(.*)",
+         "headers": [
+            {
+               "key": "Content-Security-Policy",
+               "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://platform.zone01.gr; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+            },
+            { "key": "X-Content-Type-Options", "value": "nosniff" },
+            { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+            { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+            { "key": "X-Frame-Options", "value": "DENY" },
+            { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+            { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
+         ]
+      }
+   ]
+}
+```
+
+### GitHub Pages
+
+GitHub Pages does not let you set custom response headers directly.
+
+1. Keep a strict `<meta http-equiv="Content-Security-Policy" ...>` fallback in `index.html` for CSP if needed.
+2. For full header control (`X-Content-Type-Options`, `Permissions-Policy`, etc.), place a CDN/proxy in front (for example Cloudflare) and set headers there.
+3. If security headers are mandatory, prefer Netlify or Vercel for this project.
+
+---
+
 ## 📋 Audit Checklist for Reviewers
 
 When asked *"Try to access the profile from the host domain"* in `audit.md`:

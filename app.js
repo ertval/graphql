@@ -41,6 +41,7 @@ const btnLoader = loginBtn?.querySelector(".btn-loader");
 const logoutBtn = $("#logout-btn");
 const identifierInput = $("#identifier");
 const passwordInput = $("#password");
+const TOKEN_STORAGE_KEY = "graphql_jwt";
 
 /* -------------------------------------------------------------------
    Module-level state (needed for project detail cross-reference)
@@ -113,6 +114,37 @@ const showLogin = () => {
 	switchTab("dashboard");
 };
 
+/** @param {unknown} err */
+const isAuthFailureError = (err) => {
+	const message = err instanceof Error ? err.message.toLowerCase() : "";
+	return (
+		message.includes("session expired") ||
+		message.includes("not authenticated") ||
+		message.includes("unauthorized") ||
+		message.includes("forbidden") ||
+		message.includes("graphql error: jwt") ||
+		message.includes("graphql error: token")
+	);
+};
+
+const performLogout = () => {
+	clearToken();
+	resetDashboard();
+	resetCollabsState();
+	showLogin();
+	history.replaceState(null, "", location.pathname);
+};
+
+/**
+ * @template T
+ * @param {{ok: true, data: T} | {ok: false, error: Error}} result
+ * @returns {T}
+ */
+const unwrapResult = (result) => {
+	if (result.ok) return result.data;
+	throw result.error;
+};
+
 /* -------------------------------------------------------------------
    Login Handler
    ------------------------------------------------------------------- */
@@ -134,7 +166,13 @@ loginForm?.addEventListener("submit", async (e) => {
 	btnLoader.hidden = false;
 
 	try {
-		const token = await login(identifier, password);
+		const loginResult = await login(identifier, password);
+		if (!loginResult.ok) {
+			loginError.textContent = loginResult.error.message;
+			return;
+		}
+
+		const token = loginResult.data;
 		saveToken(token);
 		showProfile();
 		await loadDashboard();
@@ -152,15 +190,17 @@ loginForm?.addEventListener("submit", async (e) => {
    ------------------------------------------------------------------- */
 
 logoutBtn?.addEventListener("click", () => {
-	clearToken();
-	resetDashboard();
-	resetCollabsState();
-	showLogin();
-	history.replaceState(null, "", location.pathname);
+	performLogout();
 });
 
 globalThis.addEventListener("popstate", () => {
 	if (!isAuthenticated()) showLogin();
+});
+
+globalThis.addEventListener("storage", (event) => {
+	if (event.key === TOKEN_STORAGE_KEY && event.newValue === null) {
+		performLogout();
+	}
 });
 
 /* -------------------------------------------------------------------
@@ -206,12 +246,12 @@ const resetDashboard = () => {
 
 const loadDashboard = async () => {
 	try {
-		const user = await fetchUserInfo();
+		const user = unwrapResult(await fetchUserInfo());
 		if (!user) throw new Error("Could not load user data.");
 
 		renderUserSection(user);
 
-		const [xpTransactions, progress, skills, level, results] =
+		const [xpResult, progressResult, skillsResult, levelResult, resultsResult] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
 				fetchProgress(user.id),
@@ -219,6 +259,12 @@ const loadDashboard = async () => {
 				fetchUserLevel(user.id),
 				fetchResults(user.id),
 			]);
+
+		const xpTransactions = unwrapResult(xpResult);
+		const progress = unwrapResult(progressResult);
+		const skills = unwrapResult(skillsResult);
+		const level = unwrapResult(levelResult);
+		const results = unwrapResult(resultsResult);
 
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;
@@ -233,17 +279,13 @@ const loadDashboard = async () => {
 
 		// Bonus: demonstrate fetching a specific object by ID (parameterized query)
 		if (xpTransactions.length > 0) {
-			const objDetail = await fetchObjectById(xpTransactions[0].id);
+			const objDetail = unwrapResult(await fetchObjectById(xpTransactions[0].id));
 			if (objDetail) console.log("[Bonus] fetchObjectById demo:", objDetail);
 		}
 	} catch (err) {
 		console.error("Dashboard loading error:", err);
-		if (
-			err.message.includes("Session expired") ||
-			err.message.includes("Not authenticated")
-		) {
-			clearToken();
-			showLogin();
+		if (isAuthFailureError(err) || !isAuthenticated()) {
+			performLogout();
 		}
 	}
 };
@@ -323,8 +365,11 @@ const renderSkills = (skills) => {
 	list.innerHTML = "";
 
 	if (!skills.length) {
-		list.innerHTML =
-			'<p style="color:var(--text-muted);font-size:0.875rem">No skill data available.</p>';
+		const empty = document.createElement("p");
+		empty.style.color = "var(--text-muted)";
+		empty.style.fontSize = "0.875rem";
+		empty.textContent = "No skill data available.";
+		list.append(empty);
 		return;
 	}
 
@@ -343,17 +388,27 @@ const renderSkills = (skills) => {
 	for (const [name, amount] of topSkills) {
 		const item = document.createElement("div");
 		item.className = "skill-item";
-		item.innerHTML = `
-      <span class="skill-name">${name}</span>
-      <div class="skill-bar-track">
-        <div class="skill-bar-fill" style="width:0%"></div>
-      </div>
-      <span class="skill-value">${amount}%</span>
-    `;
+
+		const skillName = document.createElement("span");
+		skillName.className = "skill-name";
+		skillName.textContent = name;
+
+		const skillTrack = document.createElement("div");
+		skillTrack.className = "skill-bar-track";
+
+		const skillFill = document.createElement("div");
+		skillFill.className = "skill-bar-fill";
+		skillFill.style.width = "0%";
+		skillTrack.append(skillFill);
+
+		const skillValue = document.createElement("span");
+		skillValue.className = "skill-value";
+		skillValue.textContent = `${amount}%`;
+
+		item.append(skillName, skillTrack, skillValue);
 		list.append(item);
 		requestAnimationFrame(() => {
-			item.querySelector(".skill-bar-fill").style.width =
-				`${(amount / maxAmount) * 100}%`;
+			skillFill.style.width = `${(amount / maxAmount) * 100}%`;
 		});
 	}
 };
@@ -376,8 +431,11 @@ const renderActivity = (results, xpTransactions) => {
 		: results.filter((r) => r.object?.name).slice(0, 10);
 
 	if (!items.length) {
-		list.innerHTML =
-			'<p style="color:var(--text-muted);font-size:0.875rem">No recent activity.</p>';
+		const empty = document.createElement("p");
+		empty.style.color = "var(--text-muted)";
+		empty.style.fontSize = "0.875rem";
+		empty.textContent = "No recent activity.";
+		list.append(empty);
 		return;
 	}
 
@@ -422,13 +480,23 @@ const renderActivityItems = (list, items, xpByName) => {
 			`View details for ${result.object?.name ?? "project"}`,
 		);
 
-		item.innerHTML = `
-      <span class="activity-name">${result.object?.name ?? "Unknown"}</span>
-      <div class="activity-meta">
-        <span class="activity-badge ${passed ? "badge-pass" : "badge-fail"}">${passed ? "PASS" : "FAIL"}</span>
-        <span class="activity-date">${dateStr}</span>
-      </div>
-    `;
+		const activityName = document.createElement("span");
+		activityName.className = "activity-name";
+		activityName.textContent = result.object?.name ?? "Unknown";
+
+		const activityMeta = document.createElement("div");
+		activityMeta.className = "activity-meta";
+
+		const badge = document.createElement("span");
+		badge.className = `activity-badge ${passed ? "badge-pass" : "badge-fail"}`;
+		badge.textContent = passed ? "PASS" : "FAIL";
+
+		const activityDate = document.createElement("span");
+		activityDate.className = "activity-date";
+		activityDate.textContent = dateStr;
+
+		activityMeta.append(badge, activityDate);
+		item.append(activityName, activityMeta);
 
 		const open = () => openProjectDetail(result, xpByName);
 		item.addEventListener("click", open);
@@ -473,30 +541,57 @@ const openProjectDetail = (result, xpByName) => {
 	})();
 
 	title.textContent = name;
+	content.innerHTML = "";
 
-	content.innerHTML = `
-    <div class="project-detail-grid">
-      <div class="pd-stat">
-        <span class="stat-value">${passed ? "✓ PASS" : "✗ FAIL"}</span>
-        <span class="stat-label">Result</span>
-      </div>
-      <div class="pd-stat">
-        <span class="stat-value">${result.grade.toFixed(2)}</span>
-        <span class="stat-label">Grade</span>
-      </div>
-      <div class="pd-stat">
-        <span class="stat-value">${xp ? formatXP(xp) : "—"}</span>
-        <span class="stat-label">XP Earned</span>
-      </div>
-      <div class="pd-stat">
-        <span class="stat-value">${result.object?.type ?? "—"}</span>
-        <span class="stat-label">Type</span>
-      </div>
-    </div>
-    <p class="stat-label" style="margin-bottom:0.5rem">Completed</p>
-    <p style="color:var(--text-primary);font-size:0.9rem;margin-bottom:0.75rem">${dateStr}</p>
-    ${result.path ? `<p class="stat-label" style="margin-bottom:0.25rem">Path</p><div class="pd-path">${result.path}</div>` : ""}
-  `;
+	const grid = document.createElement("div");
+	grid.className = "project-detail-grid";
+
+	const appendStat = (value, label) => {
+		const stat = document.createElement("div");
+		stat.className = "pd-stat";
+
+		const statValue = document.createElement("span");
+		statValue.className = "stat-value";
+		statValue.textContent = value;
+
+		const statLabel = document.createElement("span");
+		statLabel.className = "stat-label";
+		statLabel.textContent = label;
+
+		stat.append(statValue, statLabel);
+		grid.append(stat);
+	};
+
+	appendStat(passed ? "✓ PASS" : "✗ FAIL", "Result");
+	appendStat(result.grade.toFixed(2), "Grade");
+	appendStat(xp ? formatXP(xp) : "—", "XP Earned");
+	appendStat(result.object?.type ?? "—", "Type");
+
+	const completedLabel = document.createElement("p");
+	completedLabel.className = "stat-label";
+	completedLabel.style.marginBottom = "0.5rem";
+	completedLabel.textContent = "Completed";
+
+	const completedDate = document.createElement("p");
+	completedDate.style.color = "var(--text-primary)";
+	completedDate.style.fontSize = "0.9rem";
+	completedDate.style.marginBottom = "0.75rem";
+	completedDate.textContent = dateStr;
+
+	content.append(grid, completedLabel, completedDate);
+
+	if (result.path) {
+		const pathLabel = document.createElement("p");
+		pathLabel.className = "stat-label";
+		pathLabel.style.marginBottom = "0.25rem";
+		pathLabel.textContent = "Path";
+
+		const pathValue = document.createElement("div");
+		pathValue.className = "pd-path";
+		pathValue.textContent = result.path;
+
+		content.append(pathLabel, pathValue);
+	}
 
 	overlay.classList.add("active");
 };

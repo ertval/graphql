@@ -51,14 +51,17 @@
 	grid-area: xp;
 }
 .xp-stats {
-	display: flex;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: var(--space-xl);
-	flex-wrap: wrap;
+}
+
+.stat-total {
+	grid-column: 1 / -1;
 }
 
 .stat-block {
-	flex: 1;
-	min-width: 90px;
+	min-width: 0;
 	text-align: center;
 	padding: var(--space-md);
 	background: rgba(255, 255, 255, 0.02);
@@ -191,6 +194,18 @@
 	margin-bottom: var(--space-md);
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
+}
+
+#graph-project-xp {
+	display: flex;
+	flex-direction: column;
+	min-height: clamp(420px, 44vh, 560px);
+}
+
+#graph-project-xp .graph-svg-container {
+	flex: 1;
+	min-height: 0;
+	align-items: stretch;
 }
 
 /* ── Skills (Bonus) ── */
@@ -430,6 +445,10 @@
 	.graphs-container {
 		grid-template-columns: 1fr;
 	}
+
+	#graph-project-xp {
+		min-height: clamp(320px, 50vh, 460px);
+	}
 }
 
 @media (max-width: 768px) {
@@ -453,7 +472,15 @@
 		flex-direction: column;
 	}
 	.xp-stats {
-		flex-direction: column;
+		grid-template-columns: 1fr;
+		gap: var(--space-md);
+	}
+	.stat-total {
+		grid-column: auto;
+	}
+
+	#graph-project-xp {
+		min-height: 320px;
 	}
 }
 
@@ -469,5 +496,9 @@
 
 	.graph-panel {
 		padding: var(--space-md);
+	}
+
+	#graph-project-xp {
+		min-height: 280px;
 	}
 }

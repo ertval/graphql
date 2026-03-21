@@ -38,6 +38,12 @@ test("graph rendering uses native SVG API", () => {
   assert.match(graphsJs, /renderProjectBarChart/);
 });
 
+test("XP by Project graph uses dynamic container-based row layout", () => {
+  assert.match(graphsJs, /computeProjectBarLayout/);
+  assert.match(graphsJs, /container\.clientHeight/);
+  assert.doesNotMatch(graphsJs, /\.slice\(0,\s*15\)/);
+});
+
 test("logout flow exists and clears auth token", () => {
   assert.match(appJs, /logoutBtn\?\.addEventListener\(\"click\"/);
   assert.match(appJs, /clearToken\(\)/);
