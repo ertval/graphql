@@ -57,7 +57,11 @@ export const initCollaborationsView = async (userId) => {
 
 		// Audits Given (they were the Captain)
 		for (const a of auditsGiven) {
-			if (a.group?.captainLogin && a.group.captainLogin !== "ekaramet") {
+			if (
+				a.grade !== null &&
+				a.group?.captainLogin &&
+				a.group.captainLogin !== "ekaramet"
+			) {
 				collabs.push({
 					id: `a_${Math.random()}`,
 					login: a.group.captainLogin,
@@ -75,7 +79,7 @@ export const initCollaborationsView = async (userId) => {
 
 		// Audits Received (they were the Auditor)
 		for (const a of auditsReceived) {
-			if (a.auditor?.login) {
+			if (a.grade !== null && a.auditor?.login) {
 				collabs.push({
 					id: `r_${Math.random()}`,
 					login: a.auditor.login,
