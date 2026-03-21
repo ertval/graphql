@@ -65,9 +65,6 @@ let _userId = null;
    Tab Routing
    ------------------------------------------------------------------- */
 
-/** @type {'dashboard'|'students'} */
-let activeTab = "dashboard";
-
 const tabDashboard = $("#tab-dashboard");
 const tabCollabs = $("#tab-collaborations");
 const dashboardPanel = $("#dashboard");
@@ -75,7 +72,6 @@ const collabsPanel = $("#collaborations-view");
 
 /** @param {'dashboard'|'collabs'} tab */
 const switchTab = (tab) => {
-	activeTab = tab;
 
 	tabDashboard?.classList.toggle("active", tab === "dashboard");
 	tabCollabs?.classList.toggle("active", tab === "collabs");
@@ -403,11 +399,11 @@ const renderActivity = (results, xpTransactions) => {
 
 	const projectResults = results
 		.filter((r) => r.object?.name && r.object?.type === "project")
-		.slice(0, 30);
+		.slice(0, 20);
 
 	const items = projectResults.length
 		? projectResults
-		: results.filter((r) => r.object?.name).slice(0, 30);
+		: results.filter((r) => r.object?.name).slice(0, 20);
 
 	if (!items.length) {
 		const empty = document.createElement("p");

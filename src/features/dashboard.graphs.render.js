@@ -66,7 +66,7 @@ export const computeProjectBarLayout = (projectCount) => {
 		};
 	}
 
-	const maxRowsToDisplay = 30; // adding more
+	const maxRowsToDisplay = 28; // adding more
 	const rowCount = Math.min(safeProjectCount, maxRowsToDisplay);
 	const barHeight = 24; // making them bigger
 	const barGap = 8;

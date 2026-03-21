@@ -157,17 +157,23 @@
 /* ── Graphs Section ── (two grouped columns) ── */
 #section-graphs {
 	grid-area: graphs;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 .graphs-container {
+	flex: 1;
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: var(--space-xl);
+	min-height: 0;
 }
 
 .graph-group {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-lg);
+	min-height: 0;
 }
 
 .graph-group-label {
@@ -199,13 +205,20 @@
 #graph-project-xp {
 	display: flex;
 	flex-direction: column;
-	min-height: clamp(420px, 44vh, 560px);
+	flex: 1;
+	min-height: 0;
 }
 
 #graph-project-xp .graph-svg-container {
 	flex: 1;
 	min-height: 0;
-	align-items: stretch;
+	align-items: flex-start;
+	overflow-y: auto;
+	padding-right: 8px;
+}
+
+#graph-project-xp .graph-svg-container svg {
+	height: auto;
 }
 
 :fullscreen .graphs-container,
@@ -280,11 +293,18 @@
 /* ── Recent Activity (Bonus) ── */
 #section-activity {
 	grid-area: activity;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 .activity-list {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-sm);
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 8px;
 }
 
 .activity-item {
@@ -452,6 +472,17 @@
 			"skills graphs graphs"
 			"activity activity activity";
 	}
+
+	#section-activity {
+		min-height: auto;
+	}
+
+	.activity-list {
+		flex: none;
+		min-height: auto;
+		overflow-y: visible;
+		padding-right: 0;
+	}
 }
 
 @media (max-width: 1200px) {
@@ -471,6 +502,14 @@
 
 	#graph-project-xp {
 		min-height: clamp(320px, 50vh, 460px);
+		flex: none;
+	}
+
+	#graph-project-xp .graph-svg-container {
+		overflow-y: visible;
+		flex: 1;
+		min-height: 0;
+		align-items: stretch;
 	}
 }
 
@@ -504,6 +543,7 @@
 
 	#graph-project-xp {
 		min-height: 320px;
+		flex: none;
 	}
 }
 
