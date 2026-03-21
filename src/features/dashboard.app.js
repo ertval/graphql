@@ -20,7 +20,7 @@ import {
 import {
 	initCollaborationsView,
 	resetCollabsState,
-} from "./collaborations.index.js";
+} from "./collaborations.controller.js";
 import {
 	renderAuditDonutChart,
 	renderPassFailPieChart,
@@ -403,11 +403,11 @@ const renderActivity = (results, xpTransactions) => {
 
 	const projectResults = results
 		.filter((r) => r.object?.name && r.object?.type === "project")
-		.slice(0, 10);
+		.slice(0, 30);
 
 	const items = projectResults.length
 		? projectResults
-		: results.filter((r) => r.object?.name).slice(0, 10);
+		: results.filter((r) => r.object?.name).slice(0, 30);
 
 	if (!items.length) {
 		const empty = document.createElement("p");

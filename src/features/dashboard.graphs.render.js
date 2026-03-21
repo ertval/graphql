@@ -53,42 +53,28 @@ const formatDateLabel = (isoStr) => {
  * @param {number} containerHeight
  * @returns {{rowCount:number,barHeight:number,barGap:number,totalHeight:number,padding:{top:number,right:number,bottom:number,left:number}}}
  */
-export const computeProjectBarLayout = (projectCount, containerHeight) => {
+export const computeProjectBarLayout = (projectCount) => {
 	const padding = { top: 10, right: 80, bottom: 12, left: 140 };
 	const safeProjectCount = Math.max(0, Math.floor(projectCount));
 	if (!safeProjectCount) {
 		return {
 			rowCount: 0,
-			barHeight: 18,
-			barGap: 6,
+			barHeight: 24,
+			barGap: 8,
 			totalHeight: padding.top + padding.bottom,
 			padding,
 		};
 	}
 
-	const fallbackHeight = 420;
-	const usableContainerHeight =
-		Number.isFinite(containerHeight) && containerHeight > 0
-			? containerHeight
-			: fallbackHeight;
-	const barGap = 6;
-	const minBarHeight = 16;
-	const availableChartHeight = Math.max(
-		220,
-		usableContainerHeight - padding.top - padding.bottom,
-	);
-	const maxRowsByMinSize = Math.max(
-		1,
-		Math.floor((availableChartHeight + barGap) / (minBarHeight + barGap)),
-	);
-	const rowCount = Math.min(safeProjectCount, maxRowsByMinSize);
-	const barHeight =
-		(availableChartHeight - Math.max(0, rowCount - 1) * barGap) / rowCount;
-	const chartHeight = availableChartHeight;
+	const maxRowsToDisplay = 30; // adding more
+	const rowCount = Math.min(safeProjectCount, maxRowsToDisplay);
+	const barHeight = 24; // making them bigger
+	const barGap = 8;
+	const chartHeight = rowCount * barHeight + Math.max(0, rowCount - 1) * barGap;
 
 	return {
 		rowCount,
-		barHeight: Math.max(minBarHeight, barHeight),
+		barHeight,
 		barGap,
 		totalHeight: padding.top + padding.bottom + chartHeight,
 		padding,
@@ -349,7 +335,6 @@ export const renderProjectBarChart = (container, transactions) => {
 	const width = 600;
 	const layout = computeProjectBarLayout(
 		projectEntries.length,
-		container.clientHeight,
 	);
 	const { rowCount, barHeight, barGap, totalHeight, padding } = layout;
 	const visibleProjects = projectEntries.slice(0, rowCount);
