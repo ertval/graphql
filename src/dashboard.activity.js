@@ -4,7 +4,7 @@
  * @module dashboard.activity
  */
 
-import { formatXP } from "./dashboard.metrics.js";
+import { formatXP } from "./graphs.helpers.js";
 
 const $ = (sel) => document.querySelector(sel);
 

@@ -11,7 +11,6 @@ import {
 	initProjectDetailClose,
 	renderActivity,
 } from "./dashboard.activity.js";
-import { computeXpSummary, formatXP } from "./dashboard.metrics.js";
 import {
 	clearToken,
 	isAuthenticated,
@@ -28,6 +27,7 @@ import {
 	fetchXPTransactions,
 } from "./graphql.queries.js";
 import { unwrapResult } from "./graphql.result.js";
+import { formatXP } from "./graphs.helpers.js";
 import { renderProjectBarChart } from "./graphs.bar.js";
 import { renderAuditDonutChart } from "./graphs.donut.js";
 import { renderXPLineChart } from "./graphs.line.js";
@@ -189,6 +189,16 @@ globalThis.addEventListener("storage", (event) => {
 });
 
 // ── Dashboard Data Loading ─────────────────────────────────────────
+
+/** Computes total XP and number of completed projects from raw data. */
+const computeXpSummary = (transactions, progress) => {
+	const totalXP = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+	const completedProjects = progress.filter(
+		(project) => project.grade >= 1 && project.object?.type === "project",
+	).length;
+
+	return { totalXP, completedProjects };
+};
 
 /** Clears all dashboard UI elements back to empty state. */
 const resetDashboard = () => {
