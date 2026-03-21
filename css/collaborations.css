@@ -220,22 +220,20 @@
 	width: 60px;
 }
 
-/* Projects column */
-.th-campus,
-.td-campus {
-	width: 30%;
+/* Base fixed columns */
+.th-total,
+.td-total {
+	width: 80px;
 }
 
-/* Roles column */
 .th-level,
 .td-level {
-	width: 20%;
+	width: 260px;
 }
 
-/* Date column */
 .th-xp,
 .td-date {
-	width: 15%;
+	width: 120px;
 	white-space: nowrap;
 }
 
@@ -271,7 +269,8 @@
 /* Avatar + Name column */
 .th-name,
 .td-avatar-name {
-	width: 25%;
+	width: auto;
+	white-space: nowrap;
 }
 
 .td-avatar-name {
@@ -298,16 +297,12 @@
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	min-width: 0;
-	overflow: hidden;
 }
 
 .student-display-name {
 	font-weight: 600;
 	color: var(--text-primary);
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .collab-row-action {

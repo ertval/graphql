@@ -62,10 +62,13 @@ const getSorted = () => {
 			return sortDir === "asc"
 				? a.latestTs - b.latestTs
 				: b.latestTs - a.latestTs;
-		if (sortField === "totalCollaborations")
-			return sortDir === "asc"
-				? a.totalCollaborations - b.totalCollaborations
-				: b.totalCollaborations - a.totalCollaborations;
+		if (sortField === "totalCollaborations") {
+			const getVal = (c) =>
+				filterRole
+					? c.byRole.find((r) => r.role === filterRole)?.count || 0
+					: c.totalCollaborations;
+			return sortDir === "asc" ? getVal(a) - getVal(b) : getVal(b) - getVal(a);
+		}
 
 		let av = "";
 		let bv = "";
@@ -73,6 +76,11 @@ const getSorted = () => {
 			av = a.projects.map((p) => p.name).join(", ");
 			bv = b.projects.map((p) => p.name).join(", ");
 		} else if (sortField === "role") {
+			if (filterRole) {
+				const aVal = a.byRole.find((r) => r.role === filterRole)?.count || 0;
+				const bVal = b.byRole.find((r) => r.role === filterRole)?.count || 0;
+				return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+			}
 			av = a.byRole.map((r) => r.role).join(", ");
 			bv = b.byRole.map((r) => r.role).join(", ");
 		} else {
@@ -177,54 +185,71 @@ export const renderCollabsList = () => {
 		totalBadge.style.background = "rgba(255,255,255,0.05)";
 		totalBadge.style.padding = "4px 8px";
 		totalBadge.style.borderRadius = "12px";
-		totalBadge.textContent = String(collab.totalCollaborations);
+		const displayedCollabsCount = filterRole
+			? collab.byRole.find((r) => r.role === filterRole)?.count || 0
+			: collab.totalCollaborations;
+		totalBadge.textContent = String(displayedCollabsCount);
 		totalCell.append(totalBadge);
 
 		// Project cell
 		const projectCell = document.createElement("td");
 		projectCell.className = "td-campus";
 
+		const projectWrap = document.createElement("div");
+		projectWrap.style.display = "flex";
+		projectWrap.style.flexWrap = "wrap";
+		projectWrap.style.gap = "6px";
+
+		const displayedProjects = filterRole
+			? collab.projects.filter((p) => p.roles.includes(filterRole))
+			: collab.projects;
+
 		const maxProjects = 4;
-		const visibleProjects = collab.projects.slice(0, maxProjects);
+		const visibleProjects = displayedProjects.slice(0, maxProjects);
 		for (const proj of visibleProjects) {
 			const projectTag = document.createElement("span");
 			projectTag.className = "campus-tag";
 			projectTag.style.background = "rgba(255,255,255,0.05)";
-			projectTag.style.marginRight = "6px";
-			projectTag.style.marginBottom = "6px";
-			projectTag.style.display = "inline-block";
 			projectTag.textContent =
 				proj.count > 1 ? `${proj.name} x${proj.count}` : proj.name;
-			projectCell.append(projectTag);
+			projectWrap.append(projectTag);
 		}
 
-		if (collab.projects.length > maxProjects) {
+		if (displayedProjects.length > maxProjects) {
 			const overflowTag = document.createElement("span");
 			overflowTag.className = "campus-tag";
 			overflowTag.style.background = "rgba(255,255,255,0.02)";
-			overflowTag.style.marginRight = "6px";
-			overflowTag.style.marginBottom = "6px";
-			overflowTag.style.display = "inline-block";
 			overflowTag.textContent = "...";
-			projectCell.append(overflowTag);
+			projectWrap.append(overflowTag);
 		}
+
+		projectCell.append(projectWrap);
 
 		// Role cell with conditional styling
 		const roleCell = document.createElement("td");
 		roleCell.className = "td-level";
-		for (const r of collab.byRole) {
+
+		const roleWrap = document.createElement("div");
+		roleWrap.style.display = "flex";
+		roleWrap.style.flexWrap = "wrap";
+		roleWrap.style.gap = "6px";
+
+		const displayedRoles = filterRole
+			? collab.byRole.filter((r) => r.role === filterRole)
+			: collab.byRole;
+
+		for (const r of displayedRoles) {
 			const roleBadge = document.createElement("span");
 			roleBadge.className = "level-badge";
 			roleBadge.style.background =
 				r.role === "Partner" ? "var(--accent-start)" : "rgba(255,255,255,0.1)";
 			roleBadge.style.color =
 				r.role === "Partner" ? "#fff" : "var(--text-secondary)";
-			roleBadge.style.marginRight = "6px";
-			roleBadge.style.marginBottom = "6px";
-			roleBadge.style.display = "inline-block";
 			roleBadge.textContent = r.count > 1 ? `${r.role} x${r.count}` : r.role;
-			roleCell.append(roleBadge);
+			roleWrap.append(roleBadge);
 		}
+
+		roleCell.append(roleWrap);
 
 		// Date cell
 		const dateCell = document.createElement("td");
