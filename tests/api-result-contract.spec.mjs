@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 
 import { clearToken, login, saveToken } from "../src/graphql.auth.js";
 import { graphqlQuery } from "../src/graphql.client.js";

@@ -52,7 +52,10 @@ export const fetchXPTransactions = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction ?? []);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.transaction ?? [],
+	);
 };
 
 // ── Completed progress records ─────────────────────────────────────
@@ -79,7 +82,10 @@ export const fetchProgress = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.progress ?? []);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.progress ?? [],
+	);
 };
 
 // ── Single object lookup ───────────────────────────────────────────
@@ -94,7 +100,10 @@ export const fetchObjectById = async (objectId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { objectId }), (data) => data.object?.[0] ?? null);
+	return mapResult(
+		await graphqlQuery(query, { objectId }),
+		(data) => data.object?.[0] ?? null,
+	);
 };
 
 // ── Skill transactions ─────────────────────────────────────────────
@@ -114,7 +123,10 @@ export const fetchSkills = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction ?? []);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.transaction ?? [],
+	);
 };
 
 // ── Audit detail records ───────────────────────────────────────────
@@ -139,7 +151,10 @@ export const fetchAuditDetails = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.audit ?? []);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.audit ?? [],
+	);
 };
 
 // ── Project results ────────────────────────────────────────────────
@@ -168,7 +183,10 @@ export const fetchResults = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.result ?? []);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.result ?? [],
+	);
 };
 
 // ── Current level ──────────────────────────────────────────────────
@@ -189,7 +207,10 @@ export const fetchUserLevel = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => data.transaction?.[0]?.amount ?? 0);
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.transaction?.[0]?.amount ?? 0,
+	);
 };
 
 // ── Collaboration data (groups + audits given / received) ──────────

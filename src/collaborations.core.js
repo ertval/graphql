@@ -57,7 +57,8 @@ export const normalizeCollaboratorNamesByLogin = (collabs) => {
 			lastName: toReadableName(collab.lastName),
 		};
 
-		const hasCurrentFull = hasText(current.firstName) && hasText(current.lastName);
+		const hasCurrentFull =
+			hasText(current.firstName) && hasText(current.lastName);
 		const hasCandidateFull =
 			hasText(candidate.firstName) && hasText(candidate.lastName);
 

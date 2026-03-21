@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import test from "node:test";
 
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
@@ -18,5 +18,8 @@ test("login inputs define WebKit/Chromium autofill dark-theme selectors", () => 
 test("autofilled login inputs keep themed text, caret, and background", () => {
 	assert.match(loginCss, /-webkit-text-fill-color:\s*var\(--text-primary\)/);
 	assert.match(loginCss, /caret-color:\s*var\(--text-primary\)/);
-	assert.match(loginCss, /box-shadow:\s*0 0 0 1000px\s+rgba\(255,\s*255,\s*255,\s*0\.04\)\s+inset/);
+	assert.match(
+		loginCss,
+		/box-shadow:\s*0 0 0 1000px\s+rgba\(255,\s*255,\s*255,\s*0\.04\)\s+inset/,
+	);
 });

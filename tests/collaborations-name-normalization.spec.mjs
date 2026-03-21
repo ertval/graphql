@@ -77,7 +77,7 @@ test("normalizes hyphenated and apostrophe names to readable casing", () => {
 	];
 
 	const normalized = normalizeCollaboratorNamesByLogin(records);
-    assert.equal(normalized[0].firstName, "Marie-Claire");
+	assert.equal(normalized[0].firstName, "Marie-Claire");
 	assert.equal(normalized[0].lastName, "O'Connor");
 	assert.equal(normalized[1].firstName, "Marie-Claire");
 	assert.equal(normalized[1].lastName, "O'Connor");

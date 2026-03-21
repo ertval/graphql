@@ -77,7 +77,9 @@ export const graphqlQuery = async (query, variables = {}) => {
 		}
 
 		// Validate content type before parsing
-		const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+		const contentType = (
+			response.headers.get("content-type") ?? ""
+		).toLowerCase();
 		if (
 			!contentType.includes("application/json") &&
 			!contentType.includes("application/graphql-response+json")

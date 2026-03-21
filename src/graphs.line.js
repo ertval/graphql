@@ -4,7 +4,12 @@
  * @module graphs.line
  */
 
-import { createTooltip, formatDateLabel, formatXP, svgEl } from "./graphs.helpers.js";
+import {
+	createTooltip,
+	formatDateLabel,
+	formatXP,
+	svgEl,
+} from "./graphs.helpers.js";
 
 // ── Public renderer ────────────────────────────────────────────────
 /**

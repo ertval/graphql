@@ -55,12 +55,16 @@ export const login = async (identifier, password) => {
 				return fail(new Error("Invalid username/email or password."));
 			}
 			return fail(
-				new Error(`Authentication failed (${response.status}). Please try again.`),
+				new Error(
+					`Authentication failed (${response.status}). Please try again.`,
+				),
 			);
 		}
 
 		// Parse the JWT from either JSON or raw text
-		const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+		const contentType = (
+			response.headers.get("content-type") ?? ""
+		).toLowerCase();
 		const bodyText = await response.text();
 
 		let token = "";

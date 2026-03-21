@@ -101,7 +101,11 @@ export const renderAuditDonutChart = (container, totalUp, totalDown) => {
 
 	// Render both arc slices
 	svg.append(
-		makeSlice(sliceCoords(upFrac, 0), "url(#donut-up)", `Done: ${fmt(totalUp)}`),
+		makeSlice(
+			sliceCoords(upFrac, 0),
+			"url(#donut-up)",
+			`Done: ${fmt(totalUp)}`,
+		),
 	);
 	svg.append(
 		makeSlice(

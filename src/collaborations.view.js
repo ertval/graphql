@@ -5,19 +5,18 @@
  * @module collaborations.view
  */
 
-import { fetchCollaborations } from "./graphql.queries.js";
 import {
-	buildCollaboratorSummary,
-	normalizeCollaboratorNamesByLogin,
-	toLocalDate,
-	toProjectUrl,
-} from "./collaborations.core.js";
-import { unwrapResult } from "./graphql.result.js";
+	closeCollaboratorDetail,
+	openCollaboratorDetail,
+} from "./collaborations.popup.js";
 
 // ── Module state ───────────────────────────────────────────────────
-
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */
-let allCollabs = [];
+export let allCollabs = [];
+
+export const setAllCollabsData = (data) => {
+	allCollabs = data;
+};
 
 /** @type {'login'|'project'|'role'|'date'} */
 let sortField = "date";
@@ -114,11 +113,13 @@ export const renderCollabsList = () => {
 			"aria-label",
 			`Open collaborator details for ${displayName}`,
 		);
-		tr.addEventListener("click", () => openCollaboratorDetail(collab.login));
+		tr.addEventListener("click", () =>
+			openCollaboratorDetail(collab.login, allCollabs),
+		);
 		tr.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter" && event.key !== " ") return;
 			event.preventDefault();
-			openCollaboratorDetail(collab.login);
+			openCollaboratorDetail(collab.login, allCollabs);
 		});
 
 		// Rank cell
@@ -267,128 +268,12 @@ const updateCount = (count) => {
 	if (el) el.textContent = `${count} record${count !== 1 ? "s" : ""}`;
 };
 
-// ── Collaborator detail popup ──────────────────────────────────────
-
-/** Close the collaborator profile overlay. */
-const closeCollaboratorDetail = () => {
-	const overlay = $("#student-profile-overlay");
-	overlay?.classList.remove("active");
-};
-
-/** Open the detail popup for a given collaborator login. */
-const openCollaboratorDetail = (login) => {
-	const summary = buildCollaboratorSummary(allCollabs, login);
-	if (!summary) return;
-
-	const overlay = $("#student-profile-overlay");
-	const content = $("#student-profile-content");
-	const title = $("#student-profile-title");
-	if (!overlay || !content || !title) return;
-
-	title.textContent = summary.displayName;
-	content.innerHTML = "";
-
-	// Header with avatar, identity, and stats
-	const header = document.createElement("div");
-	header.className = "sp-header";
-
-	const initialsEl = document.createElement("div");
-	initialsEl.className = "sp-avatar";
-	const firstInitial = summary.displayName[0] ?? "";
-	const secondInitial = summary.displayName.split(" ")[1]?.[0] ?? "";
-	initialsEl.textContent =
-		`${firstInitial}${secondInitial}`.toUpperCase() ||
-		summary.login[0].toUpperCase();
-
-	const identity = document.createElement("div");
-	identity.className = "sp-identity";
-	const name = document.createElement("h3");
-	name.className = "sp-name";
-	name.textContent = summary.displayName;
-	const loginTag = document.createElement("p");
-	loginTag.className = "sp-login";
-	loginTag.textContent = `@${summary.login}`;
-	const campus = document.createElement("p");
-	campus.className = "sp-campus";
-	campus.textContent = `Campus: ${summary.campus}`;
-	identity.append(name, loginTag, campus);
-
-	// Shared projects stat
-	const statsRight = document.createElement("div");
-	statsRight.className = "sp-stats-right";
-	const stat = document.createElement("div");
-	stat.className = "sp-stat";
-	const valueEl = document.createElement("span");
-	valueEl.className = "stat-value";
-	valueEl.textContent = String(summary.totalProjects);
-	const labelEl = document.createElement("span");
-	labelEl.className = "stat-label";
-	labelEl.textContent = "Shared Projects";
-	stat.append(valueEl, labelEl);
-	statsRight.append(stat);
-
-	header.append(initialsEl, identity, statsRight);
-
-	// Roles section
-	const rolesSection = document.createElement("section");
-	rolesSection.className = "sp-skills";
-	const rolesTitle = document.createElement("h3");
-	rolesTitle.textContent = "Collaboration Roles";
-	rolesSection.append(rolesTitle);
-
-	const rolesList = document.createElement("ul");
-	rolesList.className = "collab-role-list";
-	for (const roleSummary of summary.byRole) {
-		const roleItem = document.createElement("li");
-		roleItem.className = "collab-role-item";
-		roleItem.textContent = `${roleSummary.role}: ${roleSummary.count}`;
-		rolesList.append(roleItem);
-	}
-	rolesSection.append(rolesList);
-
-	// Shared projects list
-	const projectsSection = document.createElement("section");
-	projectsSection.className = "sp-skills";
-	const projectsTitle = document.createElement("h3");
-	projectsTitle.textContent = "Recent Shared Projects";
-	projectsSection.append(projectsTitle);
-
-	const list = document.createElement("div");
-	list.className = "collab-project-list";
-	for (const project of summary.projects) {
-		const projectUrl = toProjectUrl(project.path);
-		const item = document.createElement(projectUrl ? "a" : "div");
-		item.className = "collab-project-item";
-		if (projectUrl) {
-			item.setAttribute("href", projectUrl);
-			item.setAttribute("target", "_blank");
-			item.setAttribute("rel", "noopener noreferrer");
-		}
-
-		const projectName = document.createElement("span");
-		projectName.className = "collab-project-name";
-		projectName.textContent = project.name;
-
-		const meta = document.createElement("span");
-		meta.className = "collab-project-meta";
-		meta.textContent = `${project.count}x • ${project.roles.join(", ")} • ${toLocalDate(project.latestDate)}`;
-
-		item.append(projectName, meta);
-		list.append(item);
-	}
-
-	projectsSection.append(list);
-	content.append(header, rolesSection, projectsSection);
-
-	overlay.classList.add("active");
-};
-
 // ── Data loading and event wiring ──────────────────────────────────
 
 let eventsbound = false;
 
 /** Binds sort, search, filter, and overlay events (once). */
-const bindEvents = () => {
+export const bindEvents = () => {
 	if (eventsbound) return;
 	eventsbound = true;
 
@@ -453,112 +338,6 @@ const bindEvents = () => {
 };
 
 // ── Public API ─────────────────────────────────────────────────────
-
-/** Fetches collaboration data and initialises the view. */
-export const initCollaborationsView = async (userId) => {
-	const loadingEl = $("#collabs-loading");
-	const tableWrap = $("#collabs-table-wrap");
-
-	if (loadingEl) loadingEl.hidden = false;
-	if (tableWrap) tableWrap.hidden = true;
-
-	try {
-		const { groups, auditsGiven, auditsReceived } = unwrapResult(
-			await fetchCollaborations(userId),
-		);
-
-		const collabs = [];
-
-		// Convert ISO dates to epoch ms for sorting
-		const toEpochMs = (isoDate) =>
-			Temporal.Instant.from(isoDate).epochMilliseconds;
-
-		// Groups (Partners)
-		for (const g of groups) {
-			const prjName = g.group?.object?.name || "Unknown Project";
-			const projectPath = g.group?.path ?? g.path ?? "";
-			for (const member of g.group?.members || []) {
-				if (member.userId !== userId && member.user) {
-					collabs.push({
-						id: `u_${member.userId}_${g.createdAt}`,
-						login: member.user.login,
-						firstName: member.user.firstName,
-						lastName: member.user.lastName,
-						campus: member.user.campus,
-						project: prjName,
-						projectPath,
-						role: "Partner",
-						date: g.createdAt,
-						ts: toEpochMs(g.createdAt),
-					});
-				}
-			}
-		}
-
-		// Audits Given (they were the Captain)
-		for (const a of auditsGiven) {
-			if (a.group?.captainLogin && a.group.captainLogin !== "ekaramet") {
-				collabs.push({
-					id: `a_${Math.random()}`,
-					login: a.group.captainLogin,
-					firstName: "",
-					lastName: "",
-					campus: "",
-					project: a.group?.object?.name || "Unknown",
-					projectPath: a.group?.path ?? "",
-					role: "Captain",
-					date: a.createdAt,
-					ts: toEpochMs(a.createdAt),
-				});
-			}
-		}
-
-		// Audits Received (they were the Auditor)
-		for (const a of auditsReceived) {
-			if (a.auditor?.login) {
-				collabs.push({
-					id: `r_${Math.random()}`,
-					login: a.auditor.login,
-					firstName: a.auditor.firstName,
-					lastName: a.auditor.lastName,
-					campus: a.auditor.campus,
-					project: a.group?.object?.name || "Unknown",
-					projectPath: a.group?.path ?? "",
-					role: "Auditor",
-					date: a.createdAt,
-					ts: toEpochMs(a.createdAt),
-				});
-			}
-		}
-
-		// Deduplicate by login|project|role composite key
-		const unique = [];
-		const seen = new Set();
-		for (const c of collabs) {
-			const key = `${c.login}|${c.project}|${c.role}`;
-			if (!seen.has(key)) {
-				seen.add(key);
-				unique.push(c);
-			}
-		}
-
-		allCollabs = normalizeCollaboratorNamesByLogin(unique);
-
-		if (loadingEl) loadingEl.hidden = true;
-		if (tableWrap) tableWrap.hidden = false;
-
-		renderCollabsList();
-		bindEvents();
-	} catch (err) {
-		if (loadingEl) {
-			loadingEl.innerHTML = "";
-			const errorMsg = document.createElement("p");
-			errorMsg.style.color = "var(--danger)";
-			errorMsg.textContent = `Failed to load data: ${err instanceof Error ? err.message : "Unexpected error"}`;
-			loadingEl.append(errorMsg);
-		}
-	}
-};
 
 /** Resets all collaborations state for logout / view teardown. */
 export const resetCollabsState = () => {
