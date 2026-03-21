@@ -241,10 +241,21 @@ export const renderCollabsList = () => {
 		for (const r of displayedRoles) {
 			const roleBadge = document.createElement("span");
 			roleBadge.className = "level-badge";
-			roleBadge.style.background =
-				r.role === "Partner" ? "var(--accent-start)" : "rgba(255,255,255,0.1)";
-			roleBadge.style.color =
-				r.role === "Partner" ? "#fff" : "var(--text-secondary)";
+
+			if (r.role === "Partner") {
+				roleBadge.style.background = "var(--accent-start)";
+				roleBadge.style.color = "#fff";
+				roleBadge.style.borderColor = "transparent";
+			} else if (r.role === "Captain") {
+				roleBadge.style.background = "rgba(59, 130, 246, 0.15)";
+				roleBadge.style.color = "#60a5fa";
+				roleBadge.style.borderColor = "rgba(59, 130, 246, 0.3)";
+			} else {
+				roleBadge.style.background = "rgba(255, 255, 255, 0.1)";
+				roleBadge.style.color = "var(--text-secondary)";
+				roleBadge.style.borderColor = "rgba(255, 255, 255, 0.15)";
+			}
+
 			roleBadge.textContent = r.count > 1 ? `${r.role} x${r.count}` : r.role;
 			roleWrap.append(roleBadge);
 		}
