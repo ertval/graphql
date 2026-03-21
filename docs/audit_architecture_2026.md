@@ -34,3 +34,15 @@ Current architecture is functional but flatter and more type/prefix-driven than 
 6. Reduce mutable module-level shared state via explicit feature state containers.
 7. Migrate to feature-first folders after seams are introduced.
 8. Add package exports map to enforce public boundaries.
+
+## Progress Update
+1. GraphQL transport now uses an injected auth adapter instead of directly importing auth persistence internals.
+2. Collaborations data module was split to keep view orchestration in the view layer.
+3. Dashboard view now receives session validity callback from app instead of importing auth adapter directly.
+
+## Dependency Matrix (Current Rule)
+1. app: may import view/api/core/infra modules and compose adapters.
+2. view: may import feature api/core/popup/charts, but must not import infra auth/transport directly.
+3. api: may import infra.graphql and infra.result only; must not import DOM/view modules.
+4. core: pure logic only, no DOM/fetch/storage imports.
+5. infra: may not depend on feature view modules.

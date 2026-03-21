@@ -9,7 +9,7 @@ This report serves as a direct, question-by-question mapping between the peer-re
 ### 1. Try to log in with invalid credentials
 > **Question**: Is an appropriate error shown?
 - **Status**: ✅ Pass
-- **How it's achieved**: In `src/infra.auth.js`, if the fetch to `/api/auth/signin` returns a 401 or 403 status code, a failure Result is returned with `"Invalid username/email or password."`. In `src/dashboard.view.js`, this error is placed directly into the DOM via `loginError.textContent = loginResult.error.message;`. The error is displayed in red text above the submit button.
+- **How it's achieved**: In `src/infra.auth.js`, if the fetch to `/api/auth/signin` returns a 401 or 403 status code, a failure Result is returned with `"Invalid username/email or password."`. In `src/app.js`, login errors are mapped to safe user-visible messages and displayed above the submit button.
 
 ### 2. Ask the student to login with valid credentials
 > **Question**: Does the profile page consist of three sections as required?
@@ -56,9 +56,9 @@ This report serves as a direct, question-by-question mapping between the peer-re
 > **Question**: Is the logout functionality successful in logging the authenticated user out?
 - **Status**: ✅ Pass
 - **How it's achieved**: In `src/dashboard.view.js`, pressing the Log Out button triggers:
-  1. `clearToken()` inside `src/infra.auth.js` to purge the JWT from `localStorage`.
+  1. `clearToken()` inside `src/infra.auth.js` to clear session-scoped auth token storage (memory + `sessionStorage`).
   2. `resetDashboard()` erasing UI states.
-  3. `resetStudentsState()` clearing the student leaderboard state.
+  3. `resetCollabsState()` clearing the collaborations state.
   4. `history.replaceState` and a `popstate` listener preventing users from hitting the "Back" button to see the cache safely locking them out.
 
 ---

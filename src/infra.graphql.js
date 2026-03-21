@@ -4,13 +4,28 @@
  * @module infra.graphql
  */
 
-import { clearToken, getToken } from "./infra.auth.js";
 import { fail, ok } from "./infra.result.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";
 const GRAPHQL_URL = `${PLATFORM}/api/graphql-engine/v1/graphql`;
 const REQUEST_TIMEOUT_MS = 12_000;
+
+const graphqlAuth = {
+	getToken: () => null,
+	clearToken: () => {},
+};
+
+/**
+ * Injects auth adapter functions used by GraphQL transport.
+ * @param {{getToken?:()=>string|null, clearToken?:()=>void}} auth
+ */
+export const configureGraphqlAuth = (auth) => {
+	if (typeof auth?.getToken === "function")
+		graphqlAuth.getToken = auth.getToken;
+	if (typeof auth?.clearToken === "function")
+		graphqlAuth.clearToken = auth.clearToken;
+};
 
 /** Builds an AbortController that auto-cancels after the timeout. */
 const createRequestController = () => {
@@ -46,7 +61,7 @@ const isAuthErrorMessage = (message) => {
 export const graphqlQuery = async (query, variables = {}) => {
 	let requestControl;
 	try {
-		const token = getToken();
+		const token = graphqlAuth.getToken();
 		if (!token) {
 			return fail(new Error("Not authenticated. Please log in."));
 		}
@@ -69,7 +84,7 @@ export const graphqlQuery = async (query, variables = {}) => {
 
 		// Expired / revoked session — clear token and report
 		if (response.status === 401 || response.status === 403) {
-			clearToken();
+			graphqlAuth.clearToken();
 			return fail(new Error("Session expired. Please log in again."));
 		}
 		if (!response.ok) {
@@ -93,9 +108,10 @@ export const graphqlQuery = async (query, variables = {}) => {
 		if (result.errors?.length) {
 			const messages = result.errors.map((e) => e.message).join("; ");
 			if (isAuthErrorMessage(messages)) {
-				clearToken();
+				graphqlAuth.clearToken();
+				return fail(new Error("Session expired. Please log in again."));
 			}
-			return fail(new Error(`GraphQL Error: ${messages}`));
+			return fail(new Error("Unable to load data right now."));
 		}
 
 		return ok(result.data);

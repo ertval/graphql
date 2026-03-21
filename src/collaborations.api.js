@@ -5,15 +5,8 @@
  */
 
 import { normalizeCollaboratorNamesByLogin } from "./collaborations.core.js";
-import {
-	bindEvents,
-	renderCollabsList,
-	setAllCollabsData,
-} from "./collaborations.view.js";
 import { graphqlQuery } from "./infra.graphql.js";
 import { mapResult } from "./infra.result.js";
-
-const $ = (sel) => document.querySelector(sel);
 
 // ── Collaboration data (groups + audits given / received) ──────────
 
@@ -50,128 +43,102 @@ export const fetchCollaborations = async (userId) => {
 	}));
 };
 
-/** Fetches collaboration data and initialises the view. */
-export const initCollaborationsView = async (userId) => {
-	const loadingEl = $("#collabs-loading");
-	const tableWrap = $("#collabs-table-wrap");
-	const showLoadError = () => {
-		if (!loadingEl) return;
-		loadingEl.replaceChildren();
-		const errorMsg = document.createElement("p");
-		errorMsg.style.color = "var(--danger)";
-		errorMsg.textContent = "Failed to load collaborations data.";
-		loadingEl.append(errorMsg);
-	};
-
-	if (loadingEl) loadingEl.hidden = false;
-	if (tableWrap) tableWrap.hidden = true;
-
-	try {
-		const collabsResult = await fetchCollaborations(userId);
-		if (!collabsResult.ok) {
-			showLoadError();
-			return;
-		}
-
-		const { groups, auditsGiven, auditsReceived } = collabsResult.data;
-
-		const collabs = [];
-
-		// Convert ISO dates to epoch ms for sorting
-		const toEpochMs = (isoDate) =>
-			Temporal.Instant.from(isoDate).epochMilliseconds;
-
-		// Groups (Partners)
-		for (const g of groups) {
-			const prjName = g.group?.object?.name || "Unknown Project";
-			const projectPath = g.group?.path ?? g.path ?? "";
-			for (const member of g.group?.members || []) {
-				if (member.userId !== userId && member.user) {
-					collabs.push({
-						id: `u_${member.userId}_${g.createdAt}`,
-						login: member.user.login,
-						firstName: member.user.firstName,
-						lastName: member.user.lastName,
-						campus: member.user.campus,
-						project: prjName,
-						projectPath,
-						role: "Partner",
-						date: g.createdAt,
-						ts: toEpochMs(g.createdAt),
-					});
-				}
-			}
-		}
-
-		// Audits Given (they were the Captain)
-		for (const a of auditsGiven) {
-			if (a.grade !== null && a.group?.captainLogin) {
-				collabs.push({
-					id: `a_${a.group.captainLogin}_${a.createdAt}`,
-					login: a.group.captainLogin,
-					firstName: "",
-					lastName: "",
-					campus: "",
-					project: a.group?.object?.name || "Unknown",
-					projectPath: a.group?.path ?? "",
-					role: "Captain",
-					date: a.createdAt,
-					ts: toEpochMs(a.createdAt),
-				});
-			}
-		}
-
-		// Audits Received (they were the Auditor)
-		for (const a of auditsReceived) {
-			if (a.grade !== null && a.auditor?.login) {
-				collabs.push({
-					id: `r_${a.auditor.login}_${a.createdAt}`,
-					login: a.auditor.login,
-					firstName: a.auditor.firstName,
-					lastName: a.auditor.lastName,
-					campus: a.auditor.campus,
-					project: a.group?.object?.name || "Unknown",
-					projectPath: a.group?.path ?? "",
-					role: "Auditor",
-					date: a.createdAt,
-					ts: toEpochMs(a.createdAt),
-				});
-			}
-		}
-
-		// Deduplicate by login|project|role composite key
-		const unique = [];
-		const seen = new Set();
-		for (const c of collabs) {
-			const key = `${c.login}|${c.project}|${c.role}`;
-			if (!seen.has(key)) {
-				seen.add(key);
-				unique.push(c);
-			}
-		}
-
-		// Calculate total collaborations per login
-		const totalCollabsByLogin = new Map();
-		for (const c of unique) {
-			totalCollabsByLogin.set(
-				c.login,
-				(totalCollabsByLogin.get(c.login) ?? 0) + 1,
-			);
-		}
-		const withTotalCollabs = unique.map((collab) => ({
-			...collab,
-			totalCollaborations: totalCollabsByLogin.get(collab.login) ?? 0,
-		}));
-
-		const allCollabs = normalizeCollaboratorNamesByLogin(withTotalCollabs);
-
-		if (loadingEl) loadingEl.hidden = true;
-		if (tableWrap) tableWrap.hidden = false;
-
-		setAllCollabsData(allCollabs);
-		renderCollabsList();
-		bindEvents();
-	} catch {
-		showLoadError();
+/** Fetches and normalizes collaboration records into view-ready objects. */
+export const loadCollaborationsData = async (userId) => {
+	const collabsResult = await fetchCollaborations(userId);
+	if (!collabsResult.ok) {
+		return collabsResult;
 	}
+
+	const { groups, auditsGiven, auditsReceived } = collabsResult.data;
+	const collabs = [];
+
+	// Convert ISO dates to epoch ms for sorting
+	const toEpochMs = (isoDate) =>
+		Temporal.Instant.from(isoDate).epochMilliseconds;
+
+	// Groups (Partners)
+	for (const g of groups) {
+		const prjName = g.group?.object?.name || "Unknown Project";
+		const projectPath = g.group?.path ?? g.path ?? "";
+		for (const member of g.group?.members || []) {
+			if (member.userId !== userId && member.user) {
+				collabs.push({
+					id: `u_${member.userId}_${g.createdAt}`,
+					login: member.user.login,
+					firstName: member.user.firstName,
+					lastName: member.user.lastName,
+					campus: member.user.campus,
+					project: prjName,
+					projectPath,
+					role: "Partner",
+					date: g.createdAt,
+					ts: toEpochMs(g.createdAt),
+				});
+			}
+		}
+	}
+
+	// Audits Given (they were the Captain)
+	for (const a of auditsGiven) {
+		if (a.grade !== null && a.group?.captainLogin) {
+			collabs.push({
+				id: `a_${a.group.captainLogin}_${a.createdAt}`,
+				login: a.group.captainLogin,
+				firstName: "",
+				lastName: "",
+				campus: "",
+				project: a.group?.object?.name || "Unknown",
+				projectPath: a.group?.path ?? "",
+				role: "Captain",
+				date: a.createdAt,
+				ts: toEpochMs(a.createdAt),
+			});
+		}
+	}
+
+	// Audits Received (they were the Auditor)
+	for (const a of auditsReceived) {
+		if (a.grade !== null && a.auditor?.login) {
+			collabs.push({
+				id: `r_${a.auditor.login}_${a.createdAt}`,
+				login: a.auditor.login,
+				firstName: a.auditor.firstName,
+				lastName: a.auditor.lastName,
+				campus: a.auditor.campus,
+				project: a.group?.object?.name || "Unknown",
+				projectPath: a.group?.path ?? "",
+				role: "Auditor",
+				date: a.createdAt,
+				ts: toEpochMs(a.createdAt),
+			});
+		}
+	}
+
+	// Deduplicate by login|project|role composite key
+	const unique = [];
+	const seen = new Set();
+	for (const c of collabs) {
+		const key = `${c.login}|${c.project}|${c.role}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			unique.push(c);
+		}
+	}
+
+	// Calculate total collaborations per login
+	const totalCollabsByLogin = new Map();
+	for (const c of unique) {
+		totalCollabsByLogin.set(
+			c.login,
+			(totalCollabsByLogin.get(c.login) ?? 0) + 1,
+		);
+	}
+	const withTotalCollabs = unique.map((collab) => ({
+		...collab,
+		totalCollaborations: totalCollabsByLogin.get(collab.login) ?? 0,
+	}));
+
+	const allCollabs = normalizeCollaboratorNamesByLogin(withTotalCollabs);
+	return { ok: true, data: allCollabs };
 };

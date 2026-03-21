@@ -23,7 +23,6 @@ yarn-error.log*
 
 # Package manager
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -36,7 +35,12 @@ out/
 test-results/
 playwright-report/
 .playwright/
+.cache/
 
-#tests
-/tests/*
-playwright.config.mjs
+# Local MCP/tooling folders
+.playwright-mcp/
+.agents/
+
+# Optional local environment files
+.env
+.env.local

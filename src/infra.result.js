@@ -1,6 +1,6 @@
 /**
  * Result pattern helpers for typed success/failure propagation.
- * Centralises ok/fail constructors, mapResult, and unwrapResult.
+ * Centralises ok/fail constructors and mapResult helpers.
  * @module infra.result
  */
 
@@ -31,14 +31,3 @@ export const fail = (error) => ({
  */
 export const mapResult = (result, mapper) =>
 	result.ok ? ok(mapper(result.data)) : result;
-
-// ── Unwrap: extract data or throw on failure ───────────────────────
-/**
- * @template T
- * @param {{ok:true,data:T}|{ok:false,error:Error}} result
- * @returns {T}
- */
-export const unwrapResult = (result) => {
-	if (result.ok) return result.data;
-	throw result.error;
-};

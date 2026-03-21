@@ -4,20 +4,25 @@
  * @module app
  */
 
-import { initCollaborationsView } from "./collaborations.api.js";
-import { resetCollabsState } from "./collaborations.view.js";
+import {
+	initCollaborationsView,
+	resetCollabsState,
+} from "./collaborations.view.js";
 import {
 	initDashboard,
 	loadDashboard,
 	resetDashboard,
 } from "./dashboard.view.js";
 import {
+	AUTH_SYNC_KEY,
 	clearToken,
 	decodeToken,
+	getToken,
 	isAuthenticated,
 	login,
 	saveToken,
 } from "./infra.auth.js";
+import { configureGraphqlAuth } from "./infra.graphql.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -39,6 +44,30 @@ const tabDashboard = $("#tab-dashboard");
 const tabCollabs = $("#tab-collaborations");
 const dashboardPanel = $("#dashboard");
 const collabsPanel = $("#collaborations-view");
+let activeUserId = null;
+const authChannel =
+	"BroadcastChannel" in globalThis
+		? new BroadcastChannel("graphql_auth_channel")
+		: null;
+
+const toPublicErrorMessage = (error, scope) => {
+	const message =
+		typeof error?.message === "string" ? error.message.toLowerCase() : "";
+	if (message.includes("invalid")) return "Invalid username/email or password.";
+	if (message.includes("timed out"))
+		return "Request timed out. Please try again.";
+	if (message.includes("session") || message.includes("authenticate")) {
+		return "Session expired. Please sign in again.";
+	}
+	return scope === "auth"
+		? "Sign-in failed. Please try again."
+		: "Unable to load data right now.";
+};
+
+configureGraphqlAuth({
+	getToken,
+	clearToken,
+});
 
 /** @param {'dashboard'|'collabs'} tab */
 const switchTab = (tab) => {
@@ -62,7 +91,10 @@ tabCollabs?.addEventListener("click", () => {
 	if (!collabsPanel?.dataset.loaded) {
 		collabsPanel.dataset.loaded = "1";
 		const decoded = decodeToken();
-		const userId = Number(decoded?.sub);
+		const userId =
+			typeof activeUserId === "number" && Number.isInteger(activeUserId)
+				? activeUserId
+				: Number(decoded?.sub);
 		if (Number.isInteger(userId) && userId > 0) {
 			initCollaborationsView(userId);
 		}
@@ -86,12 +118,25 @@ const showLogin = () => {
 };
 
 /** Full logout flow — clears state and returns to login. */
-const performLogout = () => {
+const performLogout = (broadcast = true) => {
 	clearToken();
 	resetDashboard();
 	resetCollabsState();
+	activeUserId = null;
 	showLogin();
 	history.replaceState(null, "", location.pathname);
+	if (broadcast) {
+		authChannel?.postMessage({ type: "logout" });
+		try {
+			localStorage.setItem(
+				AUTH_SYNC_KEY,
+				String(Temporal.Now.instant().epochMilliseconds),
+			);
+			localStorage.removeItem(AUTH_SYNC_KEY);
+		} catch {
+			// Ignore storage sync fallback failures.
+		}
+	}
 };
 
 // ── Login Handler ──────────────────────────────────────────────────
@@ -114,17 +159,34 @@ loginForm?.addEventListener("submit", async (e) => {
 	try {
 		const loginResult = await login(identifier, password);
 		if (!loginResult.ok) {
-			if (loginError) loginError.textContent = loginResult.error.message;
+			if (loginError) {
+				loginError.textContent = toPublicErrorMessage(
+					loginResult.error,
+					"auth",
+				);
+			}
 			return;
 		}
 
-		saveToken(loginResult.data);
+		const persistResult = saveToken(loginResult.data);
+		if (!persistResult.ok) {
+			if (loginError) {
+				loginError.textContent = toPublicErrorMessage(
+					persistResult.error,
+					"auth",
+				);
+			}
+			return;
+		}
+
 		showProfile();
-		await loadDashboard(performLogout);
+		const dashboardResult = await loadDashboard(performLogout, isAuthenticated);
+		if (dashboardResult?.ok) {
+			activeUserId = dashboardResult.data.userId;
+		}
 	} catch (err) {
 		if (loginError) {
-			loginError.textContent =
-				err instanceof Error ? err.message : "Unexpected login error.";
+			loginError.textContent = toPublicErrorMessage(err, "auth");
 		}
 	} finally {
 		if (loginBtn) loginBtn.disabled = false;
@@ -145,8 +207,14 @@ globalThis.addEventListener("popstate", () => {
 
 // Synchronise logout across browser tabs via storage event
 globalThis.addEventListener("storage", (event) => {
-	if (event.key === "graphql_jwt" && event.newValue === null) {
-		performLogout();
+	if (event.key === AUTH_SYNC_KEY) {
+		performLogout(false);
+	}
+});
+
+authChannel?.addEventListener("message", (event) => {
+	if (event.data?.type === "logout") {
+		performLogout(false);
 	}
 });
 
@@ -155,7 +223,10 @@ const init = async () => {
 	initDashboard();
 	if (isAuthenticated()) {
 		showProfile();
-		await loadDashboard(performLogout);
+		const dashboardResult = await loadDashboard(performLogout, isAuthenticated);
+		if (dashboardResult?.ok) {
+			activeUserId = dashboardResult.data.userId;
+		}
 	} else {
 		clearToken();
 		showLogin();

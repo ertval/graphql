@@ -18,7 +18,7 @@ import {
  * @param {Array<{amount:number, createdAt:string, object:{name:string}}>} transactions
  */
 export const renderXPLineChart = (container, transactions) => {
-	container.innerHTML = "";
+	container.replaceChildren();
 
 	if (!transactions.length) {
 		container.textContent = "No XP data available.";

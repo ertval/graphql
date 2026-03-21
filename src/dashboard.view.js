@@ -10,7 +10,6 @@ import { formatXP } from "./charts.helpers.js";
 import { renderXPLineChart } from "./charts.line.js";
 import { renderPassFailPieChart } from "./charts.pie.js";
 import {
-	fetchObjectById,
 	fetchProgress,
 	fetchResults,
 	fetchSkills,
@@ -24,7 +23,6 @@ import {
 	isAuthFailureError,
 } from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
-import { isAuthenticated } from "./infra.auth.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -87,14 +85,20 @@ export const resetDashboard = () => {
 };
 
 /** Fetches all dashboard data and renders every section. */
-export const loadDashboard = async (onAuthFailure) => {
+export const loadDashboard = async (
+	onAuthFailure,
+	isSessionValid = () => true,
+) => {
+	const shouldLogout = (error) =>
+		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
+
 	try {
 		const userResult = await fetchUserInfo();
 		if (!userResult.ok) {
-			if (isAuthFailureError(userResult.error) || !isAuthenticated()) {
+			if (shouldLogout(userResult.error)) {
 				onAuthFailure();
 			}
-			return;
+			return { ok: false, error: userResult.error };
 		}
 
 		const user = userResult.data;
@@ -119,10 +123,10 @@ export const loadDashboard = async (onAuthFailure) => {
 		].find((result) => !result.ok);
 
 		if (firstError && !firstError.ok) {
-			if (isAuthFailureError(firstError.error) || !isAuthenticated()) {
+			if (shouldLogout(firstError.error)) {
 				onAuthFailure();
 			}
-			return;
+			return { ok: false, error: firstError.error };
 		}
 
 		const xpTransactions = xpResult.data;
@@ -141,18 +145,16 @@ export const loadDashboard = async (onAuthFailure) => {
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
-		// Prefetch first object detail for caching
-		if (xpTransactions.length > 0) {
-			const objResult = await fetchObjectById(xpTransactions[0].id);
-			if (objResult.ok) {
-				const objDetail = objResult.data;
-				void objDetail;
-			}
-		}
+		return { ok: true, data: { userId: user.id } };
 	} catch (err) {
-		if (err instanceof Error && (isAuthFailureError(err) || !isAuthenticated())) {
+		if (shouldLogout(err)) {
 			onAuthFailure();
 		}
+		return {
+			ok: false,
+			error:
+				err instanceof Error ? err : new Error("Unexpected dashboard error."),
+		};
 	}
 };
 

@@ -7,12 +7,12 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const appJs = read("src/dashboard.app.js");
+const appJs = read("src/app.js");
 
 // Graph code is now split across multiple files — concat for assertions
-const graphsHelpersJs = read("src/graphs.helpers.js");
-const graphsBarJs = read("src/graphs.bar.js");
-const graphsLineJs = read("src/graphs.line.js");
+const graphsHelpersJs = read("src/charts.helpers.js");
+const graphsBarJs = read("src/charts.bar.js");
+const graphsLineJs = read("src/charts.line.js");
 const graphsJs = graphsHelpersJs + graphsBarJs + graphsLineJs;
 
 test("login form supports username/email and password inputs", () => {

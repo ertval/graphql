@@ -3,13 +3,39 @@
  * @module collaborations.popup
  */
 
-import {
-	buildCollaboratorSummary,
-	toLocalDate,
-	toProjectUrl,
-} from "./collaborations.core.js";
+import { buildCollaboratorSummary } from "./collaborations.core.js";
+
+const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 
 const $ = (sel) => document.querySelector(sel);
+
+/** @param {string} isoDate */
+const toLocalDate = (isoDate) => {
+	try {
+		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
+			Temporal.Now.timeZoneId(),
+		);
+		return zdt.toLocaleString("en", { dateStyle: "medium" });
+	} catch {
+		return isoDate?.split("T")?.[0] ?? "—";
+	}
+};
+
+/** @param {string} pathValue */
+const toProjectUrl = (pathValue) => {
+	if (typeof pathValue !== "string" || !pathValue.trim()) return null;
+
+	try {
+		const url = pathValue.startsWith("/")
+			? new URL(pathValue, PLATFORM_ORIGIN)
+			: new URL(pathValue);
+		if (url.protocol !== "https:") return null;
+		if (url.origin !== PLATFORM_ORIGIN) return null;
+		return url.toString();
+	} catch {
+		return null;
+	}
+};
 
 /** Close the collaborator profile overlay. */
 export const closeCollaboratorDetail = () => {

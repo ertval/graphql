@@ -6,19 +6,20 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const appJs = read("src/dashboard.app.js");
+const appJs = read("src/app.js");
 const collaborationsJs = read("src/collaborations.view.js");
-const collaborationsInitJs = read("src/collaborations.init.js");
-const apiJs = read("src/graphql.client.js");
+const collaborationsViewJs = read("src/collaborations.view.js");
+const apiJs = read("src/infra.graphql.js");
+const indexHtml = read("index.html");
 
-test("collaborations loading error does not inject err.message with innerHTML", () => {
+test("collaborations loading error uses safe textContent and no template innerHTML sink", () => {
 	assert.doesNotMatch(
-		collaborationsInitJs,
+		collaborationsViewJs,
 		/innerHTML\s*=\s*`[^`]*\$\{\s*err\.message\s*\}[^`]*`/,
 	);
 	assert.match(
-		collaborationsInitJs,
-		/errorMsg\.textContent\s*=\s*`Failed to load data:/,
+		collaborationsViewJs,
+		/errorMsg\.textContent\s*=\s*"Failed to load collaborations data\."/,
 	);
 });
 
@@ -27,10 +28,10 @@ test("app and collaborations avoid template innerHTML sinks for dynamic row/item
 	assert.doesNotMatch(collaborationsJs, /tr\.innerHTML\s*=\s*`/);
 });
 
-test("app synchronizes logout across tabs via storage event", () => {
-	assert.match(appJs, /addEventListener\("storage",\s*\(event\)\s*=>\s*\{/);
-	assert.match(appJs, /event\.key\s*===\s*TOKEN_STORAGE_KEY/);
-	assert.match(appJs, /event\.newValue\s*===\s*null/);
+test("app synchronizes logout via BroadcastChannel with storage fallback", () => {
+	assert.match(appJs, /BroadcastChannel/);
+	assert.match(appJs, /AUTH_SYNC_KEY/);
+	assert.match(appJs, /event\.key === AUTH_SYNC_KEY/);
 });
 
 test("api clears token on 401 and 403 GraphQL responses", () => {
@@ -40,7 +41,7 @@ test("api clears token on 401 and 403 GraphQL responses", () => {
 	);
 	assert.match(
 		apiJs,
-		/clearToken\(\);\s*\n\s*return fail\(new Error\("Session expired\. Please log in again\."\)\);/,
+		/graphqlAuth\.clearToken\(\);\s*\n\s*return fail\(new Error\("Session expired\. Please log in again\."\)\);/,
 	);
 });
 
@@ -48,6 +49,12 @@ test("api clears token on GraphQL auth-related errors", () => {
 	assert.match(apiJs, /const isAuthErrorMessage = \(message\) =>/);
 	assert.match(
 		apiJs,
-		/if \(isAuthErrorMessage\(messages\)\) \{\s*\n\s*clearToken\(\);\s*\n\s*\}/,
+		/if \(isAuthErrorMessage\(messages\)\) \{\s*\n\s*graphqlAuth\.clearToken\(\);/,
 	);
+});
+
+test("index has CSP and Trusted Types meta hardening", () => {
+	assert.match(indexHtml, /http-equiv="Content-Security-Policy"/);
+	assert.match(indexHtml, /require-trusted-types-for 'script'/);
+	assert.match(indexHtml, /trusted-types 'none'/);
 });

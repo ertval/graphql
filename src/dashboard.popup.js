@@ -17,7 +17,7 @@ const $ = (sel) => document.querySelector(sel);
 export const renderActivity = (results, xpTransactions) => {
 	const list = $("#activity-list");
 	if (!list) return;
-	list.innerHTML = "";
+	list.replaceChildren();
 
 	const projectResults = results
 		.filter((r) => r.object?.name && r.object?.type === "project")
@@ -142,7 +142,7 @@ const openProjectDetail = (result, xpByName) => {
 	})();
 
 	title.textContent = name;
-	content.innerHTML = "";
+	content.replaceChildren();
 
 	// Stats grid: result, grade, XP, type
 	const grid = document.createElement("div");

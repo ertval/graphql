@@ -28,7 +28,7 @@ The objective is to create a web-based, interactive user profile dashboard runni
 1. **Login Page (`index.html`)**
    - Form accepting `identifier` (username or email) and `password`.
    - `POST` request to `https://platform.zone01.gr/api/auth/signin` using Basic Auth.
-   - Saves returned JWT to `localStorage` or `sessionStorage`.
+   - Saves returned JWT with session-scoped strategy (memory + `sessionStorage` fallback).
    - Appropriate error handling for invalid credentials.
 2. **Profile Dashboard (`profile.html` or dynamic view)**
    - Must present at least 3 sections of user data (e.g., User Identification, Total XP, Audit Ratio).

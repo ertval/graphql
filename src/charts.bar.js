@@ -47,7 +47,7 @@ export const computeProjectBarLayout = (projectCount) => {
  * @param {Array<{amount:number, object:{name:string}}>} transactions
  */
 export const renderProjectBarChart = (container, transactions) => {
-	container.innerHTML = "";
+	container.replaceChildren();
 
 	if (!transactions.length) {
 		container.textContent = "No project data available.";

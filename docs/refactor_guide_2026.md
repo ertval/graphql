@@ -51,7 +51,7 @@ Every major feature (e.g., `dashboard`, `collaborations`) is built using these s
 
 ### A. Authentication & Session Lifecycle
 1. **Login**: `app.js` captures credentials → calls `infra.auth:login()`.
-2. **Persistence**: On success, `infra.auth:saveToken()` stores the JWT in `localStorage`.
+2. **Persistence**: On success, `infra.auth:saveToken()` stores a session-scoped JWT (memory-first, `sessionStorage` fallback).
 3. **Implicit Auth**: Every request via `infra.graphql:graphqlQuery()` adds the `Authorization: Bearer` header.
 4. **Expiration**: If the API returns 401/403, `infra.graphql` calls `infra.auth:clearToken()` and the UI triggers `performLogout()`.
 
@@ -79,14 +79,14 @@ The codebase strictly follows the requirements set in `AGENTS.md`:
 - **Result Pattern**: Business logic rejections return `{ ok: false, error }` instead of throwing, allowing for type-safe error handling.
 - **Screaming Structure**: Directory flattening ensures all files related to "Collaborations" or "Charts" stay prefixed and grouped.
 - **Resource Management**: Network requests are bound by `AbortController` timeouts (12s) to prevent hanging UI.
-- **Security**: Strict `HttpOnly` cookie emulation via `localStorage` partitioning and CSP-friendly SVG generation.
+- **Security**: Static-hosting-compatible hardening via CSP/Trusted Types meta policy, session-scoped JWT storage, and sanitized user-visible errors.
 
 ---
 
 ## ✅ Refactor Checklist Verification
 
 - [x] All file headers updated with correct `@module` descriptors.
-- [x] `dashboard.app.js` renamed to `dashboard.view.js`.
+ - [x] Dashboard entry controller consolidated in `dashboard.view.js`.
 - [x] `dashboard.activity.js` renamed to `dashboard.popup.js`.
 - [x] Redundant `dashboard.metrics.js` removed (logic merged into `charts.helpers.js`).
 - [x] GraphQL queries moved from `graphql.queries.js` to feature-specific `.api.js` files.

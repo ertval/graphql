@@ -13,7 +13,7 @@ import { svgEl } from "./charts.helpers.js";
  * @param {Array<{grade:number, object:{type:string}}>} results
  */
 export const renderPassFailPieChart = (container, results) => {
-	container.innerHTML = "";
+	container.replaceChildren();
 
 	const projects = results.filter((r) => r.object?.type === "project");
 	if (!projects.length) {

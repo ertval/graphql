@@ -5,6 +5,7 @@
  * @module collaborations.view
  */
 
+import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummary } from "./collaborations.core.js";
 import {
 	closeCollaboratorDetail,
@@ -36,6 +37,17 @@ let currentPage = 1;
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+const toLocalDate = (isoDate) => {
+	try {
+		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
+			Temporal.Now.timeZoneId(),
+		);
+		return zdt.toLocaleString("en", { dateStyle: "medium" });
+	} catch {
+		return isoDate?.split("T")?.[0] ?? "—";
+	}
+};
 
 // ── Filter & Sort pipeline ─────────────────────────────────────────
 
@@ -267,7 +279,7 @@ export const renderCollabsList = () => {
 		dateCell.className = "td-date";
 		dateCell.style.fontSize = "0.85rem";
 		dateCell.style.color = "var(--text-muted)";
-		dateCell.textContent = collab.latestDate.split("T")[0];
+		dateCell.textContent = toLocalDate(collab.latestDate);
 
 		tr.append(
 			rankCell,
@@ -369,12 +381,12 @@ const updateCount = (count) => {
 
 // ── Data loading and event wiring ──────────────────────────────────
 
-let eventsbound = false;
+let eventsBound = false;
 
 /** Binds sort, search, filter, and overlay events (once). */
 export const bindEvents = () => {
-	if (eventsbound) return;
-	eventsbound = true;
+	if (eventsBound) return;
+	eventsBound = true;
 
 	// Sort header click toggles direction
 	$$(".th-sortable").forEach((th) => {
@@ -436,6 +448,38 @@ export const bindEvents = () => {
 	});
 };
 
+/** Fetches collaboration data and initializes the collaborations tab UI. */
+export const initCollaborationsView = async (userId) => {
+	const loadingEl = $("#collabs-loading");
+	const tableWrap = $("#collabs-table-wrap");
+	const showLoadError = () => {
+		if (!loadingEl) return;
+		loadingEl.replaceChildren();
+		const errorMsg = document.createElement("p");
+		errorMsg.style.color = "var(--danger)";
+		errorMsg.textContent = "Failed to load collaborations data.";
+		loadingEl.append(errorMsg);
+	};
+
+	if (loadingEl) loadingEl.hidden = false;
+	if (tableWrap) tableWrap.hidden = true;
+
+	const collabsResult = await loadCollaborationsData(userId);
+	if (!collabsResult.ok) {
+		showLoadError();
+		return collabsResult;
+	}
+
+	if (loadingEl) loadingEl.hidden = true;
+	if (tableWrap) tableWrap.hidden = false;
+
+	setAllCollabsData(collabsResult.data);
+	renderCollabsList();
+	bindEvents();
+
+	return { ok: true, data: true };
+};
+
 // ── Public API ─────────────────────────────────────────────────────
 
 /** Resets all collaborations state for logout / view teardown. */
@@ -447,7 +491,7 @@ export const resetCollabsState = () => {
 	filterText = "";
 	filterRole = "";
 	currentPage = 1;
-	eventsbound = false;
+	eventsBound = false;
 	const tbody = $("#collabs-tbody");
 	if (tbody) tbody.replaceChildren();
 	const pagination = $("#collabs-pagination");

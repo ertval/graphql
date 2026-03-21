@@ -4,7 +4,7 @@ A vanilla JavaScript web application that displays a user's school progression a
 
 ## 🚀 Features
 
-- **JWT Authentication** — Secure login with Basic Auth; session managed via `infra.auth`.
+- **JWT Authentication** — Secure login with Basic Auth; session-scoped token handling via `infra.auth` (memory + sessionStorage fallback).
 - **Dynamic GraphQL Queries** — Normal, nested, and parameterised queries across `user`, `transaction`, `progress`, and `result` tables.
 - **4 SVG Data Visualisations** — Animated charts built purely with native SVG elements:
   - **XP Analytics**: Cumulative XP line chart + XP by project bar chart.
@@ -65,8 +65,9 @@ The application follows a strict unidirectional data flow, ensuring predictabili
 
 1. **Authentication Flow**:
    - User enters credentials in `app.js` → credentials sent to `infra.auth:login()`.
-   - On success, `infra.auth` persists the JWT in `localStorage`.
+   - On success, `infra.auth` stores the JWT in memory and mirrors it to `sessionStorage` for same-tab reload continuity.
    - Subsequent queries fetch the token natively and inject it into the `Authorization` header via `infra.graphql:graphqlQuery()`.
+   - Logout synchronization uses `BroadcastChannel` with a storage-event fallback signal key.
 
 2. **Dashboard Initialization Flow**:
    - `app.js` calls `loadDashboard()` which triggers a parallel fetch (`Promise.all`) across all user metrics inside `dashboard.api`.
@@ -94,8 +95,9 @@ Since the application is 100% static and relies on client-side JS and a remote A
 ## 💡 Engineering Highlights
 
 - **Zero Dependencies**: Entirely built on standard browser APIs.
-- **Modern JavaScript**: Exhaustive use of `Temporal`, `using` keywords (where applicable), and native set operations.
+- **Modern JavaScript**: Use of `Temporal`, immutable array methods, and native set operations where appropriate.
 - **Deterministic UI**: State-to-UI binding ensures consistent rendering without a virtual DOM.
+- **Static-hosting security**: CSP + Trusted Types meta policy, sanitized user-facing errors, and no JWT persistence in localStorage.
 - **Audit Ready**: Comprehensive `docs/` folder mapping every requirement to implementation.
 
 ## ✅ Audit Compliance

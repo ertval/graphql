@@ -1,6 +1,6 @@
 /**
  * Collaborations domain logic — name normalisation, summary building,
- * date formatting, and project URL construction.
+ * and collaborator summary construction.
  * Pure functions with zero DOM or I/O dependencies.
  * @module collaborations.core
  */
@@ -12,7 +12,6 @@ const hasText = (value) => typeof value === "string" && value.trim().length > 0;
 
 /** @param {string} char @returns {boolean} */
 const isLetter = (char) => /\p{L}/u.test(char);
-const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 
 /** Capitalise a name token respecting hyphens and apostrophes. */
 const toReadableNameToken = (token) => {
@@ -180,36 +179,4 @@ export const buildCollaboratorSummary = (collabs, login) => {
 			count: project.count,
 		})),
 	};
-};
-
-// ── Date and URL utilities ─────────────────────────────────────────
-
-/** Format an ISO date to a localised medium-style date string. */
-export const toLocalDate = (isoDate) => {
-	try {
-		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
-			Temporal.Now.timeZoneId(),
-		);
-		return zdt.toLocaleString("en", { dateStyle: "medium" });
-	} catch {
-		return isoDate?.split("T")?.[0] ?? "—";
-	}
-};
-
-/** Build a full platform URL from a relative project path. */
-export const toProjectUrl = (pathValue) => {
-	if (!hasText(pathValue)) return null;
-
-	try {
-		const url = pathValue.startsWith("/")
-			? new URL(pathValue, PLATFORM_ORIGIN)
-			: new URL(pathValue);
-
-		if (url.protocol !== "https:") return null;
-		if (url.origin !== PLATFORM_ORIGIN) return null;
-
-		return url.toString();
-	} catch {
-		return null;
-	}
 };

@@ -152,6 +152,7 @@ GitHub Pages does not let you set custom response headers directly.
 1. Keep a strict `<meta http-equiv="Content-Security-Policy" ...>` fallback in `index.html` for CSP if needed.
 2. For full header control (`X-Content-Type-Options`, `Permissions-Policy`, etc.), place a CDN/proxy in front (for example Cloudflare) and set headers there.
 3. If security headers are mandatory, prefer Netlify or Vercel for this project.
+4. Keep JWT client-side handling session-scoped only (memory + sessionStorage fallback) and avoid localStorage token persistence.
 
 ---
 
@@ -168,29 +169,30 @@ Provide the live URL from GitHub Pages, Netlify, or Vercel. The reviewer visits 
 ```text
 index.html
 src/
-   features/
-      collaborations.controller.js
-      collaborations.core.js
-      collaborations.index.js
-      collaborations.view.js
-      dashboard.app.js
-      dashboard.graphs.render.js
-      dashboard.index.js
-      dashboard.metrics.js
-      shared.result.unwrap.js
-   infrastructure/
-      graphql.auth.service.js
-      graphql.client.service.js
-      graphql.index.js
-      graphql.queries.service.js
-      graphql.result.core.js
+   app.js
+   collaborations.api.js
+   collaborations.core.js
+   collaborations.popup.js
+   collaborations.view.js
+   dashboard.api.js
+   dashboard.core.js
+   dashboard.popup.js
+   dashboard.view.js
+   charts.bar.js
+   charts.donut.js
+   charts.helpers.js
+   charts.line.js
+   charts.pie.js
+   infra.auth.js
+   infra.graphql.js
+   infra.result.js
 css/
-  theme.css
-  base.css
-  login.css
-  nav.css
-  dashboard.css
-  graphs.css
+   theme.css
+   base.css
+   login.css
+   nav.css
+   dashboard.css
+   graphs.css
    collaborations.css
 docs/       (optional — only needed for audit reviewers)
 ```

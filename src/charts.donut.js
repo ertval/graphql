@@ -14,7 +14,7 @@ import { svgEl } from "./charts.helpers.js";
  * @param {number} totalDown - Bytes received / audited on user
  */
 export const renderAuditDonutChart = (container, totalUp, totalDown) => {
-	container.innerHTML = "";
+	container.replaceChildren();
 
 	if (!totalUp && !totalDown) {
 		container.textContent = "No audit data available.";

@@ -27,12 +27,12 @@ query GetXP($userId: Int!) {
 { result { grade object { name type } } }
 ```
 
-This project demonstrates all three query types. See `src/infrastructure/graphql.queries.service.js` for concrete implementations.
+This project demonstrates all three query types. See `src/dashboard.api.js` for concrete implementations.
 
 ### JWT Authentication
 When you log in, the server verifies credentials and returns a **JWT (JSON Web Token)** — a cryptographically signed ticket. Every subsequent GraphQL request includes this token in the `Authorization: Bearer <token>` header. If the token expires or is tampered with, the server rejects the request.
 
-The token is stored in `localStorage` and cleared on logout. `isAuthenticated()` in `src/infrastructure/graphql.auth.service.js` checks for its presence.
+The token is session-scoped in memory with `sessionStorage` fallback in `src/infra.auth.js`. `isAuthenticated()` validates token expiry before allowing API calls.
 
 ### SVG Graphics
 All four charts are drawn using the browser's native **SVG (Scalable Vector Graphics)** API:
@@ -138,12 +138,12 @@ return zdt.toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric
 Currently 100% client-side. If you introduced a Go backend:
 
 ### Stays in JavaScript (Frontend)
-- DOM manipulation and SVG drawing (`src/features/dashboard.graphs.render.js`)
+- DOM manipulation and SVG drawing (`src/charts.*.js`)
 - User interaction (click events, hover effects, tab routing)
 - Styling (all CSS)
 
 ### Moves to Go (Backend)
-- **GraphQL proxy** — Go fetches from Zone01 API, adds the JWT server-side (safer than client-side `localStorage`)
+- **GraphQL proxy** — Go fetches from Zone01 API, adds auth server-side (safer than browser token ownership)
 - **Session management** — Go issues an `HttpOnly` cookie instead of exposing the JWT to JS (XSS protection)
 - **Static file server** — `http.FileServer` replaces `npx serve`
 - **Data caching** — Go caches expensive aggregation queries (large transaction histories)
@@ -163,6 +163,14 @@ With Go:   Browser → Your Go Server → Zone01 GraphQL API
 | CommonJS forbidden | ✅ — ES modules (`import`/`export`) only |
 | `Temporal` API | ✅ — zero `Date` objects |
 | Immutable arrays | ✅ — `.toSorted()`, spread instead of `.sort()` |
-| `Object.groupBy()` | ✅ — used in `src/features/dashboard.graphs.render.js` for project XP aggregation |
+| `Object.groupBy()` | ✅ — used in `src/charts.bar.js` for project XP aggregation |
 | `async/await` | ✅ — no `.then()` chains |
 | Biome linting | ✅ — no `!important`, sorted imports, no unused vars |
+
+## 6. Dependency Boundaries
+
+1. app may compose view/api/core/infra modules and wire adapters.
+2. view modules should not import infra auth/transport directly.
+3. api modules should not import view/DOM modules.
+4. core modules remain pure and side-effect free.
+5. infra modules expose reusable adapters and stay feature-agnostic.
