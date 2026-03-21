@@ -58,16 +58,28 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	// Shared projects stat
 	const statsRight = document.createElement("div");
 	statsRight.className = "sp-stats-right";
-	const stat = document.createElement("div");
-	stat.className = "sp-stat";
-	const valueEl = document.createElement("span");
-	valueEl.className = "stat-value";
-	valueEl.textContent = String(summary.totalProjects);
-	const labelEl = document.createElement("span");
-	labelEl.className = "stat-label";
-	labelEl.textContent = "Shared Projects";
-	stat.append(valueEl, labelEl);
-	statsRight.append(stat);
+
+	const statProjects = document.createElement("div");
+	statProjects.className = "sp-stat";
+	const valProjects = document.createElement("span");
+	valProjects.className = "stat-value";
+	valProjects.textContent = String(summary.totalProjects);
+	const lblProjects = document.createElement("span");
+	lblProjects.className = "stat-label";
+	lblProjects.textContent = "Shared Projects";
+	statProjects.append(valProjects, lblProjects);
+
+	const statCollabs = document.createElement("div");
+	statCollabs.className = "sp-stat";
+	const valCollabs = document.createElement("span");
+	valCollabs.className = "stat-value";
+	valCollabs.textContent = String(summary.totalCollaborations);
+	const lblCollabs = document.createElement("span");
+	lblCollabs.className = "stat-label";
+	lblCollabs.textContent = "Total Collabs";
+	statCollabs.append(valCollabs, lblCollabs);
+
+	statsRight.append(statProjects, statCollabs);
 
 	header.append(initialsEl, identity, statsRight);
 

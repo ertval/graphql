@@ -500,7 +500,9 @@
 }
 
 .sp-stats-right {
-	flex: 0 0 33.333%;
+	flex: 0 0 30%;
+	display: flex;
+	gap: var(--space-sm);
 }
 
 .sp-name {
@@ -532,6 +534,10 @@
 	background: rgba(255, 255, 255, 0.03);
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: var(--radius-md);
+}
+
+.sp-stats-right .sp-stat {
+	flex: 1;
 }
 
 .collab-stats-grid {

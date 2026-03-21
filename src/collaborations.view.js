@@ -56,6 +56,10 @@ const getSorted = () => {
 	return filtered.toSorted((a, b) => {
 		if (sortField === "date")
 			return sortDir === "asc" ? a.ts - b.ts : b.ts - a.ts;
+		if (sortField === "totalCollaborations")
+			return sortDir === "asc"
+				? a.totalCollaborations - b.totalCollaborations
+				: b.totalCollaborations - a.totalCollaborations;
 
 		const av = a[sortField] || "";
 		const bv = b[sortField] || "";
@@ -86,7 +90,7 @@ export const renderCollabsList = () => {
 	if (!pageSlice.length) {
 		const tr = document.createElement("tr");
 		const td = document.createElement("td");
-		td.colSpan = 5;
+		td.colSpan = 6;
 		td.className = "students-empty";
 		td.textContent = "No collaborations match your search.";
 		tr.append(td);
@@ -147,6 +151,18 @@ export const renderCollabsList = () => {
 		nameCol.append(displayNameEl, loginTag);
 		avatarNameCell.append(avatar, nameCol);
 
+		// Total Collabs cell
+		const totalCell = document.createElement("td");
+		totalCell.className = "td-total";
+		totalCell.style.textAlign = "center";
+		const totalBadge = document.createElement("span");
+		totalBadge.className = "total-badge";
+		totalBadge.style.background = "rgba(255,255,255,0.05)";
+		totalBadge.style.padding = "4px 8px";
+		totalBadge.style.borderRadius = "12px";
+		totalBadge.textContent = String(collab.totalCollaborations);
+		totalCell.append(totalBadge);
+
 		// Project cell
 		const projectCell = document.createElement("td");
 		projectCell.className = "td-campus";
@@ -177,7 +193,14 @@ export const renderCollabsList = () => {
 		dateCell.style.color = "var(--text-muted)";
 		dateCell.textContent = collab.date.split("T")[0];
 
-		tr.append(rankCell, avatarNameCell, projectCell, roleCell, dateCell);
+		tr.append(
+			rankCell,
+			avatarNameCell,
+			totalCell,
+			projectCell,
+			roleCell,
+			dateCell,
+		);
 		tbody.append(tr);
 	}
 

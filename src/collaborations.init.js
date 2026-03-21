@@ -102,6 +102,18 @@ export const initCollaborationsView = async (userId) => {
 			}
 		}
 
+		// Calculate total collaborations per login
+		const totalCollabsByLogin = new Map();
+		for (const c of unique) {
+			totalCollabsByLogin.set(
+				c.login,
+				(totalCollabsByLogin.get(c.login) ?? 0) + 1,
+			);
+		}
+		for (const c of unique) {
+			c.totalCollaborations = totalCollabsByLogin.get(c.login);
+		}
+
 		const allCollabs = normalizeCollaboratorNamesByLogin(unique);
 
 		if (loadingEl) loadingEl.hidden = true;

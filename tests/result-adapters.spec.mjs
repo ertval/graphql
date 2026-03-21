@@ -19,12 +19,12 @@ test("app login adapter handles Result object contract", () => {
 });
 
 test("app dashboard adapter unwraps Result objects from API calls", () => {
-	assert.match(appJs, /const user = unwrapResult\(\s*await fetchUserInfo\(\)\s*\);/);
-	assert.match(appJs, /const xpTransactions = unwrapResult\(xpResult\);/);
 	assert.match(
 		appJs,
-		/unwrapResult\(\s*await fetchObjectById/,
+		/const user = unwrapResult\(\s*await fetchUserInfo\(\)\s*\);/,
 	);
+	assert.match(appJs, /const xpTransactions = unwrapResult\(xpResult\);/);
+	assert.match(appJs, /unwrapResult\(\s*await fetchObjectById/);
 });
 
 test("collaborations adapter unwraps Result object from fetchCollaborations", () => {
