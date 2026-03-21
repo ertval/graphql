@@ -6,8 +6,8 @@ import path from "node:path";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const appJs = read("app.js");
-const collaborationsJs = read("collaborations.js");
+const appJs = read("src/features/dashboard.app.js");
+const collaborationsJs = read("src/features/collaborations.view.js");
 
 test("app login adapter handles Result object contract", () => {
 	assert.match(appJs, /const loginResult = await login\(identifier, password\);/);

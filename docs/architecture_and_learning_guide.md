@@ -27,12 +27,12 @@ query GetXP($userId: Int!) {
 { result { grade object { name type } } }
 ```
 
-This project demonstrates all three query types. See `api.js` for concrete implementations.
+This project demonstrates all three query types. See `src/infrastructure/graphql.queries.service.js` for concrete implementations.
 
 ### JWT Authentication
 When you log in, the server verifies credentials and returns a **JWT (JSON Web Token)** — a cryptographically signed ticket. Every subsequent GraphQL request includes this token in the `Authorization: Bearer <token>` header. If the token expires or is tampered with, the server rejects the request.
 
-The token is stored in `localStorage` and cleared on logout. `isAuthenticated()` in `api.js` checks for its presence.
+The token is stored in `localStorage` and cleared on logout. `isAuthenticated()` in `src/infrastructure/graphql.auth.service.js` checks for its presence.
 
 ### SVG Graphics
 All four charts are drawn using the browser's native **SVG (Scalable Vector Graphics)** API:
@@ -60,11 +60,10 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 │                                                              │
 │  index.html  ──links──►  css/ (7 files)                      │
 │       │                                                      │
-│       └──module──► app.js  ──import──► api.js                │
-│                       │    ──import──► graphs.js             │
-│                       └──import──► students.js               │
-│                                        └──import──► api.js   │
-│                                        └──import──► graphs.js│
+│       └──module──► src/features/dashboard.index.js            │
+│                         │                                     │
+│                         ├──► src/features/*.js                │
+│                         └──► src/infrastructure/*.js          │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,11 +71,11 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 
 | File | Responsibility |
 |---|---|
-| `index.html` | Application shell — login view, dashboard panel, students panel, both overlay modals |
-| `app.js` | Controller — login/logout flow, tab routing, dashboard data loading, project detail overlay |
-| `api.js` | GraphQL client — `graphqlQuery()` wrapper, JWT helpers, all query functions |
-| `graphs.js` | SVG builders — `renderXPLineChart`, `renderProjectBarChart`, `renderAuditDonutChart`, `renderPassFailPieChart` |
-| `students.js` | Leaderboard — fetch, enrich, sort, filter, paginate students; render student profile overlay |
+| `src/features/dashboard.app.js` | App orchestration: login/logout flow, tab routing, dashboard load pipeline |
+| `src/features/dashboard.graphs.render.js` | SVG builders — line/bar/donut/pie renderers |
+| `src/features/collaborations.view.js` | Collaborations DOM rendering, filters, pagination, and detail modal |
+| `src/features/collaborations.core.js` | Pure collaborator normalization and summary domain transforms |
+| `src/infrastructure/graphql.*.js` | Auth, request client, and GraphQL query adapters |
 
 ### CSS Module Split
 
@@ -88,7 +87,7 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 | `css/nav.css` | Navigation bar, brand, tab switcher, logout button |
 | `css/dashboard.css` | Dashboard cards (user, XP, audit), graph groups, skills, activity, project detail overlay |
 | `css/graphs.css` | SVG containers, axis lines, line/bar/donut/pie element classes, tooltips |
-| `css/students.css` | Leaderboard controls, table, rank medals, pagination, student profile overlay |
+| `css/collaborations.css` | Collaborations controls, table, role badges, pagination, collaborator profile overlay |
 
 ---
 
@@ -141,7 +140,7 @@ return zdt.toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric
 Currently 100% client-side. If you introduced a Go backend:
 
 ### Stays in JavaScript (Frontend)
-- DOM manipulation and SVG drawing (`graphs.js`)
+- DOM manipulation and SVG drawing (`src/features/dashboard.graphs.render.js`)
 - User interaction (click events, hover effects, tab routing)
 - Styling (all CSS)
 
@@ -166,6 +165,6 @@ With Go:   Browser → Your Go Server → Zone01 GraphQL API
 | CommonJS forbidden | ✅ — ES modules (`import`/`export`) only |
 | `Temporal` API | ✅ — zero `Date` objects |
 | Immutable arrays | ✅ — `.toSorted()`, spread instead of `.sort()` |
-| `Object.groupBy()` | ✅ — used in `graphs.js` for project XP aggregation |
+| `Object.groupBy()` | ✅ — used in `src/features/dashboard.graphs.render.js` for project XP aggregation |
 | `async/await` | ✅ — no `.then()` chains |
 | Biome linting | ✅ — no `!important`, sorted imports, no unused vars |

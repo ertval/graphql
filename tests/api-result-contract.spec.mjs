@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { clearToken, graphqlQuery, login, saveToken } from "../api.js";
+import { clearToken, graphqlQuery, login, saveToken } from "../src/infrastructure/graphql.index.js";
 
 if (!globalThis.btoa) {
 	globalThis.btoa = (value) => Buffer.from(value, "utf8").toString("base64");
@@ -26,7 +26,10 @@ test("login returns success Result with token", async () => {
 	globalThis.fetch = async () => ({
 		ok: true,
 		status: 200,
-		json: async () => "mock-token",
+		headers: {
+			get: () => "application/json",
+		},
+		text: async () => JSON.stringify("mock-token"),
 	});
 
 	const result = await login("user", "pass");
@@ -40,7 +43,10 @@ test("login returns failure Result for invalid credentials", async () => {
 	globalThis.fetch = async () => ({
 		ok: false,
 		status: 401,
-		json: async () => ({}),
+		headers: {
+			get: () => "application/json",
+		},
+		text: async () => JSON.stringify({}),
 	});
 
 	const result = await login("user", "bad-pass");

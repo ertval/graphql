@@ -8,8 +8,8 @@ const read = (relPath) =>
   fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const appJs = read("app.js");
-const graphsJs = read("graphs.js");
+const appJs = read("src/features/dashboard.app.js");
+const graphsJs = read("src/features/dashboard.graphs.render.js");
 
 test("login form supports username/email and password inputs", () => {
   assert.match(indexHtml, /id=\"identifier\"/);
@@ -42,6 +42,7 @@ test("XP by Project graph uses dynamic container-based row layout", () => {
   assert.match(graphsJs, /computeProjectBarLayout/);
   assert.match(graphsJs, /container\.clientHeight/);
   assert.doesNotMatch(graphsJs, /\.slice\(0,\s*15\)/);
+  assert.match(graphsJs, /const chartHeight = availableChartHeight/);
 });
 
 test("logout flow exists and clears auth token", () => {

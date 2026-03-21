@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-const apiJs = fs.readFileSync(path.join(process.cwd(), "api.js"), "utf8");
+const apiJs = fs.readFileSync(
+  path.join(process.cwd(), "src/infrastructure/graphql.queries.service.js"),
+  "utf8",
+);
 
 const hasBlock = (pattern) => pattern.test(apiJs);
 

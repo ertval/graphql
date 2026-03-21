@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeCollaboratorNamesByLogin } from "../collaborations.js";
+import { normalizeCollaboratorNamesByLogin } from "../src/features/collaborations.index.js";
 
 test("normalizes collaborator display names by login across roles", () => {
 	const records = [

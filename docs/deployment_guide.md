@@ -9,7 +9,7 @@ Since this project uses no bundler (Vite, Webpack, etc.) and relies on raw HTML,
 ### Step-by-Step
 
 1. **Push your code**
-   Make sure the project root contains `index.html`, `app.js`, `api.js`, `graphs.js`, `students.js`, and the `css/` directory.
+   Make sure the project root contains `index.html`, the `src/` directory, and the `css/` directory.
    ```bash
    git init
    git add .
@@ -28,6 +28,12 @@ Since this project uses no bundler (Vite, Webpack, etc.) and relies on raw HTML,
 3. **Access your site**
    After ~60 seconds your site is live at:
    `https://<your-username>.github.io/<your-repo-name>/`
+
+### GitHub Pages performance and reliability tweaks
+
+1. Add an empty `.nojekyll` file in repository root to prevent Jekyll processing overhead.
+2. Keep all asset paths relative (already true in this project) so subpath deployments keep working.
+3. Prefer versioned cache busting only when you change static files aggressively; for this repo, immutable file names are not required.
 
 ---
 
@@ -161,10 +167,23 @@ Provide the live URL from GitHub Pages, Netlify, or Vercel. The reviewer visits 
 
 ```text
 index.html
-app.js
-api.js
-graphs.js
-students.js
+src/
+   features/
+      collaborations.controller.js
+      collaborations.core.js
+      collaborations.index.js
+      collaborations.view.js
+      dashboard.app.js
+      dashboard.graphs.render.js
+      dashboard.index.js
+      dashboard.metrics.js
+      shared.result.unwrap.js
+   infrastructure/
+      graphql.auth.service.js
+      graphql.client.service.js
+      graphql.index.js
+      graphql.queries.service.js
+      graphql.result.core.js
 css/
   theme.css
   base.css
@@ -172,6 +191,6 @@ css/
   nav.css
   dashboard.css
   graphs.css
-  students.css
+   collaborations.css
 docs/       (optional — only needed for audit reviewers)
 ```

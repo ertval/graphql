@@ -4,7 +4,13 @@
  * @module collaborations
  */
 
-import { fetchCollaborations } from "./api.js";
+import { fetchCollaborations } from "../infrastructure/graphql.index.js";
+import {
+	buildCollaboratorSummary,
+	normalizeCollaboratorNamesByLogin,
+	toLocalDate,
+	toProjectUrl,
+} from "./collaborations.core.js";
 
 /* -------------------------------------------------------------------
    State
@@ -30,19 +36,6 @@ let currentPage = 1;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-const hasText = (value) => typeof value === "string" && value.trim().length > 0;
-
-const toLocalDate = (isoDate) => {
-	try {
-		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
-			Temporal.Now.timeZoneId(),
-		);
-		return zdt.toLocaleString("en", { dateStyle: "medium" });
-	} catch {
-		return isoDate?.split("T")?.[0] ?? "—";
-	}
-};
-
 /**
  * @template T
  * @param {{ok: true, data: T} | {ok: false, error: Error}} result
@@ -51,169 +44,6 @@ const toLocalDate = (isoDate) => {
 const unwrapResult = (result) => {
 	if (result.ok) return result.data;
 	throw result.error;
-};
-
-const isLetter = (char) => /\p{L}/u.test(char);
-
-/**
- * Normalizes a single name token (e.g. "o'cONNOR" -> "O'Connor").
- * @param {string} token
- * @returns {string}
- */
-const toReadableNameToken = (token) => {
-	const lowered = token.toLowerCase();
-	let capitalizeNext = true;
-	let result = "";
-
-	for (const char of lowered) {
-		if (isLetter(char)) {
-			result += capitalizeNext ? char.toUpperCase() : char;
-			capitalizeNext = false;
-			continue;
-		}
-
-		result += char;
-		capitalizeNext = char === "-" || char === "'" || char === "’";
-	}
-
-	return result;
-};
-
-/**
- * Converts any mixed/all-caps name string into readable title casing.
- * @param {string} value
- * @returns {string}
- */
-const toReadableName = (value) => {
-	if (!hasText(value)) return "";
-	return value
-		.trim()
-		.split(/\s+/u)
-		.map((token) => toReadableNameToken(token))
-		.join(" ");
-};
-
-/**
- * Ensures each login has a consistent first/last name pair across roles.
- * Missing names are enriched from any other record with the same login.
- * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
- * @returns {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>}
- */
-export const normalizeCollaboratorNamesByLogin = (collabs) => {
-	const canonicalByLogin = collabs.reduce((map, collab) => {
-		const current = map.get(collab.login) ?? { firstName: "", lastName: "" };
-		const candidate = {
-			firstName: toReadableName(collab.firstName),
-			lastName: toReadableName(collab.lastName),
-		};
-
-		const hasCurrentFull = hasText(current.firstName) && hasText(current.lastName);
-		const hasCandidateFull =
-			hasText(candidate.firstName) && hasText(candidate.lastName);
-
-		if (!hasCurrentFull && hasCandidateFull) {
-			map.set(collab.login, candidate);
-			return map;
-		}
-
-		if (!hasCurrentFull) {
-			map.set(collab.login, {
-				firstName: hasText(current.firstName)
-					? current.firstName
-					: candidate.firstName,
-				lastName: hasText(current.lastName)
-					? current.lastName
-					: candidate.lastName,
-			});
-		}
-
-		return map;
-	}, new Map());
-
-	return collabs.map((collab) => {
-		const canonical = canonicalByLogin.get(collab.login);
-		if (!canonical) return collab;
-
-		return {
-			...collab,
-			firstName: canonical.firstName,
-			lastName: canonical.lastName,
-		};
-	});
-};
-
-/**
- * Builds a collaborator summary from existing collaboration records.
- * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
- * @param {string} login
- */
-export const buildCollaboratorSummary = (collabs, login) => {
-	const matches = collabs
-		.filter((collab) => collab.login === login)
-		.toSorted((a, b) => b.ts - a.ts);
-
-	if (!matches.length) return null;
-
-	const primary = matches[0];
-	const bestName = matches.reduce(
-		(acc, collab) => ({
-			firstName: acc.firstName || collab.firstName || "",
-			lastName: acc.lastName || collab.lastName || "",
-		}),
-		{ firstName: "", lastName: "" },
-	);
-	const displayName =
-		[bestName.firstName, bestName.lastName].filter(Boolean).join(" ") || login;
-
-	const byRole = matches.reduce((map, collab) => {
-		map.set(collab.role, (map.get(collab.role) ?? 0) + 1);
-		return map;
-	}, new Map());
-
-	const projects = [
-		...matches
-			.reduce((map, collab) => {
-				const current = map.get(collab.project);
-				if (!current) {
-					map.set(collab.project, {
-						name: collab.project,
-						roles: new Set([collab.role]),
-						latestTs: collab.ts,
-						latestDate: collab.date,
-						count: 1,
-					});
-					return map;
-				}
-
-				map.set(collab.project, {
-					...current,
-					roles: current.roles.union(new Set([collab.role])),
-					latestTs: Math.max(current.latestTs, collab.ts),
-					latestDate:
-						collab.ts >= current.latestTs ? collab.date : current.latestDate,
-					count: current.count + 1,
-				});
-				return map;
-			}, new Map())
-			.values(),
-	].toSorted((a, b) => b.latestTs - a.latestTs);
-
-	return {
-		login,
-		displayName,
-		campus: primary.campus || "—",
-		totalCollaborations: matches.length,
-		totalProjects: projects.length,
-		byRole: [...byRole.entries()]
-			.toSorted(([a], [b]) => a.localeCompare(b))
-			.map(([role, count]) => ({ role, count })),
-		projects: projects.map((project) => ({
-			name: project.name,
-			roles: [...project.roles].toSorted(),
-			latestDate: project.latestDate,
-			count: project.count,
-		})),
-	};
 };
 
 /* -------------------------------------------------------------------
@@ -291,7 +121,19 @@ export const renderCollabsList = () => {
 			collab.login;
 
 		const tr = document.createElement("tr");
-		tr.className = "student-row";
+		tr.className = "student-row collab-row-action";
+		tr.setAttribute("role", "button");
+		tr.setAttribute("tabindex", "0");
+		tr.setAttribute(
+			"aria-label",
+			`Open collaborator details for ${displayName}`,
+		);
+		tr.addEventListener("click", () => openCollaboratorDetail(collab.login));
+		tr.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") return;
+			event.preventDefault();
+			openCollaboratorDetail(collab.login);
+		});
 
 		const rankCell = document.createElement("td");
 		rankCell.className = "td-rank";
@@ -307,17 +149,9 @@ export const renderCollabsList = () => {
 		avatar.textContent = initials;
 		const nameCol = document.createElement("div");
 		nameCol.className = "student-name-col";
-		const displayNameEl = document.createElement("button");
-		displayNameEl.type = "button";
-		displayNameEl.className = "student-display-name collab-name-btn";
-		displayNameEl.setAttribute(
-			"aria-label",
-			`Open collaborator details for ${displayName}`,
-		);
+		const displayNameEl = document.createElement("span");
+		displayNameEl.className = "student-display-name";
 		displayNameEl.textContent = displayName;
-		displayNameEl.addEventListener("click", () =>
-			openCollaboratorDetail(collab.login),
-		);
 		const loginTag = document.createElement("span");
 		loginTag.className = "student-login-tag";
 		loginTag.textContent = `@${collab.login}`;
@@ -503,9 +337,24 @@ const openCollaboratorDetail = (login) => {
 		stats.append(stat);
 	};
 
-	appendStat(String(summary.totalCollaborations), "Shared Records");
 	appendStat(String(summary.totalProjects), "Shared Projects");
-	appendStat(summary.byRole.map((r) => `${r.role}:${r.count}`).join(" | "), "Roles");
+	appendStat(String(summary.totalCollaborations), "Shared Interactions");
+
+	const rolesSection = document.createElement("section");
+	rolesSection.className = "sp-skills";
+	const rolesTitle = document.createElement("h3");
+	rolesTitle.textContent = "Collaboration Roles";
+	rolesSection.append(rolesTitle);
+
+	const rolesList = document.createElement("ul");
+	rolesList.className = "collab-role-list";
+	for (const roleSummary of summary.byRole) {
+		const roleItem = document.createElement("li");
+		roleItem.className = "collab-role-item";
+		roleItem.textContent = `${roleSummary.role}: ${roleSummary.count}`;
+		rolesList.append(roleItem);
+	}
+	rolesSection.append(rolesList);
 
 	const projectsSection = document.createElement("section");
 	projectsSection.className = "sp-skills";
@@ -517,8 +366,14 @@ const openCollaboratorDetail = (login) => {
 	const list = document.createElement("div");
 	list.className = "collab-project-list";
 	for (const project of summary.projects) {
-		const item = document.createElement("div");
+		const projectUrl = toProjectUrl(project.path);
+		const item = document.createElement(projectUrl ? "a" : "div");
 		item.className = "collab-project-item";
+		if (projectUrl) {
+			item.setAttribute("href", projectUrl);
+			item.setAttribute("target", "_blank");
+			item.setAttribute("rel", "noopener noreferrer");
+		}
 
 		const projectName = document.createElement("span");
 		projectName.className = "collab-project-name";
@@ -533,7 +388,7 @@ const openCollaboratorDetail = (login) => {
 	}
 
 	projectsSection.append(list);
-	content.append(header, stats, projectsSection);
+	content.append(header, stats, rolesSection, projectsSection);
 
 	overlay.classList.add("active");
 };
@@ -562,6 +417,7 @@ export const initCollaborationsView = async (userId) => {
 		// Groups (Partners)
 		for (const g of groups) {
 			const prjName = g.group?.object?.name || "Unknown Project";
+			const projectPath = g.group?.path ?? g.path ?? "";
 			for (const member of g.group?.members || []) {
 				if (member.userId !== userId && member.user) {
 					collabs.push({
@@ -571,6 +427,7 @@ export const initCollaborationsView = async (userId) => {
 						lastName: member.user.lastName,
 						campus: member.user.campus,
 						project: prjName,
+						projectPath,
 						role: "Partner",
 						date: g.createdAt,
 						ts: toEpochMs(g.createdAt),
@@ -589,6 +446,7 @@ export const initCollaborationsView = async (userId) => {
 					lastName: "",
 					campus: "",
 					project: a.group?.object?.name || "Unknown",
+					projectPath: a.group?.path ?? "",
 					role: "Captain",
 					date: a.createdAt,
 					ts: toEpochMs(a.createdAt),
@@ -606,6 +464,7 @@ export const initCollaborationsView = async (userId) => {
 					lastName: a.auditor.lastName,
 					campus: a.auditor.campus,
 					project: a.group?.object?.name || "Unknown",
+					projectPath: a.group?.path ?? "",
 					role: "Auditor",
 					date: a.createdAt,
 					ts: toEpochMs(a.createdAt),
@@ -632,7 +491,6 @@ export const initCollaborationsView = async (userId) => {
 		renderCollabsList();
 		bindEvents();
 	} catch (err) {
-		console.error("Collaborations load error:", err);
 		if (loadingEl) {
 			loadingEl.innerHTML = "";
 			const errorMsg = document.createElement("p");

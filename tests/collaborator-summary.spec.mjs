@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildCollaboratorSummary } from "../collaborations.js";
+import { buildCollaboratorSummary } from "../src/features/collaborations.index.js";
 
 test("buildCollaboratorSummary aggregates projects, roles and counts for a login", () => {
 	const records = [
@@ -66,6 +66,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 
 	assert.deepEqual(summary.projects[0], {
 		name: "Graph Explorer",
+		path: "",
 		roles: ["Captain"],
 		latestDate: "2026-01-10T10:00:00.000Z",
 		count: 1,
@@ -73,6 +74,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 
 	assert.deepEqual(summary.projects[1], {
 		name: "Libft",
+		path: "",
 		roles: ["Auditor", "Partner"],
 		latestDate: "2026-01-08T10:00:00.000Z",
 		count: 2,

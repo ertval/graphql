@@ -208,6 +208,29 @@
 	align-items: stretch;
 }
 
+:fullscreen .graphs-container,
+:-webkit-full-screen .graphs-container {
+	align-items: stretch;
+}
+
+:fullscreen #graph-xp-over-time,
+:fullscreen #graph-project-xp,
+:-webkit-full-screen #graph-xp-over-time,
+:-webkit-full-screen #graph-project-xp {
+	min-height: clamp(500px, 62vh, 820px);
+	display: flex;
+	flex-direction: column;
+}
+
+:fullscreen #graph-xp-over-time .graph-svg-container,
+:fullscreen #graph-project-xp .graph-svg-container,
+:-webkit-full-screen #graph-xp-over-time .graph-svg-container,
+:-webkit-full-screen #graph-project-xp .graph-svg-container {
+	flex: 1;
+	min-height: 0;
+	align-items: stretch;
+}
+
 /* ── Skills (Bonus) ── */
 #section-skills {
 	grid-area: skills;

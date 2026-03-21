@@ -30,11 +30,24 @@ A vanilla JavaScript web application that displays a user's school progression a
 ## 📂 Project Structure
 
 ```text
-├── index.html          # Application shell (login + dashboard + students + overlays)
-├── app.js              # Main controller — routing, dashboard rendering, project detail
-├── api.js              # GraphQL client, JWT auth, all query functions
-├── graphs.js           # SVG graph builders (line, bar, donut, pie)
-├── students.js         # Students leaderboard — fetch, filter, sort, paginate, profile overlay
+├── index.html
+├── src/
+│   ├── features/
+│   │   ├── collaborations.controller.js
+│   │   ├── collaborations.core.js
+│   │   ├── collaborations.index.js
+│   │   ├── collaborations.view.js
+│   │   ├── dashboard.app.js
+│   │   ├── dashboard.graphs.render.js
+│   │   ├── dashboard.index.js
+│   │   ├── dashboard.metrics.js
+│   │   └── shared.result.unwrap.js
+│   └── infrastructure/
+│       ├── graphql.auth.service.js
+│       ├── graphql.client.service.js
+│       ├── graphql.index.js
+│       ├── graphql.queries.service.js
+│       └── graphql.result.core.js
 │
 ├── css/
 │   ├── theme.css       # Design tokens — colour palette, spacing, typography, radii
@@ -43,7 +56,7 @@ A vanilla JavaScript web application that displays a user's school progression a
 │   ├── nav.css         # Navigation bar + tab switcher
 │   ├── dashboard.css   # Dashboard cards (user, XP, audit, graphs, skills, activity, project modal)
 │   ├── graphs.css      # SVG container styles, axis, donut/pie, tooltips
-│   └── students.css    # Leaderboard table, pagination, student profile overlay
+│   └── collaborations.css # Collaborations table, pagination, profile overlay
 │
 └── docs/
     ├── audit.md                      # Peer-review audit criteria
@@ -89,6 +102,12 @@ This is 100% static — no build step needed.
 | **Vercel** | Import the repository; leave Build Command empty |
 
 See `docs/deployment_guide.md` for detailed step-by-step instructions.
+
+### GitHub Pages optimization notes
+
+1. Keep `.nojekyll` at repository root to avoid underscore-path filtering.
+2. Use repository-root publishing (`main` + `/`) because `index.html` and `src/features/dashboard.index.js` are resolved as static files.
+3. Avoid absolute asset paths so project works both on custom domains and `github.io/<repo>` paths.
 
 ## ✅ Audit Compliance
 

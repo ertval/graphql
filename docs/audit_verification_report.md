@@ -9,7 +9,7 @@ This report serves as a direct, question-by-question mapping between the peer-re
 ### 1. Try to log in with invalid credentials
 > **Question**: Is an appropriate error shown?
 - **Status**: ✅ Pass
-- **How it's achieved**: In `api.js` (lines 42–47), if the fetch to `/api/auth/signin` returns a 401 or 403 status code, an Error is thrown reading `"Invalid username/email or password."`. In `app.js` (lines 115–117), this error is caught and placed directly into the DOM via `loginError.textContent = err.message;`. The error is displayed in red text above the submit button.
+- **How it's achieved**: In `src/infrastructure/graphql.auth.service.js`, if the fetch to `/api/auth/signin` returns a 401 or 403 status code, a failure Result is returned with `"Invalid username/email or password."`. In `src/features/dashboard.app.js`, this error is placed directly into the DOM via `loginError.textContent = loginResult.error.message;`. The error is displayed in red text above the submit button.
 
 ### 2. Ask the student to login with valid credentials
 > **Question**: Does the profile page consist of three sections as required?
@@ -22,7 +22,7 @@ This report serves as a direct, question-by-question mapping between the peer-re
 ### 3. Verify the accuracy of the content/information in the three Sections using GraphiQL.
 > **Question**: Are the details presented in these sections accurate and correspond to the expected data?
 - **Status**: ✅ Pass
-- **How it's achieved**: In `app.js` (lines 169–210), data is fetched concurrently using `Promise.all` straight from the GraphQL endpoint via `api.js`. Functions like `fetchUserInfo()` fetch untouched database values for `totalUp`, `totalDown`, and `auditRatio` ensuring what is rendered natively matches GraphiQL query results precisely.
+- **How it's achieved**: In `src/features/dashboard.app.js`, data is fetched concurrently using `Promise.all` straight from the GraphQL endpoint via `src/infrastructure/graphql.queries.service.js`. Functions like `fetchUserInfo()` fetch untouched database values for `totalUp`, `totalDown`, and `auditRatio` ensuring what is rendered natively matches GraphiQL query results precisely.
 
 ### 4. Verify Graphical Statistics Section
 > **Question**: Does the profile include a fourth section dedicated to graphical statistics?
@@ -31,7 +31,7 @@ This report serves as a direct, question-by-question mapping between the peer-re
 
 > **Question**: Does this section contain at least two different graphs created using SVG as specified in the project requirements?
 - **Status**: ✅ Pass (4 graphs total — 2 mandatory + 2 bonus)
-- **How it's achieved**: Four fully distinct graphs are generated in `graphs.js`:
+- **How it's achieved**: Four fully distinct graphs are generated in `src/features/dashboard.graphs.render.js`:
   1. **Line/Area Path Chart (`renderXPLineChart`)**: Showing cumulative XP earned progressively over time.
   2. **Horizontal Bar Chart (`renderProjectBarChart`)**: Showing the breakdown of specific project XP payouts.
   3. **Audit Donut Chart (`renderAuditDonutChart`)**: Animated donut showing Done vs Received audit bytes.
@@ -55,8 +55,8 @@ This report serves as a direct, question-by-question mapping between the peer-re
 ### 7. Log out
 > **Question**: Is the logout functionality successful in logging the authenticated user out?
 - **Status**: ✅ Pass
-- **How it's achieved**: In `app.js` (lines 146–157), pressing the Log Out button triggers:
-  1. `clearToken()` inside `api.js` to purge the JWT from `localStorage`.
+- **How it's achieved**: In `src/features/dashboard.app.js`, pressing the Log Out button triggers:
+  1. `clearToken()` inside `src/infrastructure/graphql.auth.service.js` to purge the JWT from `localStorage`.
   2. `resetDashboard()` erasing UI states.
   3. `resetStudentsState()` clearing the student leaderboard state.
   4. `history.replaceState` and a `popstate` listener preventing users from hitting the "Back" button to see the cache safely locking them out.
@@ -68,7 +68,7 @@ This report serves as a direct, question-by-question mapping between the peer-re
 ### 8. Queries
 > **Question**: Does the project have at least the mandatory queries (nested, normal and using arguments)?
 - **Status**: ✅ Pass
-- **How it's achieved**: `api.js` explicitly fulfills all three inside `graphqlQuery()` wrappers:
+- **How it's achieved**: `src/infrastructure/graphql.queries.service.js` explicitly fulfills all three inside `graphqlQuery()` wrappers:
   1. **Normal**: `fetchUserInfo()` runs `{ user { id login ... } }` (line 171) — no arguments, no nesting.
   2. **Arguments**: `fetchXPTransactions()` uses GraphQL variables via `query GetXPTransactions($userId: Int!) { transaction(where: { userId: { _eq: $userId } ... }) }` (line 199).
   3. **Nested**: `fetchResults()` pulls down nested relationships `result { user { login } object { name } }` (line 337), and `fetchAuditDetails()` nests `audit { group { captainLogin object { name } } }` (line 307).
@@ -79,13 +79,13 @@ This report serves as a direct, question-by-question mapping between the peer-re
 
 > **Question**: +Does the profile showcase additional information beyond the three mandatory sections?
 - **Status**: ✅ Yes
-- **How it's achieved**: Two extra dynamic sections added to `index.html` (rendered by `app.js`):
-  - **Top Skills** (`renderSkills` in `app.js`): Uses parameterized `_like: "skill_%"` querying to render animated skill progress bars (top 8 skills).
-  - **Recent Projects Activity** (`renderActivity` in `app.js`): Parses the `result` queries, sorting recent project passes/fails with color-coded UI badges and dates formatted via the `Temporal` API.
+- **How it's achieved**: Two extra dynamic sections added to `index.html` (rendered by `src/features/dashboard.app.js`):
+  - **Top Skills** (`renderSkills` in `src/features/dashboard.app.js`): Uses parameterized `_like: "skill_%"` querying to render animated skill progress bars (top 8 skills).
+  - **Recent Projects Activity** (`renderActivity` in `src/features/dashboard.app.js`): Parses the `result` queries, sorting recent project passes/fails with color-coded UI badges and dates formatted via the `Temporal` API.
 
 > **Question**: +Are there additional graphs featured apart from the required two?
 - **Status**: ✅ Yes
-- **How it's achieved**: Two bonus graphs were added to the Statistics section (`graphs.js`):
+- **How it's achieved**: Two bonus graphs were added to the Statistics section (`src/features/dashboard.graphs.render.js`):
   - **Graph 3 — Audit Ratio Donut** (`renderAuditDonutChart`): An animated SVG donut chart visualising the ratio of audits done vs received, with a center numeric ratio label and color legend. Uses the `group { captainLogin }` nested data.
   - **Graph 4 — Pass/Fail Pie** (`renderPassFailPieChart`): An animated SVG pie/donut chart showing PASS vs FAIL ratio across all project results, with percentage display in the center and a legend.
   Both graphs include hover tooltips (via SVG `<title>` elements) and animated transitions.

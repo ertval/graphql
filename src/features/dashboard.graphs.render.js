@@ -73,7 +73,6 @@ export const computeProjectBarLayout = (projectCount, containerHeight) => {
 			: fallbackHeight;
 	const barGap = 6;
 	const minBarHeight = 16;
-	const maxBarHeight = 30;
 	const availableChartHeight = Math.max(
 		220,
 		usableContainerHeight - padding.top - padding.bottom,
@@ -83,19 +82,13 @@ export const computeProjectBarLayout = (projectCount, containerHeight) => {
 		Math.floor((availableChartHeight + barGap) / (minBarHeight + barGap)),
 	);
 	const rowCount = Math.min(safeProjectCount, maxRowsByMinSize);
-	const computedBarHeight = Math.floor(
-		(availableChartHeight - Math.max(0, rowCount - 1) * barGap) / rowCount,
-	);
-	const barHeight = Math.max(
-		minBarHeight,
-		Math.min(maxBarHeight, computedBarHeight),
-	);
-	const chartHeight =
-		rowCount * barHeight + Math.max(0, rowCount - 1) * barGap;
+	const barHeight =
+		(availableChartHeight - Math.max(0, rowCount - 1) * barGap) / rowCount;
+	const chartHeight = availableChartHeight;
 
 	return {
 		rowCount,
-		barHeight,
+		barHeight: Math.max(minBarHeight, barHeight),
 		barGap,
 		totalHeight: padding.top + padding.bottom + chartHeight,
 		padding,

@@ -33,3 +33,6 @@ build/
 out/
 .vercel
 .netlify
+test-results/
+playwright-report/
+.playwright/

@@ -16,14 +16,19 @@ import {
 	isAuthenticated,
 	login,
 	saveToken,
-} from "./api.js";
-import { initCollaborationsView, resetCollabsState } from "./collaborations.js";
+} from "../infrastructure/graphql.index.js";
+import {
+	initCollaborationsView,
+	resetCollabsState,
+} from "./collaborations.index.js";
 import {
 	renderAuditDonutChart,
 	renderPassFailPieChart,
 	renderProjectBarChart,
 	renderXPLineChart,
-} from "./graphs.js";
+} from "./dashboard.graphs.render.js";
+import { computeXpSummary, formatXP } from "./dashboard.metrics.js";
+import { unwrapResult } from "./shared.result.unwrap.js";
 
 /* -------------------------------------------------------------------
    DOM References
@@ -135,16 +140,6 @@ const performLogout = () => {
 	history.replaceState(null, "", location.pathname);
 };
 
-/**
- * @template T
- * @param {{ok: true, data: T} | {ok: false, error: Error}} result
- * @returns {T}
- */
-const unwrapResult = (result) => {
-	if (result.ok) return result.data;
-	throw result.error;
-};
-
 /* -------------------------------------------------------------------
    Login Handler
    ------------------------------------------------------------------- */
@@ -207,17 +202,6 @@ globalThis.addEventListener("storage", (event) => {
    Dashboard Data Loading
    ------------------------------------------------------------------- */
 
-/**
- * Formats bytes to human-readable XP.
- * @param {number} bytes
- * @returns {string}
- */
-const formatXP = (bytes) => {
-	if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
-	if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} kB`;
-	return `${bytes} B`;
-};
-
 const resetDashboard = () => {
 	$("#avatar-initials").textContent = "";
 	$("#user-fullname").textContent = "";
@@ -277,13 +261,11 @@ const loadDashboard = async () => {
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
-		// Bonus: demonstrate fetching a specific object by ID (parameterized query)
 		if (xpTransactions.length > 0) {
 			const objDetail = unwrapResult(await fetchObjectById(xpTransactions[0].id));
-			if (objDetail) console.log("[Bonus] fetchObjectById demo:", objDetail);
+			void objDetail;
 		}
 	} catch (err) {
-		console.error("Dashboard loading error:", err);
 		if (isAuthFailureError(err) || !isAuthenticated()) {
 			performLogout();
 		}
@@ -316,10 +298,7 @@ const renderUserSection = (user) => {
  * @param {Array} progress
  */
 const renderXPSection = (transactions, level, progress) => {
-	const totalXP = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-	const completedProjects = progress.filter(
-		(p) => p.grade >= 1 && p.object?.type === "project",
-	).length;
+	const { completedProjects, totalXP } = computeXpSummary(transactions, progress);
 
 	$("#total-xp").textContent = formatXP(totalXP);
 	$("#user-level").textContent = String(level);
