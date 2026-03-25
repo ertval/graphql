@@ -11,6 +11,7 @@ import { renderXPLineChart } from "./charts.line.js";
 import { renderPassFailPieChart } from "./charts.pie.js";
 import {
 	fetchProgress,
+	fetchProjectTeams,
 	fetchResults,
 	fetchSkills,
 	fetchUserInfo,
@@ -105,13 +106,21 @@ export const loadDashboard = async (
 
 		renderUserSection(user);
 		// Fetch all data in parallel for performance
-		const [xpResult, progressResult, skillsResult, levelResult, resultsResult] =
+		const [
+			xpResult,
+			progressResult,
+			skillsResult,
+			levelResult,
+			resultsResult,
+			projectTeamsResult,
+		] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
 				fetchProgress(user.id),
 				fetchSkills(user.id),
 				fetchUserLevel(user.id),
 				fetchResults(user.id),
+				fetchProjectTeams(user.id),
 			]);
 
 		const firstError = [
@@ -120,6 +129,7 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
+			projectTeamsResult,
 		].find((result) => !result.ok);
 
 		if (firstError && !firstError.ok) {
@@ -133,7 +143,11 @@ export const loadDashboard = async (
 		const progress = progressResult.data;
 		const skills = skillsResult.data;
 		const level = levelResult.data;
-		const results = resultsResult.data;
+		const teamsByProject = projectTeamsResult.data;
+		const results = resultsResult.data.map((result) => ({
+			...result,
+			teamMembers: teamsByProject.get(result.object?.name) ?? [],
+		}));
 
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;

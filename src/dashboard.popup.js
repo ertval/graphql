@@ -183,6 +183,31 @@ const openProjectDetail = (result, xpByName) => {
 
 	content.append(grid, completedLabel, completedDate);
 
+	const membersTitle = document.createElement("p");
+	membersTitle.className = "stat-label";
+	membersTitle.style.marginBottom = "0.25rem";
+	membersTitle.textContent = "Project Members";
+
+	const members = (result.teamMembers ?? []).filter(Boolean);
+	const membersList = document.createElement("ul");
+	membersList.className = "sp-project-members";
+
+	if (!members.length) {
+		const item = document.createElement("li");
+		item.className = "sp-project-member";
+		item.textContent = "Team data unavailable";
+		membersList.append(item);
+	} else {
+		for (const member of members) {
+			const item = document.createElement("li");
+			item.className = "sp-project-member";
+			item.textContent = member.displayName ?? member.login ?? "Unknown";
+			membersList.append(item);
+		}
+	}
+
+	content.append(membersTitle, membersList);
+
 	// Optional path display
 	if (result.path) {
 		const pathLabel = document.createElement("p");
@@ -244,6 +269,7 @@ export const initProjectDetailClose = (getXpTx, getResults) => {
 			createdAt:
 				resultRecord?.createdAt ?? latestTx?.createdAt ?? fallbackCreatedAt,
 			path: latestTx?.path ?? "",
+			teamMembers: resultRecord?.teamMembers ?? [],
 		};
 
 		const tempXpMap = new Map([[projectName, xpAmount]]);

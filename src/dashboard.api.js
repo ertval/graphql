@@ -189,6 +189,50 @@ export const fetchResults = async (userId) => {
 	);
 };
 
+// ── Project teams for member lists ───────────────────────────────
+
+export const fetchProjectTeams = async (userId) => {
+  const query = `
+    query GetProjectTeams($userId: Int!) {
+      group_user(where: { userId: { _eq: $userId } }) {
+        group {
+          object { name }
+          members {
+            user {
+              login
+              firstName
+              lastName
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  return mapResult(await graphqlQuery(query, { userId }), (data) => {
+    const groups = data.group_user ?? [];
+    const teamByProject = groups.reduce((map, item) => {
+      const projectName = item.group?.object?.name;
+      if (!projectName) return map;
+
+      const members = (item.group?.members ?? [])
+        .map((member) => member.user)
+        .filter(Boolean)
+        .map((user) => ({
+          login: user.login,
+          displayName:
+            [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+            user.login,
+        }));
+
+      map.set(projectName, members);
+      return map;
+    }, new Map());
+
+    return teamByProject;
+  });
+};
+
 // ── Current level ──────────────────────────────────────────────────
 
 export const fetchUserLevel = async (userId) => {

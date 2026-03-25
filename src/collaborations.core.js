@@ -43,7 +43,7 @@ const toReadableName = (value) => {
 		.join(" ");
 };
 
-const VERIFIED_ROLES = new Set(["Partner", "Auditor", "Auditee"]);
+const VERIFIED_ROLES = new Set(["Partner", "Captain", "Auditor", "Auditee"]);
 
 /** @param {string} campus @returns {boolean} */
 const hasCampus = (campus) => hasText(campus) && campus !== "—";

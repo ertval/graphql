@@ -37,7 +37,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			lastName: "",
 			campus: "Athens",
 			project: "Graph Explorer",
-			role: "Auditee",
+			role: "Captain",
 			date: "2026-01-10T10:00:00.000Z",
 			ts: 300,
 		},
@@ -62,15 +62,15 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 	assert.equal(summary.totalProjects, 2);
 
 	assert.deepEqual(summary.byRole, [
-		{ role: "Auditee", count: 1 },
 		{ role: "Auditor", count: 1 },
+		{ role: "Captain", count: 1 },
 		{ role: "Partner", count: 1 },
 	]);
 
 	assert.deepEqual(summary.projects[0], {
 		name: "Graph Explorer",
 		path: "",
-		roles: ["Auditee"],
+		roles: ["Captain"],
 		latestDate: "2026-01-10T10:00:00.000Z",
 		count: 1,
 	});

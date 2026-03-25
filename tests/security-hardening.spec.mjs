@@ -10,6 +10,8 @@ const appJs = read("src/app.js");
 const collaborationsJs = read("src/collaborations.view.js");
 const collaborationsViewJs = read("src/collaborations.view.js");
 const collaborationsPopupJs = read("src/collaborations.popup.js");
+const dashboardPopupJs = read("src/dashboard.popup.js");
+const collaborationsCss = read("css/collaborations.css");
 const apiJs = read("src/infra.graphql.js");
 const indexHtml = read("index.html");
 
@@ -30,9 +32,25 @@ test("app and collaborations avoid template innerHTML sinks for dynamic row/item
 });
 
 test("collaborator project tiles open the shared project detail modal", () => {
-	assert.match(collaborationsPopupJs, /openProjectDetail\(project,/);
+	assert.match(collaborationsPopupJs, /openProjectDetail\(\s*project,/);
 	assert.match(collaborationsPopupJs, /setAttribute\("role", "button"\)/);
 	assert.match(collaborationsPopupJs, /setAttribute\("aria-label", `View details for \$\{project\.name\}`\)/);
+});
+
+test("dashboard project detail includes project members section", () => {
+	assert.match(dashboardPopupJs, /Project Members/);
+});
+
+test("collaborator detail toggles extended project panel when same project is clicked", () => {
+	assert.match(collaborationsPopupJs, /sp-layout-expanded/);
+	assert.match(collaborationsPopupJs, /selectedProjectName/);
+	assert.match(collaborationsPopupJs, /classList\.remove\("active"\)/);
+});
+
+test("collaborator split-panel animation uses theme slow timing and avoids left crop transform", () => {
+	assert.match(collaborationsCss, /grid-template-columns var\(--transition-slow\)/);
+	assert.match(collaborationsCss, /transform 520ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
+	assert.doesNotMatch(collaborationsCss, /translateX\(-/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

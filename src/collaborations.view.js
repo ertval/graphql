@@ -258,6 +258,10 @@ export const renderCollabsList = () => {
 				roleBadge.style.background = "var(--accent-start)";
 				roleBadge.style.color = "#fff";
 				roleBadge.style.borderColor = "transparent";
+			} else if (r.role === "Captain") {
+				roleBadge.style.background = "rgba(99, 102, 241, 0.18)";
+				roleBadge.style.color = "#a5b4fc";
+				roleBadge.style.borderColor = "rgba(129, 140, 248, 0.35)";
 			} else if (r.role === "Auditor") {
 				roleBadge.style.background = "rgba(59, 130, 246, 0.15)";
 				roleBadge.style.color = "#60a5fa";

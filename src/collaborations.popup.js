@@ -8,6 +8,7 @@ import { buildCollaboratorSummary } from "./collaborations.core.js";
 const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 
 const $ = (sel) => document.querySelector(sel);
+let selectedProjectName = "";
 
 const getActiveUserLogin = () => {
 	const loginText = $("#user-login")?.textContent?.trim() ?? "";
@@ -69,7 +70,7 @@ const getProjectMembers = (
 
 	const teamRoles = projectRoles.includes("Auditor")
 		? new Set(["Auditor"])
-		: new Set(["Partner", "Auditee"]);
+		: new Set(["Partner", "Captain", "Auditee", "Member"]);
 
 	const teamLogins = projectRecords
 		.filter((record) => teamRoles.has(record.role))
@@ -95,6 +96,17 @@ const getProjectMembers = (
 	}));
 };
 
+const resetProjectPanel = (refs) => {
+	const { panel, panelBody, layout } = refs;
+	layout.classList.remove("sp-layout-expanded");
+	panel.classList.remove("active");
+	panelBody.replaceChildren();
+	const hint = document.createElement("p");
+	hint.className = "sp-project-hint";
+	hint.textContent = "Click a shared project to expand details.";
+	panelBody.append(hint);
+};
+
 const openProjectDetail = (
 	project,
 	refs,
@@ -104,6 +116,17 @@ const openProjectDetail = (
 ) => {
 	const { panel, panelTitle, panelBody, layout } = refs;
 	if (!panel || !panelTitle || !panelBody || !layout) return;
+
+	if (
+		selectedProjectName === project.name &&
+		panel.classList.contains("active")
+	) {
+		selectedProjectName = "";
+		resetProjectPanel(refs);
+		return;
+	}
+
+	selectedProjectName = project.name;
 
 	panelTitle.textContent = project.name;
 	panelBody.replaceChildren();
@@ -189,16 +212,11 @@ export const closeCollaboratorDetail = () => {
 	const overlay = $("#student-profile-overlay");
 	overlay?.classList.remove("active");
 	const layout = $(".sp-layout");
-	layout?.classList.remove("sp-layout-expanded");
 	const panel = $(".sp-project-panel");
-	panel?.classList.remove("active");
+	selectedProjectName = "";
 	const panelBody = $(".sp-project-body");
-	if (panelBody) {
-		panelBody.replaceChildren();
-		const hint = document.createElement("p");
-		hint.className = "sp-project-hint";
-		hint.textContent = "Click a shared project to expand details.";
-		panelBody.append(hint);
+	if (layout && panel && panelBody) {
+		resetProjectPanel({ panel, panelBody, layout });
 	}
 };
 
@@ -206,6 +224,7 @@ export const closeCollaboratorDetail = () => {
 export const openCollaboratorDetail = (login, allCollabs) => {
 	const summary = buildCollaboratorSummary(allCollabs, login);
 	if (!summary) return;
+	selectedProjectName = "";
 
 	const overlay = $("#student-profile-overlay");
 	const content = $("#student-profile-content");

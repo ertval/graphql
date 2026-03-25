@@ -119,7 +119,7 @@ export const loadCollaborationsData = async (userId) => {
 		}
 	}
 
-	// Audits Given (you audited them)
+	// Audits Given (they were the Captain)
 	for (const a of auditsGiven) {
 		if (a.grade !== null && a.group?.captainLogin) {
 			const teamMembers = (a.group?.members ?? [])
@@ -142,7 +142,7 @@ export const loadCollaborationsData = async (userId) => {
 				campus: captainMember?.user?.campus ?? "",
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
-				role: "Auditor",
+				role: "Captain",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 				teamMembers,
@@ -150,7 +150,7 @@ export const loadCollaborationsData = async (userId) => {
 		}
 	}
 
-	// Audits Received (they audited you)
+	// Audits Received (they were the Auditor)
 	for (const a of auditsReceived) {
 		if (a.grade !== null && a.auditor?.login) {
 			const teamMembers = (a.group?.members ?? [])
@@ -170,7 +170,7 @@ export const loadCollaborationsData = async (userId) => {
 				campus: a.auditor.campus,
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
-				role: "Auditee",
+				role: "Auditor",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 				teamMembers,
