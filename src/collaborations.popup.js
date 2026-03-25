@@ -171,28 +171,13 @@ const resetProjectPanel = (refs) => {
 	panelBody.append(hint);
 };
 
-const openProjectDetail = (
+const renderProjectPanelContent = (
 	project,
-	refs,
+	panelBody,
 	allCollabs,
 	collaboratorLogin,
 	activeUserLogin,
 ) => {
-	const { panel, panelTitle, panelBody, layout } = refs;
-	if (!panel || !panelTitle || !panelBody || !layout) return;
-
-	if (
-		selectedProjectName === project.name &&
-		panel.classList.contains("active")
-	) {
-		selectedProjectName = "";
-		resetProjectPanel(refs);
-		return;
-	}
-
-	selectedProjectName = project.name;
-
-	panelTitle.textContent = project.name;
 	panelBody.replaceChildren();
 
 	const grid = document.createElement("div");
@@ -281,10 +266,51 @@ const openProjectDetail = (
 			panelBody.append(link);
 		}
 	}
+};
+
+const openProjectDetail = (
+	project,
+	refs,
+	allCollabs,
+	collaboratorLogin,
+	activeUserLogin,
+) => {
+	const { panel, panelTitle, panelBody, layout } = refs;
+	if (!panel || !panelTitle || !panelBody || !layout) return;
+
+	if (
+		selectedProjectName === project.name &&
+		panel.classList.contains("active")
+	) {
+		selectedProjectName = "";
+		resetProjectPanel(refs);
+		return;
+	}
+
+	selectedProjectName = project.name;
+
+	panelTitle.textContent = project.name;
+	panelBody.replaceChildren();
+	const loadingHint = document.createElement("p");
+	loadingHint.className = "sp-project-hint";
+	loadingHint.textContent = "Loading project details...";
+	panelBody.append(loadingHint);
 
 	stabilizeExpandedLayout(layout, () => {
 		layout.classList.add("sp-layout-expanded");
 		panel.classList.add("active");
+	});
+
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
+			renderProjectPanelContent(
+				project,
+				panelBody,
+				allCollabs,
+				collaboratorLogin,
+				activeUserLogin,
+			);
+		});
 	});
 };
 

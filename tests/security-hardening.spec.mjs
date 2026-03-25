@@ -41,6 +41,10 @@ test("collaborator project tiles open the shared project detail modal", () => {
 
 test("dashboard project detail includes project members section", () => {
 	assert.match(dashboardPopupJs, /Project Members/);
+	assert.match(dashboardPopupJs, /My Role/);
+	assert.match(dashboardPopupJs, /sp-project-grid/);
+	assert.match(dashboardPopupJs, /sp-project-link/);
+	assert.match(dashboardPopupJs, /toProjectUrl/);
 });
 
 test("collaborator project member list only auto-adds active user for shared team membership", () => {
@@ -57,7 +61,7 @@ test("dashboard project teams are hydrated by object id for all visible project 
 	assert.match(dashboardApiJs, /object \{\s*id\s*name\s*\}/);
 	assert.match(dashboardViewJs, /const projectNames = \[\s*\n\s*\.\.\.new Set\(rawResults\.map\(\(result\) => result\.object\?\.name\)\.filter\(Boolean\)\),\s*\n\s*\];/);
 	assert.match(dashboardViewJs, /fetchProjectTeams\(projectNames\)/);
-	assert.match(dashboardViewJs, /teamMembers: teamsByProject\.get\(String\(result\.objectId\)\) \?\? \[\],/);
+	assert.match(dashboardViewJs, /teamMembers:\s*\n\s*teamsByProject\.get\(normalizeProjectName\(result\.object\?\.name\)\) \?\? \[\],/);
 });
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
@@ -70,7 +74,10 @@ test("collaborator split-panel animation uses theme slow timing and avoids left 
 	assert.match(collaborationsCss, /grid-template-columns var\(--transition-slow\)/);
 	assert.match(collaborationsCss, /transform 520ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
 	assert.doesNotMatch(collaborationsCss, /translateX\(-/);
-	assert.match(collaborationsCss, /scrollbar-gutter:\s*stable/);
+	assert.doesNotMatch(collaborationsCss, /scrollbar-gutter:\s*stable/);
+	assert.doesNotMatch(collaborationsCss, /max-height:\s*min\(560px, calc\(90vh - 170px\)\);/);
+	assert.doesNotMatch(collaborationsCss, /\.sp-project-panel \{[\s\S]*overflow-y:\s*auto;/);
+	assert.match(collaborationsPopupJs, /stabilizeExpandedLayout\(layout, \(\) => \{\s*\n\s*layout\.classList\.add\("sp-layout-expanded"\);\s*\n\s*panel\.classList\.add\("active"\);/);
 });
 
 test("collaborator project detail renders My Role section for active user", () => {
@@ -85,9 +92,16 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 	);
 	assert.match(
 		dashboardApiJs,
-		/const rawObjectId = group\.object\?\.id;[\s\S]*const objectId = String\(rawObjectId\);/,
+		/const projectName = group\.object\?\.name \?\? "";[\s\S]*const normalizedProjectName = normalizeProjectName\(projectName\);/,
 	);
-	assert.match(dashboardViewJs, /teamsByProject\.get\(String\(result\.objectId\)\) \?\? \[\]/);
+	assert.match(dashboardViewJs, /const normalizeProjectName = \(name\) =>/);
+	assert.match(
+		dashboardViewJs,
+		/teamMembers:\s*\n\s*teamsByProject\.get\(normalizeProjectName\(result\.object\?\.name\)\) \?\? \[\],?/,
+	);
+	assert.match(dashboardViewJs, /_teamsByProject = teamsByProject;/);
+	assert.match(dashboardPopupJs, /const normalizeProjectName = \(name\) =>/);
+	assert.match(dashboardPopupJs, /getTeamsByProject\(\)\.get\(normalizeProjectName\(projectName\)\) \?\? \[\]/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

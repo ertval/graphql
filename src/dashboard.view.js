@@ -35,10 +35,14 @@ let _xpTransactions = [];
 /** @type {Array<{grade:number, createdAt:string, object:{name:string,type:string}}>} */
 let _results = [];
 
+/** @type {Map<string, Array<{login:string, displayName:string}>>} */
+let _teamsByProject = new Map();
+
 export const initDashboard = () => {
 	initProjectDetailClose(
 		() => _xpTransactions,
 		() => _results,
+		() => _teamsByProject,
 	);
 };
 
@@ -83,6 +87,7 @@ export const resetDashboard = () => {
 
 	_xpTransactions = [];
 	_results = [];
+	_teamsByProject = new Map();
 };
 
 /** Fetches all dashboard data and renders every section. */
@@ -92,6 +97,8 @@ export const loadDashboard = async (
 ) => {
 	const shouldLogout = (error) =>
 		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
+	const normalizeProjectName = (name) =>
+		typeof name === "string" ? name.trim().toLowerCase() : "";
 
 	try {
 		const userResult = await fetchUserInfo();
@@ -153,10 +160,35 @@ export const loadDashboard = async (
 		}
 
 		const teamsByProject = projectTeamsResult.data;
-		const results = rawResults.map((result) => ({
-			...result,
-			teamMembers: teamsByProject.get(String(result.objectId)) ?? [],
-		}));
+		_teamsByProject = teamsByProject;
+		const projectCountByName = rawResults.reduce((map, result) => {
+			const projectKey = normalizeProjectName(result.object?.name);
+			if (!projectKey) return map;
+			map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
+			return map;
+		}, new Map());
+
+		const results = rawResults.map((result) => {
+			const projectKey = normalizeProjectName(result.object?.name);
+			const teamInfo = teamsByProject.get(projectKey) ?? {
+				members: [],
+				captainLogin: "",
+			};
+			const isCaptain = teamInfo.captainLogin === user.login;
+			const isMember = teamInfo.members.some(
+				(member) => member.login === user.login,
+			);
+			const myRole = isCaptain ? "Captain" : isMember ? "Member" : "Auditor";
+
+			return {
+				...result,
+				teamMembers: teamInfo.members,
+				teamCaptainLogin: teamInfo.captainLogin,
+				myRole,
+				projectRoles: [myRole],
+				sharedRecordsCount: projectCountByName.get(projectKey) ?? 1,
+			};
+		});
 
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;

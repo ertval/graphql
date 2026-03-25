@@ -464,7 +464,6 @@
 	max-height: 90vh;
 	overflow-y: auto;
 	overflow-x: hidden;
-	scrollbar-gutter: stable;
 	scrollbar-width: thin;
 	scrollbar-color: rgba(14, 165, 233, 0.3) transparent;
 }

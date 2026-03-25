@@ -31,6 +31,13 @@ test("collaborations api keeps captain metadata for partner and auditor context"
 	assert.match(collaborationsApiJs, /teamCaptainLogin/);
 });
 
+test("collaborations api maps group member collaborator role to Captain when login matches captainLogin", () => {
+	assert.match(
+		collaborationsApiJs,
+		/role:\s*member\.user\.login === g\.group\?\.captainLogin \? "Captain" : "Partner"/,
+	);
+});
+
 test("verified collaborator role set excludes dead Auditee role", () => {
 	assert.match(collaborationsCoreJs, /new Set\(\["Partner", "Captain", "Auditor"\]\)/);
 	assert.doesNotMatch(collaborationsCoreJs, /Auditee/);

@@ -108,6 +108,7 @@ export const loadCollaborationsData = async (userId) => {
 			}));
 		for (const member of g.group?.members || []) {
 			if (member.userId !== userId && member.user) {
+				const isCaptain = member.user.login === g.group?.captainLogin;
 				collabs.push({
 					id: `u_${member.userId}_${g.createdAt}`,
 					login: member.user.login,
@@ -116,7 +117,7 @@ export const loadCollaborationsData = async (userId) => {
 					campus: member.user.campus,
 					project: prjName,
 					projectPath,
-					role: "Partner",
+					role: isCaptain ? "Captain" : "Partner",
 					relationType: "group_member",
 					teamCaptainLogin: g.group?.captainLogin ?? "",
 					date: g.createdAt,

@@ -150,10 +150,14 @@ export const fetchProjectTeams = async (projectNames) => {
 		return { ok: true, data: new Map() };
 	}
 
+  const normalizeProjectName = (name) =>
+    typeof name === "string" ? name.trim().toLowerCase() : "";
+
 	const query = `
     query GetProjectTeams($projectNames: [String!]!) {
       group_user(where: {group: {object: {name: {_in: $projectNames}}}}) {
         group {
+				captainLogin
           object {
             id
             name
@@ -170,15 +174,20 @@ export const fetchProjectTeams = async (projectNames) => {
     }
   `;
 
-	return mapResult(await graphqlQuery(query, { projectNames }), (data) => {
+  return mapResult(await graphqlQuery(query, { projectNames }), (data) => {
 		const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
 		return groups.reduce((map, group) => {
-      const rawObjectId = group.object?.id;
-      if (rawObjectId === undefined || rawObjectId === null) return map;
-      const objectId = String(rawObjectId);
+      const projectName = group.object?.name ?? "";
+      const normalizedProjectName = normalizeProjectName(projectName);
+      if (!normalizedProjectName) return map;
 
-			const existing = map.get(objectId) ?? [];
-			const existingLogins = new Set(existing.map((member) => member.login));
+      const existing = map.get(normalizedProjectName) ?? {
+        captainLogin: group.captainLogin ?? "",
+        members: [],
+      };
+      const existingLogins = new Set(
+        existing.members.map((member) => member.login),
+      );
 			const members = (group.members ?? [])
 				.map((member) => member.user)
 				.filter(Boolean)
@@ -190,7 +199,10 @@ export const fetchProjectTeams = async (projectNames) => {
 				}))
 				.filter((member) => member.login && !existingLogins.has(member.login));
 
-			map.set(objectId, [...existing, ...members]);
+      map.set(normalizedProjectName, {
+        captainLogin: existing.captainLogin || group.captainLogin || "",
+        members: [...existing.members, ...members],
+      });
 			return map;
 		}, new Map());
 	});

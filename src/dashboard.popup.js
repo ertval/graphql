@@ -6,6 +6,30 @@
 import { formatXP } from "./charts.helpers.js";
 
 const $ = (sel) => document.querySelector(sel);
+const normalizeProjectName = (name) =>
+	typeof name === "string" ? name.trim().toLowerCase() : "";
+const PLATFORM_ORIGIN = "https://platform.zone01.gr";
+
+const getActiveUserLogin = () => {
+	const loginText = $("#user-login")?.textContent?.trim() ?? "";
+	if (!loginText) return "";
+	return loginText.startsWith("@") ? loginText.slice(1) : loginText;
+};
+
+const toProjectUrl = (pathValue) => {
+	if (typeof pathValue !== "string" || !pathValue.trim()) return null;
+
+	try {
+		const url = pathValue.startsWith("/")
+			? new URL(pathValue, PLATFORM_ORIGIN)
+			: new URL(pathValue);
+		if (url.protocol !== "https:") return null;
+		if (url.origin !== PLATFORM_ORIGIN) return null;
+		return url.toString();
+	} catch {
+		return null;
+	}
+};
 
 // ── Activity list rendering ────────────────────────────────────────
 
@@ -126,8 +150,15 @@ const openProjectDetail = (result, xpByName) => {
 	if (!overlay || !content) return;
 
 	const name = result.object?.name ?? "Unknown Project";
-	const passed = result.grade >= 1;
 	const xp = xpByName.get(name) ?? 0;
+	const projectRoles = result.projectRoles ?? [result.myRole ?? "Member"];
+	const activeUserLogin = getActiveUserLogin();
+	const isCaptain =
+		activeUserLogin && result.teamCaptainLogin === activeUserLogin;
+	const isMember = (result.teamMembers ?? []).some(
+		(member) => member.login === activeUserLogin,
+	);
+	const myRole = result.myRole ?? (isCaptain ? "Captain" : isMember ? "Member" : "Auditor");
 
 	// Format date using Temporal
 	const dateStr = (() => {
@@ -144,13 +175,16 @@ const openProjectDetail = (result, xpByName) => {
 	title.textContent = name;
 	content.replaceChildren();
 
-	// Stats grid: result, grade, XP, type
+	const basicTitle = document.createElement("h4");
+	basicTitle.className = "sp-project-subtitle";
+	basicTitle.textContent = "Basic Data";
+
 	const grid = document.createElement("div");
-	grid.className = "project-detail-grid";
+	grid.className = "sp-project-grid";
 
 	const appendStat = (value, label) => {
 		const stat = document.createElement("div");
-		stat.className = "pd-stat";
+		stat.className = "sp-project-stat";
 
 		const statValue = document.createElement("span");
 		statValue.className = "stat-value";
@@ -164,28 +198,15 @@ const openProjectDetail = (result, xpByName) => {
 		grid.append(stat);
 	};
 
-	appendStat(passed ? "✓ PASS" : "✗ FAIL", "Result");
-	appendStat(result.grade.toFixed(2), "Grade");
-	appendStat(xp ? formatXP(xp) : "—", "XP Earned");
-	appendStat(result.object?.type ?? "—", "Type");
+	appendStat(String(result.sharedRecordsCount ?? 1), "Shared Records");
+	appendStat(projectRoles.join(", ") || "—", "Roles");
+	appendStat(dateStr, "Latest Shared");
+	appendStat(result.path ? "Available" : "—", "Project Link");
 
-	// Completion date display
-	const completedLabel = document.createElement("p");
-	completedLabel.className = "stat-label";
-	completedLabel.style.marginBottom = "0.5rem";
-	completedLabel.textContent = "Completed";
+	content.append(basicTitle, grid);
 
-	const completedDate = document.createElement("p");
-	completedDate.style.color = "var(--text-primary)";
-	completedDate.style.fontSize = "0.9rem";
-	completedDate.style.marginBottom = "0.75rem";
-	completedDate.textContent = dateStr;
-
-	content.append(grid, completedLabel, completedDate);
-
-	const membersTitle = document.createElement("p");
-	membersTitle.className = "stat-label";
-	membersTitle.style.marginBottom = "0.25rem";
+	const membersTitle = document.createElement("h4");
+	membersTitle.className = "sp-project-subtitle";
 	membersTitle.textContent = "Project Members";
 
 	const members = (result.teamMembers ?? []).filter(Boolean);
@@ -201,25 +222,49 @@ const openProjectDetail = (result, xpByName) => {
 		for (const member of members) {
 			const item = document.createElement("li");
 			item.className = "sp-project-member";
-			item.textContent = member.displayName ?? member.login ?? "Unknown";
+			item.textContent =
+				member.login === activeUserLogin
+					? `${member.displayName ?? member.login ?? "Unknown"} (you)`
+					: (member.displayName ?? member.login ?? "Unknown");
 			membersList.append(item);
 		}
 	}
 
 	content.append(membersTitle, membersList);
 
+	const roleTitle = document.createElement("h4");
+	roleTitle.className = "sp-project-subtitle";
+	roleTitle.textContent = "My Role";
+
+	const roleValue = document.createElement("div");
+	roleValue.className = "sp-project-my-role";
+	roleValue.textContent = myRole;
+
+	content.append(roleTitle, roleValue);
+
 	// Optional path display
 	if (result.path) {
 		const pathLabel = document.createElement("p");
 		pathLabel.className = "stat-label";
 		pathLabel.style.marginBottom = "0.25rem";
-		pathLabel.textContent = "Path";
+		pathLabel.textContent = "Project Path";
 
 		const pathValue = document.createElement("div");
-		pathValue.className = "pd-path";
+		pathValue.className = "sp-project-path";
 		pathValue.textContent = result.path;
 
 		content.append(pathLabel, pathValue);
+
+		const projectUrl = toProjectUrl(result.path);
+		if (projectUrl) {
+			const link = document.createElement("a");
+			link.href = projectUrl;
+			link.target = "_blank";
+			link.rel = "noopener noreferrer";
+			link.textContent = "Open project";
+			link.className = "sp-project-link";
+			content.append(link);
+		}
 	}
 
 	overlay.classList.add("active");
@@ -232,8 +277,9 @@ const openProjectDetail = (result, xpByName) => {
  * Because the bar chart is dynamic, we listen at the container level.
  * @param {() => Array} getXpTx - function returning current xpTransactions
  * @param {() => Array} getResults - function returning current results
+ * @param {() => Map<string, {captainLogin:string, members:Array<{login:string, displayName:string}>}>} getTeamsByProject
  */
-export const initProjectDetailClose = (getXpTx, getResults) => {
+export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) => {
 	const overlay = $("#project-detail-overlay");
 	const closeBtn = $("#project-detail-close");
 	closeBtn?.addEventListener("click", () =>
@@ -261,7 +307,27 @@ export const initProjectDetailClose = (getXpTx, getResults) => {
 		)[0];
 
 		const resultRecord = currentRes.find((r) => r.object?.name === projectName);
+		const fallbackTeamInfo = getTeamsByProject().get(
+			normalizeProjectName(projectName),
+		) ?? { members: [], captainLogin: "" };
+		const fallbackTeamMembers = fallbackTeamInfo.members ?? [];
 		const fallbackCreatedAt = Temporal.Now.instant().toString();
+		const activeUserLogin = getActiveUserLogin();
+		const fallbackIsCaptain =
+			activeUserLogin && fallbackTeamInfo.captainLogin === activeUserLogin;
+		const fallbackIsMember = fallbackTeamMembers.some(
+			(member) => member.login === activeUserLogin,
+		);
+		const fallbackMyRole = fallbackIsCaptain
+			? "Captain"
+			: fallbackIsMember
+				? "Member"
+				: "Auditor";
+		const sharedRecordsCount = currentRes.filter(
+			(record) =>
+				normalizeProjectName(record.object?.name) ===
+				normalizeProjectName(projectName),
+		).length;
 
 		const detailResult = {
 			object: { name: projectName, type: "project" },
@@ -269,7 +335,16 @@ export const initProjectDetailClose = (getXpTx, getResults) => {
 			createdAt:
 				resultRecord?.createdAt ?? latestTx?.createdAt ?? fallbackCreatedAt,
 			path: latestTx?.path ?? "",
-			teamMembers: resultRecord?.teamMembers ?? [],
+			teamMembers:
+				(resultRecord?.teamMembers?.length
+					? resultRecord.teamMembers
+					: fallbackTeamMembers),
+			teamCaptainLogin:
+				resultRecord?.teamCaptainLogin ?? fallbackTeamInfo.captainLogin ?? "",
+			myRole: resultRecord?.myRole ?? fallbackMyRole,
+			projectRoles: resultRecord?.projectRoles ?? [resultRecord?.myRole ?? fallbackMyRole],
+			sharedRecordsCount:
+				resultRecord?.sharedRecordsCount ?? (sharedRecordsCount || 1),
 		};
 
 		const tempXpMap = new Map([[projectName, xpAmount]]);
