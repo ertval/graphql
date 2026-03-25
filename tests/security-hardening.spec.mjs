@@ -11,6 +11,8 @@ const collaborationsJs = read("src/collaborations.view.js");
 const collaborationsViewJs = read("src/collaborations.view.js");
 const collaborationsPopupJs = read("src/collaborations.popup.js");
 const dashboardPopupJs = read("src/dashboard.popup.js");
+const dashboardApiJs = read("src/dashboard.api.js");
+const dashboardViewJs = read("src/dashboard.view.js");
 const collaborationsCss = read("css/collaborations.css");
 const apiJs = read("src/infra.graphql.js");
 const indexHtml = read("index.html");
@@ -41,6 +43,23 @@ test("dashboard project detail includes project members section", () => {
 	assert.match(dashboardPopupJs, /Project Members/);
 });
 
+test("collaborator project member list only auto-adds active user for shared team membership", () => {
+	assert.match(collaborationsPopupJs, /hasSharedTeamMembership/);
+	assert.match(
+		collaborationsPopupJs,
+		/if \(hasSharedTeamMembership && activeUserLogin\) \{\s*\n\s*teamLogins\.push\(activeUserLogin\);/,
+	);
+});
+
+test("dashboard project teams are hydrated by object id for all visible project names", () => {
+	assert.match(dashboardApiJs, /query GetProjectTeams\(\$projectNames: \[String!\]!\)/);
+	assert.match(dashboardApiJs, /group_user\(where: \{group: \{object: \{name: \{_in: \$projectNames\}\}\}\}\)/);
+	assert.match(dashboardApiJs, /object \{\s*id\s*name\s*\}/);
+	assert.match(dashboardViewJs, /const projectNames = \[\s*\n\s*\.\.\.new Set\(rawResults\.map\(\(result\) => result\.object\?\.name\)\.filter\(Boolean\)\),\s*\n\s*\];/);
+	assert.match(dashboardViewJs, /fetchProjectTeams\(projectNames\)/);
+	assert.match(dashboardViewJs, /teamMembers: teamsByProject\.get\(String\(result\.objectId\)\) \?\? \[\],/);
+});
+
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
 	assert.match(collaborationsPopupJs, /sp-layout-expanded/);
 	assert.match(collaborationsPopupJs, /selectedProjectName/);
@@ -51,6 +70,24 @@ test("collaborator split-panel animation uses theme slow timing and avoids left 
 	assert.match(collaborationsCss, /grid-template-columns var\(--transition-slow\)/);
 	assert.match(collaborationsCss, /transform 520ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
 	assert.doesNotMatch(collaborationsCss, /translateX\(-/);
+	assert.match(collaborationsCss, /scrollbar-gutter:\s*stable/);
+});
+
+test("collaborator project detail renders My Role section for active user", () => {
+	assert.match(collaborationsPopupJs, /My Role/);
+	assert.match(collaborationsPopupJs, /getActiveUserProjectRole/);
+});
+
+test("dashboard team hydration uses group_user mapping and stable object id keys", () => {
+	assert.match(
+		dashboardApiJs,
+		/query GetProjectTeams\(\$projectNames: \[String!\]!\)[\s\S]*group_user\(where: \{group: \{object: \{name: \{_in: \$projectNames\}\}\}\}\)/,
+	);
+	assert.match(
+		dashboardApiJs,
+		/const rawObjectId = group\.object\?\.id;[\s\S]*const objectId = String\(rawObjectId\);/,
+	);
+	assert.match(dashboardViewJs, /teamsByProject\.get\(String\(result\.objectId\)\) \?\? \[\]/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

@@ -68,12 +68,14 @@ const getProjectMembers = (
 		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
 	);
 
-	const teamRoles = projectRoles.includes("Auditor")
-		? new Set(["Auditor"])
-		: new Set(["Partner", "Captain", "Auditee", "Member"]);
+	const hasSharedTeamMembership = projectRecords.some(
+		(record) => record.relationType === "group_member" || record.role === "Partner",
+	);
+
+	const availableProjectRoles = new Set(projectRoles);
 
 	const teamLogins = projectRecords
-		.filter((record) => teamRoles.has(record.role))
+		.filter((record) => availableProjectRoles.has(record.role))
 		.flatMap((record) => record.teamMembers ?? [])
 		.map((member) => member.login)
 		.filter(Boolean);
@@ -82,7 +84,7 @@ const getProjectMembers = (
 		teamLogins.push(collaboratorLogin);
 	}
 
-	if (!projectRoles.includes("Auditor") && activeUserLogin) {
+	if (hasSharedTeamMembership && activeUserLogin) {
 		teamLogins.push(activeUserLogin);
 	}
 
@@ -96,8 +98,70 @@ const getProjectMembers = (
 	}));
 };
 
+const getActiveUserProjectRole = (
+	projectName,
+	allCollabs,
+	collaboratorLogin,
+	activeUserLogin,
+) => {
+	if (!activeUserLogin) return "Member";
+
+	const projectRecords = allCollabs.filter(
+		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
+	);
+
+	const activeRoles = projectRecords.reduce((roles, record) => {
+		if (record.relationType === "audit_given") {
+			roles.add("Auditor");
+			return roles;
+		}
+
+		if (
+			record.relationType === "group_member" ||
+			record.relationType === "audit_received"
+		) {
+			if (record.teamCaptainLogin === activeUserLogin) {
+				roles.add("Captain");
+			} else {
+				roles.add("Member");
+			}
+		}
+
+		return roles;
+	}, new Set());
+
+	if (!activeRoles.size) return "Member";
+
+	const orderedRoles = ["Auditor", "Captain", "Member"].filter((role) =>
+		activeRoles.has(role),
+	);
+
+	return orderedRoles.join(", ");
+};
+
+const stabilizeExpandedLayout = (layout, onApplyExpanded) => {
+	const startHeight = Math.ceil(layout.getBoundingClientRect().height);
+	if (startHeight > 0) {
+		layout.style.minHeight = `${startHeight}px`;
+	}
+
+	onApplyExpanded();
+
+	const releaseLayoutLock = () => {
+		layout.style.minHeight = "";
+	};
+
+	const onTransitionEnd = () => {
+		releaseLayoutLock();
+	};
+
+	layout.addEventListener("transitionend", onTransitionEnd, { once: true });
+	setTimeout(releaseLayoutLock, 700);
+};
+
 const resetProjectPanel = (refs) => {
 	const { panel, panelBody, layout } = refs;
+	layout.style.minHeight = "";
 	layout.classList.remove("sp-layout-expanded");
 	panel.classList.remove("active");
 	panelBody.replaceChildren();
@@ -179,6 +243,21 @@ const openProjectDetail = (
 
 	panelBody.append(membersTitle, membersList);
 
+	const activeRoleTitle = document.createElement("h4");
+	activeRoleTitle.className = "sp-project-subtitle";
+	activeRoleTitle.textContent = "My Role";
+
+	const activeRoleValue = document.createElement("div");
+	activeRoleValue.className = "sp-project-my-role";
+	activeRoleValue.textContent = getActiveUserProjectRole(
+		project.name,
+		allCollabs,
+		collaboratorLogin,
+		activeUserLogin,
+	);
+
+	panelBody.append(activeRoleTitle, activeRoleValue);
+
 	if (project.path) {
 		const pathLabel = document.createElement("p");
 		pathLabel.className = "stat-label";
@@ -203,8 +282,10 @@ const openProjectDetail = (
 		}
 	}
 
-	layout.classList.add("sp-layout-expanded");
-	panel.classList.add("active");
+	stabilizeExpandedLayout(layout, () => {
+		layout.classList.add("sp-layout-expanded");
+		panel.classList.add("active");
+	});
 };
 
 /** Close the collaborator profile overlay. */

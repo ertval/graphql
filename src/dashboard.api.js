@@ -88,24 +88,6 @@ export const fetchProgress = async (userId) => {
 	);
 };
 
-// ── Single object lookup ───────────────────────────────────────────
-
-export const fetchObjectById = async (objectId) => {
-	const query = `
-    query GetObject($objectId: Int!) {
-      object(where: { id: { _eq: $objectId } }) {
-        id
-        name
-        type
-      }
-    }
-  `;
-	return mapResult(
-		await graphqlQuery(query, { objectId }),
-		(data) => data.object?.[0] ?? null,
-	);
-};
-
 // ── Skill transactions ─────────────────────────────────────────────
 
 export const fetchSkills = async (userId) => {
@@ -126,34 +108,6 @@ export const fetchSkills = async (userId) => {
 	return mapResult(
 		await graphqlQuery(query, { userId }),
 		(data) => data.transaction ?? [],
-	);
-};
-
-// ── Audit detail records ───────────────────────────────────────────
-
-export const fetchAuditDetails = async (userId) => {
-	const query = `
-    query GetAudits($userId: Int!) {
-      audit(
-        where: { auditorId: { _eq: $userId } }
-        order_by: { createdAt: desc }
-        limit: 20
-      ) {
-        id
-        grade
-        createdAt
-        group {
-          captainLogin
-          object {
-            name
-          }
-        }
-      }
-    }
-  `;
-	return mapResult(
-		await graphqlQuery(query, { userId }),
-		(data) => data.audit ?? [],
 	);
 };
 
@@ -191,12 +145,19 @@ export const fetchResults = async (userId) => {
 
 // ── Project teams for member lists ───────────────────────────────
 
-export const fetchProjectTeams = async (userId) => {
-  const query = `
-    query GetProjectTeams($userId: Int!) {
-      group_user(where: { userId: { _eq: $userId } }) {
+export const fetchProjectTeams = async (projectNames) => {
+	if (!projectNames.length) {
+		return { ok: true, data: new Map() };
+	}
+
+	const query = `
+    query GetProjectTeams($projectNames: [String!]!) {
+      group_user(where: {group: {object: {name: {_in: $projectNames}}}}) {
         group {
-          object { name }
+          object {
+            id
+            name
+          }
           members {
             user {
               login
@@ -209,28 +170,30 @@ export const fetchProjectTeams = async (userId) => {
     }
   `;
 
-  return mapResult(await graphqlQuery(query, { userId }), (data) => {
-    const groups = data.group_user ?? [];
-    const teamByProject = groups.reduce((map, item) => {
-      const projectName = item.group?.object?.name;
-      if (!projectName) return map;
+	return mapResult(await graphqlQuery(query, { projectNames }), (data) => {
+		const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
+		return groups.reduce((map, group) => {
+      const rawObjectId = group.object?.id;
+      if (rawObjectId === undefined || rawObjectId === null) return map;
+      const objectId = String(rawObjectId);
 
-      const members = (item.group?.members ?? [])
-        .map((member) => member.user)
-        .filter(Boolean)
-        .map((user) => ({
-          login: user.login,
-          displayName:
-            [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-            user.login,
-        }));
+			const existing = map.get(objectId) ?? [];
+			const existingLogins = new Set(existing.map((member) => member.login));
+			const members = (group.members ?? [])
+				.map((member) => member.user)
+				.filter(Boolean)
+				.map((user) => ({
+					login: user.login,
+					displayName:
+						[user.firstName, user.lastName].filter(Boolean).join(" ") ||
+						user.login,
+				}))
+				.filter((member) => member.login && !existingLogins.has(member.login));
 
-      map.set(projectName, members);
-      return map;
-    }, new Map());
-
-    return teamByProject;
-  });
+			map.set(objectId, [...existing, ...members]);
+			return map;
+		}, new Map());
+	});
 };
 
 // ── Current level ──────────────────────────────────────────────────

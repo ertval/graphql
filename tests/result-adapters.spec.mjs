@@ -18,7 +18,10 @@ test("app login adapter handles Result object contract", () => {
 		/const loginResult = await login\(identifier, password\);/,
 	);
 	assert.match(appJs, /if \(!loginResult\.ok\) \{/);
-	assert.match(appJs, /toPublicErrorMessage\(loginResult\.error, "auth"\)/);
+	assert.match(
+		appJs,
+		/toPublicErrorMessage\(\s*\n\s*loginResult\.error,\s*\n\s*"auth",?\s*\n\s*\)/,
+	);
 });
 
 test("dashboard view branches on Result objects without unwrap throw flow", () => {
@@ -31,7 +34,7 @@ test("dashboard view branches on Result objects without unwrap throw flow", () =
 test("collaborations data and view modules use explicit Result branching", () => {
 	assert.match(
 		collaborationsApiJs,
-		/const collabsResult = await fetchCollaborations\(userId\);/,
+		/const \[collabsResult, userResult\] = await Promise\.all\(\[\s*\n\s*fetchCollaborations\(userId\),\s*\n\s*fetchUserInfo\(\),\s*\n\s*\]\);/,
 	);
 	assert.match(collaborationsApiJs, /if \(!collabsResult\.ok\) \{/);
 	assert.match(

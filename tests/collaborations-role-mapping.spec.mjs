@@ -19,10 +19,27 @@ test("collaborations api preserves Captain role for captain-based audit records"
 	assert.match(collaborationsApiJs, /role:\s*"Captain"/);
 });
 
-test("verified collaborator role set includes Captain", () => {
-	assert.match(collaborationsCoreJs, /new Set\(\["Partner", "Captain", "Auditor", "Auditee"\]\)/);
+test("collaborations api keeps captain metadata for partner and auditor context", () => {
+	assert.match(
+		collaborationsApiJs,
+		/group_user\([\s\S]*?group\s*\{[\s\S]*?captainLogin/,
+	);
+	assert.match(
+		collaborationsApiJs,
+		/audit_received:[\s\S]*?group\s*\{[\s\S]*?captainLogin/,
+	);
+	assert.match(collaborationsApiJs, /teamCaptainLogin/);
+});
+
+test("verified collaborator role set excludes dead Auditee role", () => {
+	assert.match(collaborationsCoreJs, /new Set\(\["Partner", "Captain", "Auditor"\]\)/);
+	assert.doesNotMatch(collaborationsCoreJs, /Auditee/);
 });
 
 test("role filter includes Captain option", () => {
 	assert.match(indexHtml, /<option value="Captain">Captain<\/option>/);
+});
+
+test("role filter removes dead Auditee option", () => {
+	assert.doesNotMatch(indexHtml, /<option value="Auditee">Auditee<\/option>/);
 });

@@ -112,7 +112,6 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
-			projectTeamsResult,
 		] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
@@ -120,7 +119,6 @@ export const loadDashboard = async (
 				fetchSkills(user.id),
 				fetchUserLevel(user.id),
 				fetchResults(user.id),
-				fetchProjectTeams(user.id),
 			]);
 
 		const firstError = [
@@ -129,7 +127,6 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
-			projectTeamsResult,
 		].find((result) => !result.ok);
 
 		if (firstError && !firstError.ok) {
@@ -143,10 +140,22 @@ export const loadDashboard = async (
 		const progress = progressResult.data;
 		const skills = skillsResult.data;
 		const level = levelResult.data;
+		const rawResults = resultsResult.data;
+		const projectNames = [
+			...new Set(rawResults.map((result) => result.object?.name).filter(Boolean)),
+		];
+		const projectTeamsResult = await fetchProjectTeams(projectNames);
+		if (!projectTeamsResult.ok) {
+			if (shouldLogout(projectTeamsResult.error)) {
+				onAuthFailure();
+			}
+			return { ok: false, error: projectTeamsResult.error };
+		}
+
 		const teamsByProject = projectTeamsResult.data;
-		const results = resultsResult.data.map((result) => ({
+		const results = rawResults.map((result) => ({
 			...result,
-			teamMembers: teamsByProject.get(result.object?.name) ?? [],
+			teamMembers: teamsByProject.get(String(result.objectId)) ?? [],
 		}));
 
 		// Store for project detail cross-referencing

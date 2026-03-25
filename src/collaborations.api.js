@@ -19,6 +19,8 @@ export const fetchCollaborations = async (userId) => {
     query GetCollabs($userId: Int!) {
       group_user(where: {userId: {_eq: $userId}}) {
         group {
+					path
+					captainLogin
           object { name }
           members {
             userId
@@ -31,6 +33,7 @@ export const fetchCollaborations = async (userId) => {
         grade
         createdAt
 				group {
+					path
 					captainLogin
 					object { name }
 					members {
@@ -48,6 +51,9 @@ export const fetchCollaborations = async (userId) => {
         createdAt
         auditor { login firstName lastName campus }
 				group {
+					path
+					captainLogin
+					captainLogin
 					object { name }
 					members {
 						user {
@@ -111,6 +117,8 @@ export const loadCollaborationsData = async (userId) => {
 					project: prjName,
 					projectPath,
 					role: "Partner",
+					relationType: "group_member",
+					teamCaptainLogin: g.group?.captainLogin ?? "",
 					date: g.createdAt,
 					ts: toEpochMs(g.createdAt),
 					teamMembers,
@@ -143,6 +151,8 @@ export const loadCollaborationsData = async (userId) => {
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
 				role: "Captain",
+				relationType: "audit_given",
+				teamCaptainLogin: a.group?.captainLogin ?? "",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 				teamMembers,
@@ -171,6 +181,8 @@ export const loadCollaborationsData = async (userId) => {
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
 				role: "Auditor",
+				relationType: "audit_received",
+				teamCaptainLogin: a.group?.captainLogin ?? "",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 				teamMembers,
@@ -178,10 +190,38 @@ export const loadCollaborationsData = async (userId) => {
 		}
 	}
 
+	const identityByLogin = collabs.reduce((map, collab) => {
+		const current = map.get(collab.login) ?? {
+			firstName: "",
+			lastName: "",
+			campus: "",
+		};
+
+		map.set(collab.login, {
+			firstName: current.firstName || collab.firstName || "",
+			lastName: current.lastName || collab.lastName || "",
+			campus: current.campus || collab.campus || "",
+		});
+
+		return map;
+	}, new Map());
+
+	const enrichedCollabs = collabs.map((collab) => {
+		const canonical = identityByLogin.get(collab.login);
+		if (!canonical) return collab;
+
+		return {
+			...collab,
+			firstName: collab.firstName || canonical.firstName,
+			lastName: collab.lastName || canonical.lastName,
+			campus: collab.campus || canonical.campus,
+		};
+	});
+
 	// Deduplicate by login|project|role composite key
 	const unique = [];
 	const seen = new Set();
-	for (const c of collabs) {
+	for (const c of enrichedCollabs) {
 		const key = `${c.login}|${c.project}|${c.role}`;
 		if (!seen.has(key)) {
 			seen.add(key);
