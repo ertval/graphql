@@ -99,7 +99,4 @@ Since the application is 100% static and relies on client-side JS and a remote A
 - **Deterministic UI**: State-to-UI binding ensures consistent rendering without a virtual DOM.
 - **Static-hosting security**: CSP + Trusted Types meta policy, sanitized user-facing errors, and no JWT persistence in localStorage.
 - **Audit Ready**: Comprehensive `docs/` folder mapping every requirement to implementation.
-
-## ✅ Audit Compliance
-
-All requirements in the school audit are met. See `docs/refactor_guide_2026.md` for a full breakdown of the data mapping and architectural principles.
+- **Clean Architecture**: Strict separation of concerns with feature-first module organization and layered decoupling.

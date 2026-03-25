@@ -258,10 +258,14 @@ export const renderCollabsList = () => {
 				roleBadge.style.background = "var(--accent-start)";
 				roleBadge.style.color = "#fff";
 				roleBadge.style.borderColor = "transparent";
-			} else if (r.role === "Captain") {
+			} else if (r.role === "Auditor") {
 				roleBadge.style.background = "rgba(59, 130, 246, 0.15)";
 				roleBadge.style.color = "#60a5fa";
 				roleBadge.style.borderColor = "rgba(59, 130, 246, 0.3)";
+			} else if (r.role === "Auditee") {
+				roleBadge.style.background = "rgba(251, 191, 36, 0.15)";
+				roleBadge.style.color = "#fcd34d";
+				roleBadge.style.borderColor = "rgba(251, 191, 36, 0.32)";
 			} else {
 				roleBadge.style.background = "rgba(255, 255, 255, 0.1)";
 				roleBadge.style.color = "var(--text-secondary)";

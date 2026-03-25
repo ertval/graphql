@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildCollaboratorSummary } from "../src/collaborations.core.js";
+import {
+	buildCollaboratorSummary,
+	filterVerifiedCollaborations,
+} from "../src/collaborations.core.js";
 
 test("buildCollaboratorSummary aggregates projects, roles and counts for a login", () => {
 	const records = [
@@ -32,9 +35,9 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			login: "jdoe",
 			firstName: "",
 			lastName: "",
-			campus: "",
+			campus: "Athens",
 			project: "Graph Explorer",
-			role: "Captain",
+			role: "Auditee",
 			date: "2026-01-10T10:00:00.000Z",
 			ts: 300,
 		},
@@ -59,15 +62,15 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 	assert.equal(summary.totalProjects, 2);
 
 	assert.deepEqual(summary.byRole, [
+		{ role: "Auditee", count: 1 },
 		{ role: "Auditor", count: 1 },
-		{ role: "Captain", count: 1 },
 		{ role: "Partner", count: 1 },
 	]);
 
 	assert.deepEqual(summary.projects[0], {
 		name: "Graph Explorer",
 		path: "",
-		roles: ["Captain"],
+		roles: ["Auditee"],
 		latestDate: "2026-01-10T10:00:00.000Z",
 		count: 1,
 	});
@@ -84,4 +87,60 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 test("buildCollaboratorSummary returns null for unknown collaborator login", () => {
 	const summary = buildCollaboratorSummary([], "nobody");
 	assert.equal(summary, null);
+});
+
+test("filterVerifiedCollaborations keeps only verified same-campus teammates", () => {
+	const records = [
+		{
+			id: "keep-partner",
+			login: "alice",
+			firstName: "Alice",
+			lastName: "Partner",
+			campus: "Athens",
+			project: "Libft",
+			role: "Partner",
+			date: "2026-01-01T10:00:00.000Z",
+			ts: 100,
+		},
+		{
+			id: "drop-campus-mismatch",
+			login: "bob",
+			firstName: "Bob",
+			lastName: "Auditor",
+			campus: "Paris",
+			project: "Libft",
+			role: "Auditor",
+			date: "2026-01-02T10:00:00.000Z",
+			ts: 200,
+		},
+		{
+			id: "drop-unverified-role",
+			login: "eve",
+			firstName: "Eve",
+			lastName: "Proposal",
+			campus: "Athens",
+			project: "Libft",
+			role: "Member",
+			date: "2026-01-03T10:00:00.000Z",
+			ts: 300,
+		},
+		{
+			id: "drop-missing-campus",
+			login: "carol",
+			firstName: "Carol",
+			lastName: "Auditee",
+			campus: "",
+			project: "Graph Explorer",
+			role: "Auditee",
+			date: "2026-01-04T10:00:00.000Z",
+			ts: 400,
+		},
+	];
+
+	const filtered = filterVerifiedCollaborations(records, "Athens");
+
+	assert.deepEqual(
+		filtered.map((record) => record.id),
+		["keep-partner"],
+	);
 });

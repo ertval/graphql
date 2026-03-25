@@ -43,6 +43,38 @@ const toReadableName = (value) => {
 		.join(" ");
 };
 
+const VERIFIED_ROLES = new Set(["Partner", "Auditor", "Auditee"]);
+
+/** @param {string} campus @returns {boolean} */
+const hasCampus = (campus) => hasText(campus) && campus !== "—";
+
+/**
+ * Filters collaboration rows down to verified, real teammate records.
+ * Records must have a recognised role, a project, and a login. When a campus
+ * is available on both sides, the collaborator must match the signed-in user.
+ * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
+ * @param {string} userCampus
+ */
+export const filterVerifiedCollaborations = (collabs, userCampus = "") => {
+	const normalizedCampus = hasCampus(userCampus) ? userCampus : "";
+
+	return collabs.filter((collab) => {
+		if (!hasText(collab?.login)) return false;
+		if (!hasText(collab?.project)) return false;
+		if (!hasText(collab?.role)) return false;
+		if (!collab?.date || typeof collab.ts !== "number") return false;
+		if (!VERIFIED_ROLES.has(collab.role)) return false;
+		if (!hasCampus(collab.campus)) return false;
+		if (
+			normalizedCampus &&
+			collab.campus !== normalizedCampus
+		) {
+			return false;
+		}
+		return true;
+	});
+};
+
 // ── Name normalisation across login records ────────────────────────
 /**
  * Ensures every record for the same login shares the best-available

@@ -9,6 +9,7 @@ const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 const appJs = read("src/app.js");
 const collaborationsJs = read("src/collaborations.view.js");
 const collaborationsViewJs = read("src/collaborations.view.js");
+const collaborationsPopupJs = read("src/collaborations.popup.js");
 const apiJs = read("src/infra.graphql.js");
 const indexHtml = read("index.html");
 
@@ -26,6 +27,12 @@ test("collaborations loading error uses safe textContent and no template innerHT
 test("app and collaborations avoid template innerHTML sinks for dynamic row/item rendering", () => {
 	assert.doesNotMatch(appJs, /item\.innerHTML\s*=\s*`/);
 	assert.doesNotMatch(collaborationsJs, /tr\.innerHTML\s*=\s*`/);
+});
+
+test("collaborator project tiles open the shared project detail modal", () => {
+	assert.match(collaborationsPopupJs, /openProjectDetail\(project,/);
+	assert.match(collaborationsPopupJs, /setAttribute\("role", "button"\)/);
+	assert.match(collaborationsPopupJs, /setAttribute\("aria-label", `View details for \$\{project\.name\}`\)/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

@@ -4,7 +4,11 @@
  * @module collaborations.api
  */
 
-import { normalizeCollaboratorNamesByLogin } from "./collaborations.core.js";
+import {
+	filterVerifiedCollaborations,
+	normalizeCollaboratorNamesByLogin,
+} from "./collaborations.core.js";
+import { fetchUserInfo } from "./dashboard.api.js";
 import { graphqlQuery } from "./infra.graphql.js";
 import { mapResult } from "./infra.result.js";
 
@@ -26,7 +30,18 @@ export const fetchCollaborations = async (userId) => {
       audit(where: {auditorId: {_eq: $userId}}) {
         grade
         createdAt
-        group { captainLogin object { name } }
+				group {
+					captainLogin
+					object { name }
+					members {
+						user {
+							login
+							firstName
+							lastName
+							campus
+						}
+					}
+				}
       }
       audit_received: audit(where: {group: {members: {userId: {_eq: $userId}}}}) {
         grade
@@ -45,10 +60,15 @@ export const fetchCollaborations = async (userId) => {
 
 /** Fetches and normalizes collaboration records into view-ready objects. */
 export const loadCollaborationsData = async (userId) => {
-	const collabsResult = await fetchCollaborations(userId);
+	const [collabsResult, userResult] = await Promise.all([
+		fetchCollaborations(userId),
+		fetchUserInfo(),
+	]);
 	if (!collabsResult.ok) {
 		return collabsResult;
 	}
+
+	const userCampus = userResult.ok ? userResult.data?.campus ?? "" : "";
 
 	const { groups, auditsGiven, auditsReceived } = collabsResult.data;
 	const collabs = [];
@@ -79,25 +99,28 @@ export const loadCollaborationsData = async (userId) => {
 		}
 	}
 
-	// Audits Given (they were the Captain)
+	// Audits Given (you audited them)
 	for (const a of auditsGiven) {
 		if (a.grade !== null && a.group?.captainLogin) {
+			const captainMember = (a.group?.members ?? []).find(
+				(member) => member.user?.login === a.group.captainLogin,
+			);
 			collabs.push({
 				id: `a_${a.group.captainLogin}_${a.createdAt}`,
 				login: a.group.captainLogin,
-				firstName: "",
-				lastName: "",
-				campus: "",
+				firstName: captainMember?.user?.firstName ?? "",
+				lastName: captainMember?.user?.lastName ?? "",
+				campus: captainMember?.user?.campus ?? "",
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
-				role: "Captain",
+				role: "Auditor",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 			});
 		}
 	}
 
-	// Audits Received (they were the Auditor)
+	// Audits Received (they audited you)
 	for (const a of auditsReceived) {
 		if (a.grade !== null && a.auditor?.login) {
 			collabs.push({
@@ -108,7 +131,7 @@ export const loadCollaborationsData = async (userId) => {
 				campus: a.auditor.campus,
 				project: a.group?.object?.name || "Unknown",
 				projectPath: a.group?.path ?? "",
-				role: "Auditor",
+				role: "Auditee",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
 			});
@@ -127,14 +150,16 @@ export const loadCollaborationsData = async (userId) => {
 	}
 
 	// Calculate total collaborations per login
+	const verifiedCollabs = filterVerifiedCollaborations(unique, userCampus);
+
 	const totalCollabsByLogin = new Map();
-	for (const c of unique) {
+	for (const c of verifiedCollabs) {
 		totalCollabsByLogin.set(
 			c.login,
 			(totalCollabsByLogin.get(c.login) ?? 0) + 1,
 		);
 	}
-	const withTotalCollabs = unique.map((collab) => ({
+	const withTotalCollabs = verifiedCollabs.map((collab) => ({
 		...collab,
 		totalCollaborations: totalCollabsByLogin.get(collab.login) ?? 0,
 	}));
