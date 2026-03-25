@@ -61,7 +61,10 @@ test("dashboard project teams are hydrated by object id for all visible project 
 	assert.match(dashboardApiJs, /object \{\s*id\s*name\s*\}/);
 	assert.match(dashboardViewJs, /const projectNames = \[\s*\n\s*\.\.\.new Set\(rawResults\.map\(\(result\) => result\.object\?\.name\)\.filter\(Boolean\)\),\s*\n\s*\];/);
 	assert.match(dashboardViewJs, /fetchProjectTeams\(projectNames\)/);
-	assert.match(dashboardViewJs, /teamMembers:\s*\n\s*teamsByProject\.get\(normalizeProjectName\(result\.object\?\.name\)\) \?\? \[\],/);
+	assert.match(dashboardViewJs, /const teamInfo = teamsByProject\.get\(projectKey\) \?\? \{/);
+	assert.match(dashboardViewJs, /teamMembers: teamInfo\.members,/);
+	assert.match(dashboardViewJs, /teamCaptainLogin: teamInfo\.captainLogin,/);
+	assert.match(dashboardViewJs, /myRole,/);
 });
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
@@ -97,11 +100,11 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 	assert.match(dashboardViewJs, /const normalizeProjectName = \(name\) =>/);
 	assert.match(
 		dashboardViewJs,
-		/teamMembers:\s*\n\s*teamsByProject\.get\(normalizeProjectName\(result\.object\?\.name\)\) \?\? \[\],?/,
+		/const teamInfo = teamsByProject\.get\(projectKey\) \?\? \{[\s\S]*teamMembers: teamInfo\.members,[\s\S]*teamCaptainLogin: teamInfo\.captainLogin,/,
 	);
 	assert.match(dashboardViewJs, /_teamsByProject = teamsByProject;/);
 	assert.match(dashboardPopupJs, /const normalizeProjectName = \(name\) =>/);
-	assert.match(dashboardPopupJs, /getTeamsByProject\(\)\.get\(normalizeProjectName\(projectName\)\) \?\? \[\]/);
+	assert.match(dashboardPopupJs, /getTeamsByProject\(\)\.get\(\s*\n\s*normalizeProjectName\(projectName\),\s*\n\s*\) \?\? \{ members: \[\], captainLogin: "" \}/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

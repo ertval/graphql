@@ -3,8 +3,6 @@
  * @module dashboard.popup
  */
 
-import { formatXP } from "./charts.helpers.js";
-
 const $ = (sel) => document.querySelector(sel);
 const normalizeProjectName = (name) =>
 	typeof name === "string" ? name.trim().toLowerCase() : "";
@@ -150,7 +148,6 @@ const openProjectDetail = (result, xpByName) => {
 	if (!overlay || !content) return;
 
 	const name = result.object?.name ?? "Unknown Project";
-	const xp = xpByName.get(name) ?? 0;
 	const projectRoles = result.projectRoles ?? [result.myRole ?? "Member"];
 	const activeUserLogin = getActiveUserLogin();
 	const isCaptain =
