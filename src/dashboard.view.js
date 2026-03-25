@@ -35,7 +35,7 @@ let _xpTransactions = [];
 /** @type {Array<{grade:number, createdAt:string, object:{name:string,type:string}}>} */
 let _results = [];
 
-/** @type {Map<string, Array<{login:string, displayName:string}>>} */
+/** @type {Map<string, {captainLogin:string, members:Array<{login:string, displayName:string}>}>} */
 let _teamsByProject = new Map();
 
 export const initDashboard = () => {
