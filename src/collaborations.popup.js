@@ -9,6 +9,12 @@ const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 
 const $ = (sel) => document.querySelector(sel);
 
+const getActiveUserLogin = () => {
+	const loginText = $("#user-login")?.textContent?.trim() ?? "";
+	if (!loginText) return "";
+	return loginText.startsWith("@") ? loginText.slice(1) : loginText;
+};
+
 /** @param {string} isoDate */
 const toLocalDate = (isoDate) => {
 	try {
@@ -37,28 +43,65 @@ const toProjectUrl = (pathValue) => {
 	}
 };
 
-const getProjectMembers = (projectName, allCollabs, activeLogin) => {
-	const namesByLogin = allCollabs
-		.filter((collab) => collab.project === projectName)
-		.reduce((map, collab) => {
-			if (map.has(collab.login)) return map;
-			const fullName = [collab.firstName, collab.lastName]
-				.filter(Boolean)
-				.join(" ");
-			map.set(collab.login, fullName || collab.login);
-			return map;
-		}, new Map());
+const buildDisplayNameByLogin = (allCollabs) =>
+	allCollabs.reduce((map, collab) => {
+		if (map.has(collab.login)) return map;
+		const fullName = [collab.firstName, collab.lastName].filter(Boolean).join(" ");
+		map.set(collab.login, fullName || collab.login);
+		return map;
+	}, new Map());
 
-	if (!namesByLogin.has(activeLogin)) {
-		namesByLogin.set(activeLogin, activeLogin);
+const getProjectMembers = (
+	projectName,
+	allCollabs,
+	collaboratorLogin,
+	projectRoles,
+	activeUserLogin,
+) => {
+	const namesByLogin = buildDisplayNameByLogin(allCollabs);
+	if (activeUserLogin && !namesByLogin.has(activeUserLogin)) {
+		namesByLogin.set(activeUserLogin, activeUserLogin);
 	}
 
-	return [...namesByLogin.entries()]
-		.toSorted((a, b) => a[1].localeCompare(b[1]))
-		.map(([login, label]) => ({ login, label }));
+	const projectRecords = allCollabs.filter(
+		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
+	);
+
+	const teamRoles = projectRoles.includes("Auditor")
+		? new Set(["Auditor"])
+		: new Set(["Partner", "Auditee"]);
+
+	const teamLogins = projectRecords
+		.filter((record) => teamRoles.has(record.role))
+		.flatMap((record) => record.teamMembers ?? [])
+		.map((member) => member.login)
+		.filter(Boolean);
+
+	if (!teamLogins.length) {
+		teamLogins.push(collaboratorLogin);
+	}
+
+	if (!projectRoles.includes("Auditor") && activeUserLogin) {
+		teamLogins.push(activeUserLogin);
+	}
+
+	const uniqueLogins = [...new Set(teamLogins)].toSorted((a, b) =>
+		(namesByLogin.get(a) ?? a).localeCompare(namesByLogin.get(b) ?? b),
+	);
+
+	return uniqueLogins.map((login) => ({
+		login,
+		label: namesByLogin.get(login) ?? login,
+	}));
 };
 
-const openProjectDetail = (project, refs, allCollabs, activeLogin) => {
+const openProjectDetail = (
+	project,
+	refs,
+	allCollabs,
+	collaboratorLogin,
+	activeUserLogin,
+) => {
 	const { panel, panelTitle, panelBody, layout } = refs;
 	if (!panel || !panelTitle || !panelBody || !layout) return;
 
@@ -90,7 +133,13 @@ const openProjectDetail = (project, refs, allCollabs, activeLogin) => {
 	appendStat(project.path ? "Available" : "—", "Project Link");
 	panelBody.append(grid);
 
-	const members = getProjectMembers(project.name, allCollabs, activeLogin);
+	const members = getProjectMembers(
+		project.name,
+		allCollabs,
+		collaboratorLogin,
+		project.roles,
+		activeUserLogin,
+	);
 	const membersTitle = document.createElement("h4");
 	membersTitle.className = "sp-project-subtitle";
 	membersTitle.textContent = "Project Members";
@@ -101,7 +150,7 @@ const openProjectDetail = (project, refs, allCollabs, activeLogin) => {
 		const item = document.createElement("li");
 		item.className = "sp-project-member";
 		item.textContent =
-			member.login === activeLogin ? `${member.label} (you)` : member.label;
+			member.login === activeUserLogin ? `${member.label} (you)` : member.label;
 		membersList.append(item);
 	}
 
@@ -143,6 +192,14 @@ export const closeCollaboratorDetail = () => {
 	layout?.classList.remove("sp-layout-expanded");
 	const panel = $(".sp-project-panel");
 	panel?.classList.remove("active");
+	const panelBody = $(".sp-project-body");
+	if (panelBody) {
+		panelBody.replaceChildren();
+		const hint = document.createElement("p");
+		hint.className = "sp-project-hint";
+		hint.textContent = "Click a shared project to expand details.";
+		panelBody.append(hint);
+	}
 };
 
 /** Open the detail popup for a given collaborator login. */
@@ -157,6 +214,7 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 
 	title.textContent = summary.displayName;
 	content.replaceChildren();
+	const activeUserLogin = getActiveUserLogin();
 
 	const layout = document.createElement("div");
 	layout.className = "sp-layout";
@@ -271,12 +329,24 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 		item.setAttribute("tabindex", "0");
 		item.setAttribute("aria-label", `View details for ${project.name}`);
 		item.addEventListener("click", () =>
-			openProjectDetail(project, detailRefs, allCollabs, summary.login),
+			openProjectDetail(
+				project,
+				detailRefs,
+				allCollabs,
+				summary.login,
+				activeUserLogin,
+			),
 		);
 		item.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter" && event.key !== " ") return;
 			event.preventDefault();
-			openProjectDetail(project, detailRefs, allCollabs, summary.login);
+			openProjectDetail(
+				project,
+				detailRefs,
+				allCollabs,
+				summary.login,
+				activeUserLogin,
+			);
 		});
 
 		const projectName = document.createElement("span");

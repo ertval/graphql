@@ -47,7 +47,17 @@ export const fetchCollaborations = async (userId) => {
         grade
         createdAt
         auditor { login firstName lastName campus }
-        group { object { name } }
+				group {
+					object { name }
+					members {
+						user {
+							login
+							firstName
+							lastName
+							campus
+						}
+					}
+				}
       }
     }
   `;
@@ -81,6 +91,15 @@ export const loadCollaborationsData = async (userId) => {
 	for (const g of groups) {
 		const prjName = g.group?.object?.name || "Unknown Project";
 		const projectPath = g.group?.path ?? g.path ?? "";
+		const teamMembers = (g.group?.members ?? [])
+			.map((member) => member.user)
+			.filter(Boolean)
+			.map((user) => ({
+				login: user.login,
+				firstName: user.firstName ?? "",
+				lastName: user.lastName ?? "",
+				campus: user.campus ?? "",
+			}));
 		for (const member of g.group?.members || []) {
 			if (member.userId !== userId && member.user) {
 				collabs.push({
@@ -94,6 +113,7 @@ export const loadCollaborationsData = async (userId) => {
 					role: "Partner",
 					date: g.createdAt,
 					ts: toEpochMs(g.createdAt),
+					teamMembers,
 				});
 			}
 		}
@@ -102,6 +122,15 @@ export const loadCollaborationsData = async (userId) => {
 	// Audits Given (you audited them)
 	for (const a of auditsGiven) {
 		if (a.grade !== null && a.group?.captainLogin) {
+			const teamMembers = (a.group?.members ?? [])
+				.map((member) => member.user)
+				.filter(Boolean)
+				.map((user) => ({
+					login: user.login,
+					firstName: user.firstName ?? "",
+					lastName: user.lastName ?? "",
+					campus: user.campus ?? "",
+				}));
 			const captainMember = (a.group?.members ?? []).find(
 				(member) => member.user?.login === a.group.captainLogin,
 			);
@@ -116,6 +145,7 @@ export const loadCollaborationsData = async (userId) => {
 				role: "Auditor",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
+				teamMembers,
 			});
 		}
 	}
@@ -123,6 +153,15 @@ export const loadCollaborationsData = async (userId) => {
 	// Audits Received (they audited you)
 	for (const a of auditsReceived) {
 		if (a.grade !== null && a.auditor?.login) {
+			const teamMembers = (a.group?.members ?? [])
+				.map((member) => member.user)
+				.filter(Boolean)
+				.map((user) => ({
+					login: user.login,
+					firstName: user.firstName ?? "",
+					lastName: user.lastName ?? "",
+					campus: user.campus ?? "",
+				}));
 			collabs.push({
 				id: `r_${a.auditor.login}_${a.createdAt}`,
 				login: a.auditor.login,
@@ -134,6 +173,7 @@ export const loadCollaborationsData = async (userId) => {
 				role: "Auditee",
 				date: a.createdAt,
 				ts: toEpochMs(a.createdAt),
+				teamMembers,
 			});
 		}
 	}
