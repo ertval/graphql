@@ -495,7 +495,6 @@ export const resetCollabsState = () => {
 	filterText = "";
 	filterRole = "";
 	currentPage = 1;
-	eventsBound = false;
 	const tbody = $("#collabs-tbody");
 	if (tbody) tbody.replaceChildren();
 	const pagination = $("#collabs-pagination");

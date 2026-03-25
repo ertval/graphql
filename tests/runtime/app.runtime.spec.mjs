@@ -257,6 +257,28 @@ test("logout returns to login and clears credential inputs", async ({
 	await expect(page.locator("#password")).toHaveValue("");
 });
 
+test("collaborations tab can be reopened after logout and relogin", async ({
+	page,
+}) => {
+	await loginWithMockBackend(page);
+
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-table-wrap")).toBeVisible();
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click("#logout-btn");
+	await expect(page.locator("#login-view")).toHaveClass(/active/);
+
+	await page.fill("#identifier", "runtime-user");
+	await page.fill("#password", "safe-password");
+	await page.click("#login-btn");
+	await expect(page.locator("#profile-view")).toHaveClass(/active/);
+
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-table-wrap")).toBeVisible();
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+});
+
 test("XP by Project interaction opens project detail modal", async ({
 	page,
 }) => {
