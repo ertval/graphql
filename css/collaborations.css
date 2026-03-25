@@ -526,6 +526,7 @@
 }
 
 .sp-project-panel {
+	display: none;
 	opacity: 0;
 	pointer-events: none;
 	transform: translateX(22px);
@@ -538,6 +539,10 @@
 	padding: var(--space-lg);
 	position: sticky;
 	top: calc(var(--space-lg) + 52px);
+}
+
+.sp-layout.sp-layout-expanded .sp-project-panel {
+	display: block;
 }
 
 .sp-project-panel.active {

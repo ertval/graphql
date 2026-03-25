@@ -155,7 +155,7 @@ const openProjectDetail = (result, xpByName) => {
 	const isMember = (result.teamMembers ?? []).some(
 		(member) => member.login === activeUserLogin,
 	);
-	const myRole = result.myRole ?? (isCaptain ? "Captain" : isMember ? "Member" : "Auditor");
+	const myRole = result.myRole ?? (isCaptain ? "Captain" : "Member");
 
 	// Format date using Temporal
 	const dateStr = (() => {
@@ -292,10 +292,20 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 	// Connect Project Bar Chart clicks to the Project Detail Overlay
 	$("#project-bar-chart")?.addEventListener("projectClick", (e) => {
 		const projectName = e.detail?.name ?? e.detail;
+		const projectObjectId =
+			typeof e.detail?.objectId === "number" ? e.detail.objectId : null;
+		const normalizedProjectName = normalizeProjectName(projectName);
 		const currentTx = getXpTx();
 		const currentRes = getResults();
 
-		const matchingTxs = currentTx.filter((t) => t.object?.name === projectName);
+		const matchingTxs = currentTx.filter(
+			(t) => {
+				if (projectObjectId !== null && typeof t.object?.id === "number") {
+					return t.object.id === projectObjectId;
+				}
+				return normalizeProjectName(t.object?.name) === normalizedProjectName;
+			},
+		);
 		const xpAmount = matchingTxs.reduce((sum, tx) => sum + tx.amount, 0);
 		const latestTx = matchingTxs.toSorted(
 			(a, b) =>
@@ -303,10 +313,18 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 				Temporal.Instant.from(a.createdAt).epochMilliseconds,
 		)[0];
 
-		const resultRecord = currentRes.find((r) => r.object?.name === projectName);
-		const fallbackTeamInfo = getTeamsByProject().get(
-			normalizeProjectName(projectName),
-		) ?? { members: [], captainLogin: "" };
+		const resultRecord = currentRes.find(
+			(r) => {
+				if (projectObjectId !== null && typeof r.objectId === "number") {
+					return r.objectId === projectObjectId;
+				}
+				return normalizeProjectName(r.object?.name) === normalizedProjectName;
+			},
+		);
+		const fallbackTeamInfo =
+			(projectObjectId !== null
+				? getTeamsByProject().get(String(projectObjectId))
+				: null) ?? { members: [], captainLogin: "" };
 		const fallbackTeamMembers = fallbackTeamInfo.members ?? [];
 		const fallbackCreatedAt = Temporal.Now.instant().toString();
 		const activeUserLogin = getActiveUserLogin();
@@ -315,11 +333,7 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 		const fallbackIsMember = fallbackTeamMembers.some(
 			(member) => member.login === activeUserLogin,
 		);
-		const fallbackMyRole = fallbackIsCaptain
-			? "Captain"
-			: fallbackIsMember
-				? "Member"
-				: "Auditor";
+		const fallbackMyRole = fallbackIsCaptain ? "Captain" : "Member";
 		const sharedRecordsCount = currentRes.filter(
 			(record) =>
 				normalizeProjectName(record.object?.name) ===
@@ -327,7 +341,10 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 		).length;
 
 		const detailResult = {
-			object: { name: projectName, type: "project" },
+			object: {
+				name: resultRecord?.object?.name ?? projectName,
+				type: "project",
+			},
 			grade: resultRecord?.grade ?? (xpAmount > 0 ? 1 : 0),
 			createdAt:
 				resultRecord?.createdAt ?? latestTx?.createdAt ?? fallbackCreatedAt,

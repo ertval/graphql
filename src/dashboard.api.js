@@ -46,6 +46,7 @@ export const fetchXPTransactions = async (userId) => {
         createdAt
         path
         object {
+				id
           name
           type
         }
@@ -145,17 +146,19 @@ export const fetchResults = async (userId) => {
 
 // ── Project teams for member lists ───────────────────────────────
 
-export const fetchProjectTeams = async (projectNames) => {
-	if (!projectNames.length) {
+export const fetchProjectTeams = async (userId, projectObjectIds) => {
+	if (!projectObjectIds.length) {
 		return { ok: true, data: new Map() };
 	}
 
-  const normalizeProjectName = (name) =>
-    typeof name === "string" ? name.trim().toLowerCase() : "";
-
 	const query = `
-    query GetProjectTeams($projectNames: [String!]!) {
-      group_user(where: {group: {object: {name: {_in: $projectNames}}}}) {
+    query GetProjectTeams($userId: Int!, $projectObjectIds: [Int!]!) {
+      group_user(
+        where: {
+          userId: { _eq: $userId }
+          group: { object: { id: { _in: $projectObjectIds } } }
+        }
+      ) {
         group {
 				captainLogin
           object {
@@ -174,14 +177,14 @@ export const fetchProjectTeams = async (projectNames) => {
     }
   `;
 
-  return mapResult(await graphqlQuery(query, { projectNames }), (data) => {
+  return mapResult(await graphqlQuery(query, { userId, projectObjectIds }), (data) => {
 		const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
 		return groups.reduce((map, group) => {
-      const projectName = group.object?.name ?? "";
-      const normalizedProjectName = normalizeProjectName(projectName);
-      if (!normalizedProjectName) return map;
+      const projectObjectId = group.object?.id;
+      if (typeof projectObjectId !== "number") return map;
 
-      const existing = map.get(normalizedProjectName) ?? {
+      const key = String(projectObjectId);
+      const existing = map.get(key) ?? {
         captainLogin: group.captainLogin ?? "",
         members: [],
       };
@@ -199,7 +202,7 @@ export const fetchProjectTeams = async (projectNames) => {
 				}))
 				.filter((member) => member.login && !existingLogins.has(member.login));
 
-      map.set(normalizedProjectName, {
+      map.set(key, {
         captainLogin: existing.captainLogin || group.captainLogin || "",
         members: [...existing.members, ...members],
       });

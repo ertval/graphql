@@ -54,14 +54,20 @@ export const renderProjectBarChart = (container, transactions) => {
 		return;
 	}
 
-	// Aggregate XP by project name using Object.groupBy
-	const xpByProject = Object.groupBy(
-		transactions,
-		(tx) => tx.object?.name ?? "Unknown",
-	);
+	// Aggregate XP by stable project identity (object id when available).
+	const xpByProject = Object.groupBy(transactions, (tx) => {
+		const objectId = tx.object?.id;
+		if (typeof objectId === "number") {
+			return `id:${objectId}`;
+		}
+		return `name:${tx.object?.name ?? "Unknown"}`;
+	});
 	const projectEntries = Object.entries(xpByProject)
-		.map(([name, txs]) => ({
-			name,
+		.map(([key, txs]) => ({
+			name: txs[0]?.object?.name ?? "Unknown",
+			objectId:
+				typeof txs[0]?.object?.id === "number" ? txs[0].object.id : null,
+			key,
 			total: txs.reduce((sum, tx) => sum + tx.amount, 0),
 		}))
 		.toSorted((a, b) => b.total - a.total);
@@ -108,7 +114,11 @@ export const renderProjectBarChart = (container, transactions) => {
 		const emitProjectClick = () => {
 			container.dispatchEvent(
 				new CustomEvent("projectClick", {
-					detail: { name: project.name, totalXP: project.total },
+					detail: {
+						name: project.name,
+						objectId: project.objectId,
+						totalXP: project.total,
+					},
 					bubbles: true,
 				}),
 			);

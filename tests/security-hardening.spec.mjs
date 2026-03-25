@@ -56,15 +56,18 @@ test("collaborator project member list only auto-adds active user for shared tea
 });
 
 test("dashboard project teams are hydrated by object id for all visible project names", () => {
-	assert.match(dashboardApiJs, /query GetProjectTeams\(\$projectNames: \[String!\]!\)/);
-	assert.match(dashboardApiJs, /group_user\(where: \{group: \{object: \{name: \{_in: \$projectNames\}\}\}\}\)/);
+	assert.match(dashboardApiJs, /query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!\)/);
+	assert.match(dashboardApiJs, /group_user\(/);
+	assert.match(dashboardApiJs, /userId:\s*\{\s*_eq:\s*\$userId\s*\}/);
+	assert.match(dashboardApiJs, /id:\s*\{\s*_in:\s*\$projectObjectIds\s*\}/);
 	assert.match(dashboardApiJs, /object \{\s*id\s*name\s*\}/);
-	assert.match(dashboardViewJs, /const projectNames = \[\s*\n\s*\.\.\.new Set\(rawResults\.map\(\(result\) => result\.object\?\.name\)\.filter\(Boolean\)\),\s*\n\s*\];/);
-	assert.match(dashboardViewJs, /fetchProjectTeams\(projectNames\)/);
+	assert.match(dashboardViewJs, /rawResults\s*\.map\(\(result\) => result\.objectId\)/);
+	assert.match(dashboardViewJs, /fetchProjectTeams\(user\.id, projectObjectIds\)/);
 	assert.match(dashboardViewJs, /const teamInfo = teamsByProject\.get\(projectKey\) \?\? \{/);
 	assert.match(dashboardViewJs, /teamMembers: teamInfo\.members,/);
 	assert.match(dashboardViewJs, /teamCaptainLogin: teamInfo\.captainLogin,/);
 	assert.match(dashboardViewJs, /myRole,/);
+	assert.match(dashboardViewJs, /const myRole = isCaptain \? "Captain" : "Member";/);
 });
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
@@ -81,6 +84,8 @@ test("collaborator split-panel animation uses theme slow timing and avoids left 
 	assert.doesNotMatch(collaborationsCss, /max-height:\s*min\(560px, calc\(90vh - 170px\)\);/);
 	assert.doesNotMatch(collaborationsCss, /\.sp-project-panel \{[\s\S]*overflow-y:\s*auto;/);
 	assert.match(collaborationsPopupJs, /stabilizeExpandedLayout\(layout, \(\) => \{\s*\n\s*layout\.classList\.add\("sp-layout-expanded"\);\s*\n\s*panel\.classList\.add\("active"\);/);
+	assert.doesNotMatch(collaborationsPopupJs, /Loading project details\.\.\./);
+	assert.doesNotMatch(collaborationsPopupJs, /requestAnimationFrame\(\(\) => \{\s*\n\s*requestAnimationFrame\(\(\) => \{/);
 });
 
 test("collaborator project detail renders My Role section for active user", () => {
@@ -91,11 +96,13 @@ test("collaborator project detail renders My Role section for active user", () =
 test("dashboard team hydration uses group_user mapping and stable object id keys", () => {
 	assert.match(
 		dashboardApiJs,
-		/query GetProjectTeams\(\$projectNames: \[String!\]!\)[\s\S]*group_user\(where: \{group: \{object: \{name: \{_in: \$projectNames\}\}\}\}\)/,
+		/query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!\)[\s\S]*group_user\(/,
 	);
+	assert.match(dashboardApiJs, /userId:\s*\{\s*_eq:\s*\$userId\s*\}/);
+	assert.match(dashboardApiJs, /id:\s*\{\s*_in:\s*\$projectObjectIds\s*\}/);
 	assert.match(
 		dashboardApiJs,
-		/const projectName = group\.object\?\.name \?\? "";[\s\S]*const normalizedProjectName = normalizeProjectName\(projectName\);/,
+		/const projectObjectId = group\.object\?\.id;[\s\S]*const key = String\(projectObjectId\);/,
 	);
 	assert.match(dashboardViewJs, /const normalizeProjectName = \(name\) =>/);
 	assert.match(
@@ -104,7 +111,9 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 	);
 	assert.match(dashboardViewJs, /_teamsByProject = teamsByProject;/);
 	assert.match(dashboardPopupJs, /const normalizeProjectName = \(name\) =>/);
-	assert.match(dashboardPopupJs, /getTeamsByProject\(\)\.get\(\s*\n\s*normalizeProjectName\(projectName\),\s*\n\s*\) \?\? \{ members: \[\], captainLogin: "" \}/);
+	assert.match(dashboardPopupJs, /const projectObjectId =\s*\n\s*typeof e\.detail\?\.objectId === "number" \? e\.detail\.objectId : null;/);
+	assert.match(dashboardPopupJs, /\? getTeamsByProject\(\)\.get\(String\(projectObjectId\)\)/);
+	assert.match(dashboardPopupJs, /const fallbackMyRole = fallbackIsCaptain \? "Captain" : "Member";/);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {

@@ -148,10 +148,14 @@ export const loadDashboard = async (
 		const skills = skillsResult.data;
 		const level = levelResult.data;
 		const rawResults = resultsResult.data;
-		const projectNames = [
-			...new Set(rawResults.map((result) => result.object?.name).filter(Boolean)),
+		const projectObjectIds = [
+			...new Set(
+				rawResults
+					.map((result) => result.objectId)
+					.filter((id) => typeof id === "number"),
+			),
 		];
-		const projectTeamsResult = await fetchProjectTeams(projectNames);
+		const projectTeamsResult = await fetchProjectTeams(user.id, projectObjectIds);
 		if (!projectTeamsResult.ok) {
 			if (shouldLogout(projectTeamsResult.error)) {
 				onAuthFailure();
@@ -169,16 +173,13 @@ export const loadDashboard = async (
 		}, new Map());
 
 		const results = rawResults.map((result) => {
-			const projectKey = normalizeProjectName(result.object?.name);
+			const projectKey = String(result.objectId ?? "");
 			const teamInfo = teamsByProject.get(projectKey) ?? {
 				members: [],
 				captainLogin: "",
 			};
 			const isCaptain = teamInfo.captainLogin === user.login;
-			const isMember = teamInfo.members.some(
-				(member) => member.login === user.login,
-			);
-			const myRole = isCaptain ? "Captain" : isMember ? "Member" : "Auditor";
+			const myRole = isCaptain ? "Captain" : "Member";
 
 			return {
 				...result,

@@ -290,26 +290,18 @@ const openProjectDetail = (
 	selectedProjectName = project.name;
 
 	panelTitle.textContent = project.name;
-	panelBody.replaceChildren();
-	const loadingHint = document.createElement("p");
-	loadingHint.className = "sp-project-hint";
-	loadingHint.textContent = "Loading project details...";
-	panelBody.append(loadingHint);
-
-	stabilizeExpandedLayout(layout, () => {
-		layout.classList.add("sp-layout-expanded");
-		panel.classList.add("active");
-	});
-
 	requestAnimationFrame(() => {
-		requestAnimationFrame(() => {
-			renderProjectPanelContent(
-				project,
-				panelBody,
-				allCollabs,
-				collaboratorLogin,
-				activeUserLogin,
-			);
+		renderProjectPanelContent(
+			project,
+			panelBody,
+			allCollabs,
+			collaboratorLogin,
+			activeUserLogin,
+		);
+
+		stabilizeExpandedLayout(layout, () => {
+			layout.classList.add("sp-layout-expanded");
+			panel.classList.add("active");
 		});
 	});
 };
