@@ -52,11 +52,11 @@ const openProjectDetail = (result, xpByName) => {
   if (!overlay || !content) return;
 
   const name = result.object?.name ?? "Unknown Project";
-  const projectRoles = result.projectRoles ?? [result.myRole ?? "Member"];
+  const projectRoles = result.projectRoles ?? [result.myRole ?? "Partner"];
   const activeUserLogin = result.activeUserLogin ?? "";
   const activeUserDisplayName = result.activeUserDisplayName ?? "";
   const teamMembers = (result.teamMembers ?? []).filter(Boolean);
-  const myRole = result.myRole ?? "Member";
+  const myRole = result.myRole ?? "Partner";
 
   const dateStr = formatLongLocalDate(result.createdAt, "—");
 
@@ -192,16 +192,23 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
     const fallbackIsMember = fallbackTeamMembers.some(
       (member) => member.login === activeUserLogin,
     );
-    const fallbackMyRole = fallbackIsCaptain ? "Captain" : "Member";
+    const fallbackMyRole = fallbackIsCaptain
+      ? "Captain"
+      : fallbackIsMember
+        ? "Partner"
+        : "Partner";
     const sharedRecordsCount = currentRes.filter(
       (record) =>
         normalizeProjectName(record.object?.name) ===
         normalizeProjectName(projectName),
     ).length;
 
+    const hasHydratedCaptainLogin =
+      typeof resultRecord?.teamCaptainLogin === "string" &&
+      resultRecord.teamCaptainLogin.trim().length > 0;
     const hasHydratedTeamData =
       (resultRecord?.teamMembers?.length ?? 0) > 0 ||
-      typeof resultRecord?.teamCaptainLogin === "string";
+      hasHydratedCaptainLogin;
     const resolvedMyRole = hasHydratedTeamData
       ? (resultRecord?.myRole ?? fallbackMyRole)
       : fallbackMyRole;

@@ -91,7 +91,7 @@ const getActiveUserProjectRole = (
 	collaboratorLogin,
 	activeUserLogin,
 ) => {
-	if (!activeUserLogin) return "Member";
+	if (!activeUserLogin) return "Partner";
 
 	const projectRecords = allCollabs.filter(
 		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
@@ -110,16 +110,16 @@ const getActiveUserProjectRole = (
 			if (record.teamCaptainLogin === activeUserLogin) {
 				roles.add("Captain");
 			} else {
-				roles.add("Member");
+				roles.add("Partner");
 			}
 		}
 
 		return roles;
 	}, new Set());
 
-	if (!activeRoles.size) return "Member";
+	if (!activeRoles.size) return "Partner";
 
-	const orderedRoles = ["Auditor", "Captain", "Member"].filter((role) =>
+	const orderedRoles = ["Auditor", "Captain", "Partner"].filter((role) =>
 		activeRoles.has(role),
 	);
 
@@ -217,6 +217,9 @@ const openProjectDetail = (
 ) => {
 	const { panel, panelTitle, panelBody, layout } = refs;
 	if (!panel || !panelTitle || !panelBody || !layout) return;
+	const isPanelAlreadyExpanded =
+		panel.classList.contains("active") &&
+		layout.classList.contains("sp-layout-expanded");
 
 	if (
 		selectedProjectName === project.name &&
@@ -230,6 +233,17 @@ const openProjectDetail = (
 	selectedProjectName = project.name;
 
 	panelTitle.textContent = project.name;
+	if (isPanelAlreadyExpanded) {
+		renderProjectPanelContent(
+			project,
+			panelBody,
+			allCollabs,
+			collaboratorLogin,
+			activeUserLogin,
+		);
+		return;
+	}
+
 	requestAnimationFrame(() => {
 		renderProjectPanelContent(
 			project,

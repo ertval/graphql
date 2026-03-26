@@ -147,9 +147,14 @@ export const loadDashboard = async (
 		const rawResults = resultsResult.data;
 		const projectObjectIds = [
 			...new Set(
-				rawResults
-					.map((result) => result.objectId)
-					.filter((id) => typeof id === "number"),
+				[
+					...rawResults
+						.map((result) => result.objectId)
+						.filter((id) => typeof id === "number"),
+					...xpTransactions
+						.map((transaction) => transaction.object?.id)
+						.filter((id) => typeof id === "number"),
+				],
 			),
 		];
 		const projectTeamsResult = await fetchProjectTeams(user.id, projectObjectIds);
@@ -176,7 +181,7 @@ export const loadDashboard = async (
 				captainLogin: "",
 			};
 			const isCaptain = teamInfo.captainLogin === user.login;
-			const myRole = isCaptain ? "Captain" : "Member";
+			const myRole = isCaptain ? "Captain" : "Partner";
 
 			return {
 				...result,

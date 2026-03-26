@@ -145,8 +145,26 @@ const mockGraphqlData = {
 	},
 };
 
-const installMockAuthAndGraphql = async (page) => {
+const mergeMockData = (base, overrides = {}) => {
+	const merged = {
+		...base,
+		...overrides,
+		collabs: {
+			...base.collabs,
+			...(overrides.collabs ?? {}),
+		},
+	};
+
+	if (overrides.projectTeams) {
+		merged.projectTeams = overrides.projectTeams;
+	}
+
+	return merged;
+};
+
+const installMockAuthAndGraphql = async (page, overrides = {}) => {
 	const jwt = buildMockJwt();
+	const scenarioData = mergeMockData(mockGraphqlData, overrides);
 
 	await page.route("**/api/auth/signin", async (route) => {
 		await route.fulfill({
@@ -164,11 +182,23 @@ const installMockAuthAndGraphql = async (page) => {
 			query.includes("GetProjectTeams") ||
 			(query.includes("group_user(") && query.includes("projectObjectIds"))
 		) {
+			const requestedProjectIds = new Set(
+				(requestBody?.variables?.projectObjectIds ?? []).filter((id) =>
+					typeof id === "number",
+				),
+			);
+			const matchingProjectTeams = scenarioData.projectTeams.filter((entry) => {
+				const objectId = entry.group?.object?.id;
+				return (
+					typeof objectId === "number" && requestedProjectIds.has(objectId)
+				);
+			});
+
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
 				body: JSON.stringify({
-					data: { group_user: mockGraphqlData.projectTeams },
+					data: { group_user: matchingProjectTeams },
 				}),
 			});
 			return;
@@ -178,7 +208,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { user: mockGraphqlData.user } }),
+				body: JSON.stringify({ data: { user: scenarioData.user } }),
 			});
 			return;
 		}
@@ -188,7 +218,7 @@ const installMockAuthAndGraphql = async (page) => {
 				status: 200,
 				contentType: "application/json",
 				body: JSON.stringify({
-					data: { transaction: mockGraphqlData.xpTransactions },
+					data: { transaction: scenarioData.xpTransactions },
 				}),
 			});
 			return;
@@ -198,7 +228,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { progress: mockGraphqlData.progress } }),
+				body: JSON.stringify({ data: { progress: scenarioData.progress } }),
 			});
 			return;
 		}
@@ -207,7 +237,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { transaction: mockGraphqlData.skills } }),
+				body: JSON.stringify({ data: { transaction: scenarioData.skills } }),
 			});
 			return;
 		}
@@ -216,7 +246,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { transaction: mockGraphqlData.level } }),
+				body: JSON.stringify({ data: { transaction: scenarioData.level } }),
 			});
 			return;
 		}
@@ -225,7 +255,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { result: mockGraphqlData.results } }),
+				body: JSON.stringify({ data: { result: scenarioData.results } }),
 			});
 			return;
 		}
@@ -234,7 +264,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: { object: mockGraphqlData.objectById } }),
+				body: JSON.stringify({ data: { object: scenarioData.objectById } }),
 			});
 			return;
 		}
@@ -243,7 +273,7 @@ const installMockAuthAndGraphql = async (page) => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: mockGraphqlData.collabs }),
+				body: JSON.stringify({ data: scenarioData.collabs }),
 			});
 			return;
 		}
@@ -256,8 +286,8 @@ const installMockAuthAndGraphql = async (page) => {
 	});
 };
 
-const loginWithMockBackend = async (page) => {
-	await installMockAuthAndGraphql(page);
+const loginWithMockBackend = async (page, overrides = {}) => {
+	await installMockAuthAndGraphql(page, overrides);
 	await page.goto("/");
 
 	await page.fill("#identifier", "runtime-user");
@@ -347,6 +377,189 @@ test("XP by Project interaction opens project detail modal", async ({
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
 		/active/,
 	);
+});
+
+test("dashboard popup resolves role and members for projects missing from recent results", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		xpTransactions: [
+			...mockGraphqlData.xpTransactions,
+			{
+				id: 3,
+				amount: 91000,
+				createdAt: "2026-01-23T10:00:00.000Z",
+				path: "/zone/project-gamma",
+				object: { id: 3, name: "Gamma Project", type: "project" },
+			},
+		],
+		results: [
+			{
+				id: 801,
+				objectId: 1,
+				grade: 1,
+				type: "project",
+				createdAt: "2026-01-21T10:00:00.000Z",
+				user: { id: 101, login: "runtime-user" },
+				object: { name: "Alpha Project", type: "project" },
+			},
+		],
+		projectTeams: [
+			...mockGraphqlData.projectTeams,
+			{
+				group: {
+					captainLogin: "runtime-user",
+					object: { id: 3, name: "Gamma Project" },
+					members: [
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+						{
+							user: {
+								login: "gamma-partner",
+								firstName: "Gamma",
+								lastName: "Partner",
+							},
+						},
+					],
+				},
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+	await expect(page.locator("#project-bar-chart svg")).toBeVisible();
+
+	await page.click('[aria-label="View details for Gamma Project"]');
+	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
+	await expect(page.locator("#project-detail-content")).toContainText("Gamma Partner");
+	await expect(page.locator("#project-detail-content")).toContainText("Captain");
+	await page
+		.locator("#project-detail-content")
+		.screenshot({ path: "test-results/visual/dashboard-gamma-popup.png" });
+});
+
+test("collaboration project panel does not retain oversized height after project switch", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		collabs: {
+			group_user: [
+				{
+					createdAt: "2026-01-25T10:00:00.000Z",
+					group: {
+						captainLogin: "runtime-user",
+						object: { name: "Mega Project" },
+						members: [
+							{
+								userId: 101,
+								user: {
+									login: "runtime-user",
+									firstName: "Runtime",
+									lastName: "Tester",
+									campus: "Athens",
+								},
+							},
+							{
+								userId: 999,
+								user: {
+									login: "peer-user",
+									firstName: "Peer",
+									lastName: "One",
+									campus: "Athens",
+								},
+							},
+							{
+								userId: 111,
+								user: {
+									login: "peer-two",
+									firstName: "Peer",
+									lastName: "Two",
+									campus: "Athens",
+								},
+							},
+						],
+					},
+				},
+				{
+					createdAt: "2026-01-26T10:00:00.000Z",
+					group: {
+						captainLogin: "runtime-user",
+						object: { name: "Tiny Project" },
+						members: [
+							{
+								userId: 101,
+								user: {
+									login: "runtime-user",
+									firstName: "Runtime",
+									lastName: "Tester",
+									campus: "Athens",
+								},
+							},
+							{
+								userId: 999,
+								user: {
+									login: "peer-user",
+									firstName: "Peer",
+									lastName: "One",
+									campus: "Athens",
+								},
+							},
+						],
+					},
+				},
+			],
+			audit: [],
+			audit_received: [],
+		},
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click('[aria-label="Open collaborator details for Peer One"]');
+	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+
+	await page.click('[aria-label="View details for Mega Project"]');
+	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
+	await page.waitForTimeout(450);
+
+	const [heightSamples] = await Promise.all([
+		page.evaluate(async () => {
+			const modal = document.querySelector(".student-profile-modal");
+			if (!modal) return [];
+
+			const samples = [];
+			const start = performance.now();
+			while (performance.now() - start <= 950) {
+				samples.push({
+					t: performance.now() - start,
+					h: Math.round(modal.getBoundingClientRect().height),
+				});
+				await new Promise((resolve) => requestAnimationFrame(resolve));
+			}
+
+			return samples;
+		}),
+		page.click('[aria-label="View details for Tiny Project"]'),
+	]);
+
+	expect(heightSamples.length > 3).toBe(true);
+	const earlyHeights = heightSamples.filter((sample) => sample.t <= 350);
+	const lateHeights = heightSamples.filter((sample) => sample.t >= 650);
+	const earlyMin = Math.min(...earlyHeights.map((sample) => sample.h));
+	const lateMin = Math.min(...lateHeights.map((sample) => sample.h));
+
+	// Prevent late-stage height collapse that appears as a jagged pop animation.
+	expect(earlyMin - lateMin).toBeLessThanOrEqual(20);
+	await page
+		.locator(".student-profile-modal")
+		.screenshot({ path: "test-results/visual/collaborations-project-panel.png" });
 });
 
 test("main nav switches between dashboard and collaborations tab", async ({

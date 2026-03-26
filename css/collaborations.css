@@ -612,6 +612,10 @@
 	padding: var(--space-lg);
 	position: sticky;
 	top: calc(var(--space-lg) + 52px);
+	max-height: calc(90vh - 140px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	will-change: transform, opacity;
 }
 
 .sp-layout.sp-layout-expanded .sp-project-panel {
@@ -972,6 +976,8 @@
 	.sp-project-panel {
 		position: relative;
 		top: 0;
+		max-height: none;
+		overflow-y: visible;
 	}
 }
 
