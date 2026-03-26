@@ -28,6 +28,24 @@ export const fetchUserInfo = async () => {
 	return mapResult(await graphqlQuery(query), (data) => data.user?.[0] ?? null);
 };
 
+// ── User role counters (captain / partner / auditor) ──────────────
+
+export const fetchUserRoleStats = async (userId) => {
+	const query = `
+    query GetUserRoleStats($userId: Int!) {
+      audit(where: { auditorId: { _eq: $userId }, grade: { _is_null: false } }) {
+        id
+      }
+    }
+  `;
+
+	return mapResult(await graphqlQuery(query, { userId }), (data) => {
+		return {
+			auditor: (data.audit ?? []).length,
+		};
+	});
+};
+
 // ── XP transactions (excludes piscine) ─────────────────────────────
 
 export const fetchXPTransactions = async (userId) => {
@@ -77,6 +95,7 @@ export const fetchProgress = async (userId) => {
         updatedAt
         path
         object {
+				id
           name
           type
         }

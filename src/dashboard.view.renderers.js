@@ -64,15 +64,22 @@ export const renderAuditSection = (user) => {
 	const ratio = user.auditRatio ?? 0;
 	const totalUp = user.totalUp ?? 0;
 	const totalDown = user.totalDown ?? 0;
+	const roleStats = user.roleStats ?? {};
 	const maxAudit = Math.max(totalUp, totalDown, 1);
 
 	const ratioEl = $("#audit-ratio");
 	const doneValEl = $("#audit-done-value");
 	const recValEl = $("#audit-received-value");
+	const captainEl = $("#audit-role-captain");
+	const partnerEl = $("#audit-role-partner");
+	const auditorEl = $("#audit-role-auditor");
 
 	if (ratioEl) ratioEl.textContent = ratio.toFixed(1);
 	if (doneValEl) doneValEl.textContent = formatXP(totalUp);
 	if (recValEl) recValEl.textContent = formatXP(totalDown);
+	if (captainEl) captainEl.textContent = String(roleStats.captain ?? 0);
+	if (partnerEl) partnerEl.textContent = String(roleStats.partner ?? 0);
+	if (auditorEl) auditorEl.textContent = String(roleStats.auditor ?? 0);
 
 	requestAnimationFrame(() => {
 		const doneBar = $("#audit-done-bar");

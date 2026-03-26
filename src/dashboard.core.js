@@ -41,3 +41,33 @@ export const computeTopSkills = (skills, limit = 8) => {
 		.slice(0, limit);
 };
 
+/**
+ * Computes cumulative role counters for dashboard audit tile.
+ * Captain/Partner are derived from completed projects to keep totals aligned.
+ * @param {Array<{object?: {id?: number}}>} completedProjects
+ * @param {Map<string, {captainLogin?: string}>} teamsByProject
+ * @param {string} userLogin
+ * @param {number} auditorCount
+ * @returns {{captain:number, partner:number, auditor:number}}
+ */
+export const computeAuditRoleStats = (
+	completedProjects,
+	teamsByProject,
+	userLogin,
+	auditorCount,
+) => {
+	const completedCount = completedProjects.length;
+	const captain = completedProjects.reduce((count, project) => {
+		const projectId = project.object?.id;
+		if (typeof projectId !== "number") return count;
+		const teamInfo = teamsByProject.get(String(projectId));
+		return teamInfo?.captainLogin === userLogin ? count + 1 : count;
+	}, 0);
+
+	return {
+		captain,
+		partner: Math.max(completedCount - captain, 0),
+		auditor: Number.isFinite(auditorCount) ? auditorCount : 0,
+	};
+};
+

@@ -11,9 +11,10 @@ import {
 	fetchSkills,
 	fetchUserInfo,
 	fetchUserLevel,
+	fetchUserRoleStats,
 	fetchXPTransactions,
 } from "./dashboard.api.js";
-import { isAuthFailureError } from "./dashboard.core.js";
+import { computeAuditRoleStats, isAuthFailureError } from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
 import {
 	renderAuditSection,
@@ -62,6 +63,9 @@ export const resetDashboard = () => {
 	textOf("#audit-ratio", "—");
 	textOf("#audit-done-value", "");
 	textOf("#audit-received-value", "");
+	textOf("#audit-role-captain", "0");
+	textOf("#audit-role-partner", "0");
+	textOf("#audit-role-auditor", "0");
 	textOf("#nav-username", "");
 
 	const styleOf = (id, width) => {
@@ -116,6 +120,7 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
+			roleStatsResult,
 		] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
@@ -123,6 +128,7 @@ export const loadDashboard = async (
 				fetchSkills(user.id),
 				fetchUserLevel(user.id),
 				fetchResults(user.id),
+				fetchUserRoleStats(user.id),
 			]);
 
 		const firstError = [
@@ -131,6 +137,7 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
+			roleStatsResult,
 		].find((result) => !result.ok);
 
 		if (firstError && !firstError.ok) {
@@ -145,6 +152,9 @@ export const loadDashboard = async (
 		const skills = skillsResult.data;
 		const level = levelResult.data;
 		const rawResults = resultsResult.data;
+		const completedProjects = progress.filter(
+			(project) => project.grade >= 1 && project.object?.type === "project",
+		);
 		const projectObjectIds = [
 			...new Set(
 				[
@@ -153,6 +163,9 @@ export const loadDashboard = async (
 						.filter((id) => typeof id === "number"),
 					...xpTransactions
 						.map((transaction) => transaction.object?.id)
+						.filter((id) => typeof id === "number"),
+					...completedProjects
+						.map((project) => project.object?.id)
 						.filter((id) => typeof id === "number"),
 				],
 			),
@@ -167,6 +180,13 @@ export const loadDashboard = async (
 
 		const teamsByProject = projectTeamsResult.data;
 		_teamsByProject = teamsByProject;
+		const roleStats = computeAuditRoleStats(
+			completedProjects,
+			teamsByProject,
+			user.login,
+			roleStatsResult.data?.auditor ?? 0,
+		);
+		const dashboardUser = { ...user, roleStats };
 		const projectCountByObjectId = rawResults.reduce((map, result) => {
 			const projectKey = String(result.objectId ?? "");
 			if (!projectKey) return map;
@@ -198,8 +218,8 @@ export const loadDashboard = async (
 		_results = results;
 
 		renderXPSection(xpTransactions, level, progress);
-		renderAuditSection(user);
-		renderGraphs(xpTransactions, user, progress);
+		renderAuditSection(dashboardUser);
+		renderGraphs(xpTransactions, dashboardUser, progress);
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
