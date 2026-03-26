@@ -15,6 +15,7 @@ const dashboardApiJs = read("src/dashboard.api.js");
 const dashboardViewJs = read("src/dashboard.view.js");
 const collaborationsCss = read("css/collaborations.css");
 const apiJs = read("src/infra.graphql.js");
+const infraErrorsJs = read("src/infra.errors.js");
 const indexHtml = read("index.html");
 
 test("collaborations loading error uses safe textContent and no template innerHTML sink", () => {
@@ -62,12 +63,13 @@ test("dashboard project teams are hydrated by object id for all visible project 
 	assert.match(dashboardApiJs, /id:\s*\{\s*_in:\s*\$projectObjectIds\s*\}/);
 	assert.match(dashboardApiJs, /object \{\s*id\s*name\s*\}/);
 	assert.match(dashboardViewJs, /rawResults\s*\.map\(\(result\) => result\.objectId\)/);
+	assert.match(dashboardViewJs, /xpTransactions\s*\.map\(\(transaction\) => transaction\.object\?\.id\)/);
 	assert.match(dashboardViewJs, /fetchProjectTeams\(user\.id, projectObjectIds\)/);
 	assert.match(dashboardViewJs, /const teamInfo = teamsByProject\.get\(projectKey\) \?\? \{/);
 	assert.match(dashboardViewJs, /teamMembers: teamInfo\.members,/);
 	assert.match(dashboardViewJs, /teamCaptainLogin: teamInfo\.captainLogin,/);
 	assert.match(dashboardViewJs, /myRole,/);
-	assert.match(dashboardViewJs, /const myRole = isCaptain \? "Captain" : "Member";/);
+	assert.match(dashboardViewJs, /const myRole = isCaptain \? "Captain" : "Partner";/);
 });
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
@@ -77,15 +79,17 @@ test("collaborator detail toggles extended project panel when same project is cl
 });
 
 test("collaborator split-panel animation uses theme slow timing and avoids left crop transform", () => {
-	assert.match(collaborationsCss, /grid-template-columns var\(--transition-slow\)/);
+	assert.match(collaborationsCss, /transition:\s*gap var\(--transition-slow\);/);
 	assert.match(collaborationsCss, /transform 520ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
 	assert.doesNotMatch(collaborationsCss, /translateX\(-/);
 	assert.doesNotMatch(collaborationsCss, /scrollbar-gutter:\s*stable/);
 	assert.doesNotMatch(collaborationsCss, /max-height:\s*min\(560px, calc\(90vh - 170px\)\);/);
-	assert.doesNotMatch(collaborationsCss, /\.sp-project-panel \{[\s\S]*overflow-y:\s*auto;/);
-	assert.match(collaborationsPopupJs, /stabilizeExpandedLayout\(layout, \(\) => \{\s*\n\s*layout\.classList\.add\("sp-layout-expanded"\);\s*\n\s*panel\.classList\.add\("active"\);/);
+	assert.match(collaborationsCss, /\.sp-project-panel \{[\s\S]*overflow-y:\s*auto;/);
+	assert.match(collaborationsCss, /\.sp-project-panel \{[\s\S]*max-height:\s*calc\(90vh - 140px\);/);
+	assert.match(collaborationsPopupJs, /layout\.classList\.add\("sp-layout-expanded"\);/);
+	assert.match(collaborationsPopupJs, /requestAnimationFrame\(\(\) => \{\s*\n\s*panel\.classList\.add\("active"\);/);
+	assert.doesNotMatch(collaborationsPopupJs, /layout\.style\.minHeight/);
 	assert.doesNotMatch(collaborationsPopupJs, /Loading project details\.\.\./);
-	assert.doesNotMatch(collaborationsPopupJs, /requestAnimationFrame\(\(\) => \{\s*\n\s*requestAnimationFrame\(\(\) => \{/);
 });
 
 test("collaborator project detail renders My Role section for active user", () => {
@@ -113,7 +117,10 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 	assert.match(dashboardPopupJs, /const normalizeProjectName = \(name\) =>/);
 	assert.match(dashboardPopupJs, /const projectObjectId =\s*\n\s*typeof e\.detail\?\.objectId === "number" \? e\.detail\.objectId : null;/);
 	assert.match(dashboardPopupJs, /\? getTeamsByProject\(\)\.get\(String\(projectObjectId\)\)/);
-	assert.match(dashboardPopupJs, /const fallbackMyRole = fallbackIsCaptain \? "Captain" : "Member";/);
+	assert.match(
+		dashboardPopupJs,
+		/const fallbackMyRole = fallbackIsCaptain[\s\S]*\? "Captain"[\s\S]*\? "Partner"[\s\S]*: "Partner";/,
+	);
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {
@@ -134,10 +141,14 @@ test("api clears token on 401 and 403 GraphQL responses", () => {
 });
 
 test("api clears token on GraphQL auth-related errors", () => {
-	assert.match(apiJs, /const isAuthErrorMessage = \(message\) =>/);
 	assert.match(
 		apiJs,
-		/if \(isAuthErrorMessage\(messages\)\) \{\s*\n\s*graphqlAuth\.clearToken\(\);/,
+		/import\s+\{\s*isAuthFailureMessage\s*\}\s+from\s+"\.\/infra\.errors\.js"/,
+	);
+	assert.match(infraErrorsJs, /export const isAuthFailureMessage = \(message\) =>/);
+	assert.match(
+		apiJs,
+		/if \(isAuthFailureMessage\(messages\)\) \{\s*\n\s*graphqlAuth\.clearToken\(\);/,
 	);
 });
 

@@ -4,11 +4,6 @@
  * @module dashboard.view
  */
 
-import { renderProjectBarChart } from "./charts.bar.js";
-import { renderAuditDonutChart } from "./charts.donut.js";
-import { formatXP } from "./charts.helpers.js";
-import { renderXPLineChart } from "./charts.line.js";
-import { renderPassFailPieChart } from "./charts.pie.js";
 import {
 	fetchProgress,
 	fetchProjectTeams,
@@ -16,18 +11,25 @@ import {
 	fetchSkills,
 	fetchUserInfo,
 	fetchUserLevel,
+	fetchUserRoleStats,
 	fetchXPTransactions,
 } from "./dashboard.api.js";
-import {
-	computeTopSkills,
-	computeXpSummary,
-	isAuthFailureError,
-} from "./dashboard.core.js";
+import { computeDashboardRoleData, isAuthFailureError } from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
+import {
+	closeRoleProjectsPopup,
+	initRoleProjectsPopup,
+} from "./dashboard.popup.roles.js";
+import {
+	renderAuditSection,
+	renderGraphs,
+	renderSkills,
+	renderUserSection,
+	renderXPSection,
+} from "./dashboard.view.renderers.js";
+import { $ } from "./infra.ui.js";
 
 // ── DOM References ─────────────────────────────────────────────────
-const $ = (sel) => document.querySelector(sel);
-
 // ── Module-level state (needed for project detail cross-reference) ─
 /** @type {Array<{amount:number, createdAt:string, path:string, object:{name:string,type:string}}>} */
 let _xpTransactions = [];
@@ -38,12 +40,20 @@ let _results = [];
 /** @type {Map<string, {captainLogin:string, members:Array<{login:string, displayName:string}>}>} */
 let _teamsByProject = new Map();
 
+/** @type {{Captain:Array, Partner:Array, Auditor:Array}} */
+let _roleProjectsByRole = {
+	Captain: [],
+	Partner: [],
+	Auditor: [],
+};
+
 export const initDashboard = () => {
 	initProjectDetailClose(
 		() => _xpTransactions,
 		() => _results,
 		() => _teamsByProject,
 	);
+	initRoleProjectsPopup(() => _roleProjectsByRole);
 };
 
 // ── Dashboard Data Loading ─────────────────────────────────────────
@@ -65,6 +75,9 @@ export const resetDashboard = () => {
 	textOf("#audit-ratio", "—");
 	textOf("#audit-done-value", "");
 	textOf("#audit-received-value", "");
+	textOf("#audit-role-captain", "0");
+	textOf("#audit-role-partner", "0");
+	textOf("#audit-role-auditor", "0");
 	textOf("#nav-username", "");
 
 	const styleOf = (id, width) => {
@@ -88,6 +101,12 @@ export const resetDashboard = () => {
 	_xpTransactions = [];
 	_results = [];
 	_teamsByProject = new Map();
+	_roleProjectsByRole = {
+		Captain: [],
+		Partner: [],
+		Auditor: [],
+	};
+	closeRoleProjectsPopup();
 };
 
 /** Fetches all dashboard data and renders every section. */
@@ -119,6 +138,7 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
+			roleStatsResult,
 		] =
 			await Promise.all([
 				fetchXPTransactions(user.id),
@@ -126,6 +146,7 @@ export const loadDashboard = async (
 				fetchSkills(user.id),
 				fetchUserLevel(user.id),
 				fetchResults(user.id),
+				fetchUserRoleStats(user.id),
 			]);
 
 		const firstError = [
@@ -134,6 +155,7 @@ export const loadDashboard = async (
 			skillsResult,
 			levelResult,
 			resultsResult,
+			roleStatsResult,
 		].find((result) => !result.ok);
 
 		if (firstError && !firstError.ok) {
@@ -148,11 +170,22 @@ export const loadDashboard = async (
 		const skills = skillsResult.data;
 		const level = levelResult.data;
 		const rawResults = resultsResult.data;
+		const completedProjects = progress.filter(
+			(project) => project.grade >= 1 && project.object?.type === "project",
+		);
 		const projectObjectIds = [
 			...new Set(
-				rawResults
-					.map((result) => result.objectId)
-					.filter((id) => typeof id === "number"),
+				[
+					...rawResults
+						.map((result) => result.objectId)
+						.filter((id) => typeof id === "number"),
+					...xpTransactions
+						.map((transaction) => transaction.object?.id)
+						.filter((id) => typeof id === "number"),
+					...completedProjects
+						.map((project) => project.object?.id)
+						.filter((id) => typeof id === "number"),
+				],
 			),
 		];
 		const projectTeamsResult = await fetchProjectTeams(user.id, projectObjectIds);
@@ -165,8 +198,17 @@ export const loadDashboard = async (
 
 		const teamsByProject = projectTeamsResult.data;
 		_teamsByProject = teamsByProject;
-		const projectCountByName = rawResults.reduce((map, result) => {
-			const projectKey = normalizeProjectName(result.object?.name);
+		const roleData = computeDashboardRoleData(
+			completedProjects,
+			teamsByProject,
+			user.login,
+			roleStatsResult.data?.audits ?? [],
+		);
+		const roleStats = roleData.stats;
+		_roleProjectsByRole = roleData.projectsByRole;
+		const dashboardUser = { ...user, roleStats };
+		const projectCountByObjectId = rawResults.reduce((map, result) => {
+			const projectKey = String(result.objectId ?? "");
 			if (!projectKey) return map;
 			map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
 			return map;
@@ -179,7 +221,7 @@ export const loadDashboard = async (
 				captainLogin: "",
 			};
 			const isCaptain = teamInfo.captainLogin === user.login;
-			const myRole = isCaptain ? "Captain" : "Member";
+			const myRole = isCaptain ? "Captain" : "Partner";
 
 			return {
 				...result,
@@ -187,7 +229,7 @@ export const loadDashboard = async (
 				teamCaptainLogin: teamInfo.captainLogin,
 				myRole,
 				projectRoles: [myRole],
-				sharedRecordsCount: projectCountByName.get(projectKey) ?? 1,
+				sharedRecordsCount: projectCountByObjectId.get(projectKey) ?? 1,
 			};
 		});
 
@@ -195,9 +237,10 @@ export const loadDashboard = async (
 		_xpTransactions = xpTransactions;
 		_results = results;
 
+		renderUserSection(dashboardUser);
 		renderXPSection(xpTransactions, level, progress);
-		renderAuditSection(user);
-		renderGraphs(xpTransactions, user, progress);
+		renderAuditSection(dashboardUser);
+		renderGraphs(xpTransactions, dashboardUser, progress);
 		renderSkills(skills);
 		renderActivity(results, xpTransactions);
 
@@ -211,153 +254,5 @@ export const loadDashboard = async (
 			error:
 				err instanceof Error ? err : new Error("Unexpected dashboard error."),
 		};
-	}
-};
-
-// ── Section Renderers ──────────────────────────────────────────────
-
-/** Populates the user profile card with identity information. */
-/** @param {object} user */
-const renderUserSection = (user) => {
-	const initials =
-		`${(user.firstName?.[0] ?? "").toUpperCase()}${(user.lastName?.[0] ?? "").toUpperCase()}` ||
-		user.login?.[0]?.toUpperCase() ||
-		"?";
-
-	const elInitials = $("#avatar-initials");
-	if (elInitials) elInitials.textContent = initials;
-
-	const elFullName = $("#user-fullname");
-	if (elFullName)
-		elFullName.textContent =
-			[user.firstName, user.lastName].filter(Boolean).join(" ") || user.login;
-
-	const elLogin = $("#user-login");
-	if (elLogin) elLogin.textContent = `@${user.login}`;
-
-	const elEmail = $("#user-email");
-	if (elEmail) elEmail.textContent = user.email || "";
-
-	const elCampus = $("#user-campus");
-	if (elCampus) elCampus.textContent = user.campus ? `📍 ${user.campus}` : "";
-
-	const elNavUser = $("#nav-username");
-	if (elNavUser) elNavUser.textContent = `@${user.login}`;
-};
-
-/** Populates XP stats card with level, projects done, and total XP. */
-/**
- * @param {Array} transactions
- * @param {number} level
- * @param {Array} progress
- */
-const renderXPSection = (transactions, level, progress) => {
-	const { completedProjects, totalXP } = computeXpSummary(
-		transactions,
-		progress,
-	);
-
-	const xpEl = $("#total-xp");
-	const lvlEl = $("#user-level");
-	const projEl = $("#completed-projects");
-
-	if (xpEl) xpEl.textContent = formatXP(totalXP);
-	if (lvlEl) lvlEl.textContent = String(level);
-	if (projEl) projEl.textContent = String(completedProjects);
-};
-
-/** Populates the audit ratio card with bar widths and values. */
-/** @param {object} user */
-const renderAuditSection = (user) => {
-	const ratio = user.auditRatio ?? 0;
-	const totalUp = user.totalUp ?? 0;
-	const totalDown = user.totalDown ?? 0;
-	const maxAudit = Math.max(totalUp, totalDown, 1);
-
-	const ratioEl = $("#audit-ratio");
-	const doneValEl = $("#audit-done-value");
-	const recValEl = $("#audit-received-value");
-
-	if (ratioEl) ratioEl.textContent = ratio.toFixed(1);
-	if (doneValEl) doneValEl.textContent = formatXP(totalUp);
-	if (recValEl) recValEl.textContent = formatXP(totalDown);
-
-	// Animate bar widths on next frame
-	requestAnimationFrame(() => {
-		const doneBar = $("#audit-done-bar");
-		const receivedBar = $("#audit-received-bar");
-		if (doneBar) doneBar.style.width = `${(totalUp / maxAudit) * 100}%`;
-		if (receivedBar)
-			receivedBar.style.width = `${(totalDown / maxAudit) * 100}%`;
-	});
-};
-
-/** Delegates chart rendering to individual graph modules. */
-/**
- * @param {Array} transactions
- * @param {object} user
- * @param {Array} progress
- */
-const renderGraphs = (transactions, user, progress) => {
-	const xpLine = $("#xp-line-chart");
-	if (xpLine) renderXPLineChart(xpLine, transactions);
-
-	const barChart = $("#project-bar-chart");
-	if (barChart) renderProjectBarChart(barChart, transactions);
-
-	const donutChart = $("#audit-donut-chart");
-	if (donutChart)
-		renderAuditDonutChart(donutChart, user.totalUp ?? 0, user.totalDown ?? 0);
-
-	const pieChart = $("#passfail-pie-chart");
-	if (pieChart) renderPassFailPieChart(pieChart, progress);
-};
-
-/** Renders the top-N skills as animated bar items. */
-/** @param {Array} skills */
-const renderSkills = (skills) => {
-	const list = $("#skills-list");
-	if (!list) return;
-	list.replaceChildren();
-
-	if (!skills.length) {
-		const empty = document.createElement("p");
-		empty.style.color = "var(--text-muted)";
-		empty.style.fontSize = "0.875rem";
-		empty.textContent = "No skill data available.";
-		list.append(empty);
-		return;
-	}
-
-	const topSkills = computeTopSkills(skills, 8);
-	const maxAmount = Math.max(...topSkills.map(([, v]) => v), 1);
-
-	for (const [name, amount] of topSkills) {
-		const item = document.createElement("div");
-		item.className = "skill-item";
-
-		const skillName = document.createElement("span");
-		skillName.className = "skill-name";
-		skillName.textContent = name;
-
-		const skillTrack = document.createElement("div");
-		skillTrack.className = "skill-bar-track";
-
-		const skillFill = document.createElement("div");
-		skillFill.className = "skill-bar-fill";
-		skillFill.style.width = "0%";
-		skillTrack.append(skillFill);
-
-		const skillValue = document.createElement("span");
-		skillValue.className = "skill-value";
-		skillValue.textContent = `${amount}%`;
-
-		item.append(skillName, skillTrack, skillValue);
-		list.append(item);
-
-		// Animate fill width on next frame
-		requestAnimationFrame(() => {
-			skillFill.style.width = `${(amount / maxAmount) * 100}%`;
-		});
 	}
 };

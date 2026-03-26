@@ -23,8 +23,7 @@ import {
 	saveToken,
 } from "./infra.auth.js";
 import { configureGraphqlAuth } from "./infra.graphql.js";
-
-const $ = (sel) => document.querySelector(sel);
+import { $ } from "./infra.ui.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 const loginView = $("#login-view");
@@ -45,6 +44,8 @@ const tabCollabs = $("#tab-collaborations");
 const dashboardPanel = $("#dashboard");
 const collabsPanel = $("#collaborations-view");
 let activeUserId = null;
+let collabsViewStatus = "idle";
+let collabsViewLoadGeneration = 0;
 const authChannel =
 	"BroadcastChannel" in globalThis
 		? new BroadcastChannel("graphql_auth_channel")
@@ -69,6 +70,23 @@ configureGraphqlAuth({
 	clearToken,
 });
 
+const ensureCollaborationsView = async () => {
+	if (collabsViewStatus !== "idle") return;
+
+	const decoded = decodeToken();
+	const userId =
+		typeof activeUserId === "number" && Number.isInteger(activeUserId)
+			? activeUserId
+			: Number(decoded?.sub);
+	if (!Number.isInteger(userId) || userId <= 0) return;
+
+	collabsViewStatus = "loading";
+	const loadGeneration = ++collabsViewLoadGeneration;
+	const result = await initCollaborationsView(userId);
+	if (loadGeneration !== collabsViewLoadGeneration) return;
+	collabsViewStatus = result?.ok ? "ready" : "idle";
+};
+
 /** @param {'dashboard'|'collabs'} tab */
 const switchTab = (tab) => {
 	tabDashboard?.classList.toggle("active", tab === "dashboard");
@@ -88,17 +106,7 @@ const switchTab = (tab) => {
 tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
 tabCollabs?.addEventListener("click", () => {
 	switchTab("collabs");
-	if (!collabsPanel?.dataset.loaded) {
-		collabsPanel.dataset.loaded = "1";
-		const decoded = decodeToken();
-		const userId =
-			typeof activeUserId === "number" && Number.isInteger(activeUserId)
-				? activeUserId
-				: Number(decoded?.sub);
-		if (Number.isInteger(userId) && userId > 0) {
-			initCollaborationsView(userId);
-		}
-	}
+	void ensureCollaborationsView();
 });
 
 // ── View Routing (Login ↔ Profile) ─────────────────────────────────
@@ -120,6 +128,8 @@ const showLogin = () => {
 /** Full logout flow — clears state and returns to login. */
 const performLogout = (broadcast = true) => {
 	clearToken();
+	collabsViewStatus = "idle";
+	collabsViewLoadGeneration += 1;
 	resetDashboard();
 	resetCollabsState();
 	activeUserId = null;

@@ -28,6 +28,63 @@ export const fetchUserInfo = async () => {
 	return mapResult(await graphqlQuery(query), (data) => data.user?.[0] ?? null);
 };
 
+// ── User role counters (captain / partner / auditor) ──────────────
+
+export const fetchUserRoleStats = async (userId) => {
+	const query = `
+    query GetUserRoleStats($userId: Int!) {
+      audit(where: { auditorId: { _eq: $userId }, grade: { _is_null: false } }) {
+        id
+        createdAt
+        group {
+          path
+          captainLogin
+          object {
+            id
+            name
+          }
+          members {
+            user {
+              login
+              firstName
+              lastName
+            }
+          }
+        }
+      }
+    }
+  `;
+
+	return mapResult(await graphqlQuery(query, { userId }), (data) => {
+    const audits = (data.audit ?? []).map((audit) => {
+      const members = (audit.group?.members ?? [])
+        .map((member) => member.user)
+        .filter(Boolean)
+        .map((member) => ({
+          login: member.login,
+          displayName:
+            [member.firstName, member.lastName].filter(Boolean).join(" ") ||
+            member.login,
+        }))
+        .filter((member) => member.login);
+
+      return {
+        id: audit.id,
+        createdAt: audit.createdAt,
+        objectId: audit.group?.object?.id ?? null,
+        projectName: audit.group?.object?.name ?? "Unknown Project",
+        projectPath: audit.group?.path ?? "",
+        captainLogin: audit.group?.captainLogin ?? "",
+        teamMembers: [...new Map(members.map((member) => [member.login, member])).values()],
+      };
+    });
+
+		return {
+      audits,
+		};
+	});
+};
+
 // ── XP transactions (excludes piscine) ─────────────────────────────
 
 export const fetchXPTransactions = async (userId) => {
@@ -77,6 +134,7 @@ export const fetchProgress = async (userId) => {
         updatedAt
         path
         object {
+				id
           name
           type
         }
@@ -177,37 +235,44 @@ export const fetchProjectTeams = async (userId, projectObjectIds) => {
     }
   `;
 
-  return mapResult(await graphqlQuery(query, { userId, projectObjectIds }), (data) => {
-		const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
-		return groups.reduce((map, group) => {
+	return mapResult(await graphqlQuery(query, { userId, projectObjectIds }), (data) => {
+    const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
+    const grouped = groups.reduce((map, group) => {
       const projectObjectId = group.object?.id;
-      if (typeof projectObjectId !== "number") return map;
+      if (typeof projectObjectId !== "number") {
+        return map;
+      }
 
       const key = String(projectObjectId);
-      const existing = map.get(key) ?? {
-        captainLogin: group.captainLogin ?? "",
-        members: [],
-      };
-      const existingLogins = new Set(
-        existing.members.map((member) => member.login),
-      );
-			const members = (group.members ?? [])
-				.map((member) => member.user)
-				.filter(Boolean)
-				.map((user) => ({
-					login: user.login,
-					displayName:
-						[user.firstName, user.lastName].filter(Boolean).join(" ") ||
-						user.login,
-				}))
-				.filter((member) => member.login && !existingLogins.has(member.login));
+      const existing = map.get(key) ?? [];
+      map.set(key, [...existing, group]);
+      return map;
+    }, new Map());
 
-      map.set(key, {
-        captainLogin: existing.captainLogin || group.captainLogin || "",
-        members: [...existing.members, ...members],
-      });
-			return map;
-		}, new Map());
+		const result = new Map();
+		for (const [key, projectGroups] of grouped.entries()) {
+			const captainLogin =
+				projectGroups.find((g) => g.captainLogin)?.captainLogin ?? "";
+
+			const rawMembers = projectGroups.flatMap((g) =>
+				(g.members ?? [])
+					.map((m) => m.user)
+					.filter(Boolean)
+					.map((u) => ({
+						login: u.login,
+						displayName:
+							[u.firstName, u.lastName].filter(Boolean).join(" ") || u.login,
+					})),
+			);
+
+			const uniqueMembers = [
+				...new Map(rawMembers.map((m) => [m.login, m])).values(),
+			].filter((m) => m.login);
+
+			result.set(key, { captainLogin, members: uniqueMembers });
+		}
+
+		return result;
 	});
 };
 

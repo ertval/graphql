@@ -1,8 +1,8 @@
 # Agent Instructions: Modern JavaScript (2026) Guidelines
 
 ## Core Directives
-- **No Unprompted Testing**: Do not run tests unless explicitly requested by the user.
 - **Action-Oriented**: Focus purely on writing clean, idiomatic code and performing rigorous robust static analysis.
+-  **Bug Fixing**: When I report a bug, dont try to fix it immediately. Instead, try to understand the root cause of the bug. Then write a test that reproduces the bug. Then have subagents try to fix the bug and prove it with passing test. 
 
 ## Modern JS & Idioms (ES2026 Standard)
 - **Immutability by Default**: 
@@ -82,6 +82,3 @@
 - **CommonJS is obsolete**: Exclusively use ES Modules (`import`/`export`). No `require`.
 - **Legacy objects & properties**: Avoid the `arguments` object (use rest parameter `...args`), avoid `_private` naming conventions (use `#private` class fields), and do not use `XMLHttpRequest` (use `fetch`).
 - **Forbidden Patterns**: NEVER modify built-in prototypes. Avoid "clever" one-liners that sacrifice readability for terseness.
-
-## Bug Fixing
--  **No Quick Fixes**: When I report a bug, dont try to fix it immediately. Instead, try to understand the root cause of the bug. Then write a test that reproduces the bug. Then have subagents try to fix the bug and prove it with passing test. 

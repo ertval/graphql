@@ -4,45 +4,26 @@
  */
 
 import { buildCollaboratorSummary } from "./collaborations.core.js";
+import {
+	createCollaboratorHeader,
+	createCollaboratorRolesSection,
+} from "./collaborations.popup.profile.js";
+import { createProjectDetailPanelElements } from "./collaborations.popup.project-panel.js";
+import {
+	$,
+	formatLocalDate,
+	getActiveUserDisplayName,
+	getActiveUserLogin,
+	toProjectUrl,
+} from "./infra.ui.js";
+import {
+	createProjectMembersSection,
+	createProjectPathAndLinkSection,
+	createProjectRoleSection,
+	createProjectStatGrid,
+} from "./popup.shared.js";
 
-const PLATFORM_ORIGIN = "https://platform.zone01.gr";
-
-const $ = (sel) => document.querySelector(sel);
 let selectedProjectName = "";
-
-const getActiveUserLogin = () => {
-	const loginText = $("#user-login")?.textContent?.trim() ?? "";
-	if (!loginText) return "";
-	return loginText.startsWith("@") ? loginText.slice(1) : loginText;
-};
-
-/** @param {string} isoDate */
-const toLocalDate = (isoDate) => {
-	try {
-		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
-			Temporal.Now.timeZoneId(),
-		);
-		return zdt.toLocaleString("en", { dateStyle: "medium" });
-	} catch {
-		return isoDate?.split("T")?.[0] ?? "—";
-	}
-};
-
-/** @param {string} pathValue */
-const toProjectUrl = (pathValue) => {
-	if (typeof pathValue !== "string" || !pathValue.trim()) return null;
-
-	try {
-		const url = pathValue.startsWith("/")
-			? new URL(pathValue, PLATFORM_ORIGIN)
-			: new URL(pathValue);
-		if (url.protocol !== "https:") return null;
-		if (url.origin !== PLATFORM_ORIGIN) return null;
-		return url.toString();
-	} catch {
-		return null;
-	}
-};
 
 const buildDisplayNameByLogin = (allCollabs) =>
 	allCollabs.reduce((map, collab) => {
@@ -60,8 +41,14 @@ const getProjectMembers = (
 	activeUserLogin,
 ) => {
 	const namesByLogin = buildDisplayNameByLogin(allCollabs);
-	if (activeUserLogin && !namesByLogin.has(activeUserLogin)) {
-		namesByLogin.set(activeUserLogin, activeUserLogin);
+	if (activeUserLogin) {
+		const activeUserDisplayName = getActiveUserDisplayName();
+		const existingName = namesByLogin.get(activeUserLogin) ?? "";
+		if (activeUserDisplayName && (!existingName || existingName === activeUserLogin)) {
+			namesByLogin.set(activeUserLogin, activeUserDisplayName);
+		} else if (!existingName) {
+			namesByLogin.set(activeUserLogin, activeUserLogin);
+		}
 	}
 
 	const projectRecords = allCollabs.filter(
@@ -104,7 +91,7 @@ const getActiveUserProjectRole = (
 	collaboratorLogin,
 	activeUserLogin,
 ) => {
-	if (!activeUserLogin) return "Member";
+	if (!activeUserLogin) return "Partner";
 
 	const projectRecords = allCollabs.filter(
 		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
@@ -123,45 +110,24 @@ const getActiveUserProjectRole = (
 			if (record.teamCaptainLogin === activeUserLogin) {
 				roles.add("Captain");
 			} else {
-				roles.add("Member");
+				roles.add("Partner");
 			}
 		}
 
 		return roles;
 	}, new Set());
 
-	if (!activeRoles.size) return "Member";
+	if (!activeRoles.size) return "Partner";
 
-	const orderedRoles = ["Auditor", "Captain", "Member"].filter((role) =>
+	const orderedRoles = ["Auditor", "Captain", "Partner"].filter((role) =>
 		activeRoles.has(role),
 	);
 
 	return orderedRoles.join(", ");
 };
 
-const stabilizeExpandedLayout = (layout, onApplyExpanded) => {
-	const startHeight = Math.ceil(layout.getBoundingClientRect().height);
-	if (startHeight > 0) {
-		layout.style.minHeight = `${startHeight}px`;
-	}
-
-	onApplyExpanded();
-
-	const releaseLayoutLock = () => {
-		layout.style.minHeight = "";
-	};
-
-	const onTransitionEnd = () => {
-		releaseLayoutLock();
-	};
-
-	layout.addEventListener("transitionend", onTransitionEnd, { once: true });
-	setTimeout(releaseLayoutLock, 700);
-};
-
 const resetProjectPanel = (refs) => {
 	const { panel, panelBody, layout } = refs;
-	layout.style.minHeight = "";
 	layout.classList.remove("sp-layout-expanded");
 	panel.classList.remove("active");
 	panelBody.replaceChildren();
@@ -180,29 +146,12 @@ const renderProjectPanelContent = (
 ) => {
 	panelBody.replaceChildren();
 
-	const grid = document.createElement("div");
-	grid.className = "sp-project-grid";
-
-	const appendStat = (value, label) => {
-		const stat = document.createElement("div");
-		stat.className = "sp-project-stat";
-
-		const statValue = document.createElement("span");
-		statValue.className = "stat-value";
-		statValue.textContent = value;
-
-		const statLabel = document.createElement("span");
-		statLabel.className = "stat-label";
-		statLabel.textContent = label;
-
-		stat.append(statValue, statLabel);
-		grid.append(stat);
-	};
-
-	appendStat(String(project.count), "Shared Records");
-	appendStat(project.roles.join(", ") || "—", "Roles");
-	appendStat(toLocalDate(project.latestDate), "Latest Shared");
-	appendStat(project.path ? "Available" : "—", "Project Link");
+	const grid = createProjectStatGrid([
+		{ value: String(project.count), label: "Shared Records" },
+		{ value: project.roles.join(", ") || "—", label: "Roles" },
+		{ value: formatLocalDate(project.latestDate), label: "Latest Shared" },
+		{ value: project.path ? "Available" : "—", label: "Project Link" },
+	]);
 	panelBody.append(grid);
 
 	const members = getProjectMembers(
@@ -212,59 +161,29 @@ const renderProjectPanelContent = (
 		project.roles,
 		activeUserLogin,
 	);
-	const membersTitle = document.createElement("h4");
-	membersTitle.className = "sp-project-subtitle";
-	membersTitle.textContent = "Project Members";
-
-	const membersList = document.createElement("ul");
-	membersList.className = "sp-project-members";
-	for (const member of members) {
-		const item = document.createElement("li");
-		item.className = "sp-project-member";
-		item.textContent =
-			member.login === activeUserLogin ? `${member.label} (you)` : member.label;
-		membersList.append(item);
-	}
+	const [membersTitle, membersList] = createProjectMembersSection(
+		members,
+		activeUserLogin,
+		{ titleText: "Project Members" },
+	);
 
 	panelBody.append(membersTitle, membersList);
 
-	const activeRoleTitle = document.createElement("h4");
-	activeRoleTitle.className = "sp-project-subtitle";
-	activeRoleTitle.textContent = "My Role";
-
-	const activeRoleValue = document.createElement("div");
-	activeRoleValue.className = "sp-project-my-role";
-	activeRoleValue.textContent = getActiveUserProjectRole(
-		project.name,
-		allCollabs,
-		collaboratorLogin,
-		activeUserLogin,
+	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(
+		getActiveUserProjectRole(
+			project.name,
+			allCollabs,
+			collaboratorLogin,
+			activeUserLogin,
+		),
+		{ titleText: "My Role" },
 	);
 
 	panelBody.append(activeRoleTitle, activeRoleValue);
 
-	if (project.path) {
-		const pathLabel = document.createElement("p");
-		pathLabel.className = "stat-label";
-		pathLabel.style.marginBottom = "0.25rem";
-		pathLabel.textContent = "Project Path";
-
-		const pathValue = document.createElement("div");
-		pathValue.className = "sp-project-path";
-		pathValue.textContent = project.path;
-
-		panelBody.append(pathLabel, pathValue);
-
-		const projectUrl = toProjectUrl(project.path);
-		if (projectUrl) {
-			const link = document.createElement("a");
-			link.href = projectUrl;
-			link.target = "_blank";
-			link.rel = "noopener noreferrer";
-			link.textContent = "Open project";
-			link.className = "sp-project-link";
-			panelBody.append(link);
-		}
+	const pathNodes = createProjectPathAndLinkSection(project.path, toProjectUrl);
+	if (pathNodes.length) {
+		panelBody.append(...pathNodes);
 	}
 };
 
@@ -277,6 +196,9 @@ const openProjectDetail = (
 ) => {
 	const { panel, panelTitle, panelBody, layout } = refs;
 	if (!panel || !panelTitle || !panelBody || !layout) return;
+	const isPanelAlreadyExpanded =
+		panel.classList.contains("active") &&
+		layout.classList.contains("sp-layout-expanded");
 
 	if (
 		selectedProjectName === project.name &&
@@ -290,6 +212,17 @@ const openProjectDetail = (
 	selectedProjectName = project.name;
 
 	panelTitle.textContent = project.name;
+	if (isPanelAlreadyExpanded) {
+		renderProjectPanelContent(
+			project,
+			panelBody,
+			allCollabs,
+			collaboratorLogin,
+			activeUserLogin,
+		);
+		return;
+	}
+
 	requestAnimationFrame(() => {
 		renderProjectPanelContent(
 			project,
@@ -299,8 +232,8 @@ const openProjectDetail = (
 			activeUserLogin,
 		);
 
-		stabilizeExpandedLayout(layout, () => {
-			layout.classList.add("sp-layout-expanded");
+		layout.classList.add("sp-layout-expanded");
+		requestAnimationFrame(() => {
 			panel.classList.add("active");
 		});
 	});
@@ -340,75 +273,8 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	const mainColumn = document.createElement("div");
 	mainColumn.className = "sp-main-column";
 
-	// Header with avatar, identity, and stats
-	const header = document.createElement("div");
-	header.className = "sp-header";
-
-	const initialsEl = document.createElement("div");
-	initialsEl.className = "sp-avatar";
-	const firstInitial = summary.displayName[0] ?? "";
-	const secondInitial = summary.displayName.split(" ")[1]?.[0] ?? "";
-	initialsEl.textContent =
-		`${firstInitial}${secondInitial}`.toUpperCase() ||
-		summary.login[0].toUpperCase();
-
-	const identity = document.createElement("div");
-	identity.className = "sp-identity";
-	const name = document.createElement("h3");
-	name.className = "sp-name";
-	name.textContent = summary.displayName;
-	const loginTag = document.createElement("p");
-	loginTag.className = "sp-login";
-	loginTag.textContent = `@${summary.login}`;
-	const campus = document.createElement("p");
-	campus.className = "sp-campus";
-	campus.textContent = `Campus: ${summary.campus}`;
-	identity.append(name, loginTag, campus);
-
-	// Shared projects stat
-	const statsRight = document.createElement("div");
-	statsRight.className = "sp-stats-right";
-
-	const statProjects = document.createElement("div");
-	statProjects.className = "sp-stat";
-	const valProjects = document.createElement("span");
-	valProjects.className = "stat-value";
-	valProjects.textContent = String(summary.totalProjects);
-	const lblProjects = document.createElement("span");
-	lblProjects.className = "stat-label";
-	lblProjects.textContent = "Shared Projects";
-	statProjects.append(valProjects, lblProjects);
-
-	const statCollabs = document.createElement("div");
-	statCollabs.className = "sp-stat";
-	const valCollabs = document.createElement("span");
-	valCollabs.className = "stat-value";
-	valCollabs.textContent = String(summary.totalCollaborations);
-	const lblCollabs = document.createElement("span");
-	lblCollabs.className = "stat-label";
-	lblCollabs.textContent = "Total Collabs";
-	statCollabs.append(valCollabs, lblCollabs);
-
-	statsRight.append(statProjects, statCollabs);
-
-	header.append(initialsEl, identity, statsRight);
-
-	// Roles section
-	const rolesSection = document.createElement("section");
-	rolesSection.className = "sp-skills";
-	const rolesTitle = document.createElement("h3");
-	rolesTitle.textContent = "Collaboration Roles";
-	rolesSection.append(rolesTitle);
-
-	const rolesList = document.createElement("ul");
-	rolesList.className = "collab-role-list";
-	for (const roleSummary of summary.byRole) {
-		const roleItem = document.createElement("li");
-		roleItem.className = "collab-role-item";
-		roleItem.textContent = `${roleSummary.role}: ${roleSummary.count}`;
-		rolesList.append(roleItem);
-	}
-	rolesSection.append(rolesList);
+	const header = createCollaboratorHeader(summary);
+	const rolesSection = createCollaboratorRolesSection(summary);
 
 	// Shared projects list
 	const projectsSection = document.createElement("section");
@@ -420,18 +286,11 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	const list = document.createElement("div");
 	list.className = "collab-project-list";
 
-	const detailPanel = document.createElement("aside");
-	detailPanel.className = "sp-project-panel";
-	const detailPanelTitle = document.createElement("h3");
-	detailPanelTitle.className = "sp-project-title";
-	detailPanelTitle.textContent = "Project Details";
-	const detailPanelBody = document.createElement("div");
-	detailPanelBody.className = "sp-project-body";
-	const detailHint = document.createElement("p");
-	detailHint.className = "sp-project-hint";
-	detailHint.textContent = "Click a shared project to expand details.";
-	detailPanelBody.append(detailHint);
-	detailPanel.append(detailPanelTitle, detailPanelBody);
+	const {
+		panel: detailPanel,
+		panelTitle: detailPanelTitle,
+		panelBody: detailPanelBody,
+	} = createProjectDetailPanelElements();
 
 	const detailRefs = {
 		layout,
@@ -473,7 +332,7 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 
 		const meta = document.createElement("span");
 		meta.className = "collab-project-meta";
-		meta.textContent = `${project.count}x • ${project.roles.join(", ")} • ${toLocalDate(project.latestDate)}`;
+		meta.textContent = `${project.count}x • ${project.roles.join(", ")} • ${formatLocalDate(project.latestDate)}`;
 
 		item.append(projectName, meta);
 		list.append(item);

@@ -90,15 +90,28 @@
 
 /* Campus select */
 .campus-select {
-	padding: 0.5rem 0.75rem;
+	min-width: 140px;
+	height: 42px;
+	padding: 0.55rem 2.35rem 0.55rem 0.9rem;
 	background: rgba(255, 255, 255, 0.04);
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: var(--radius-sm);
 	color: var(--text-primary);
 	font-family: var(--font-family);
 	font-size: var(--font-sm);
+	line-height: 1.2;
 	outline: none;
 	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+		linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+	background-position:
+		calc(100% - 18px) 52%,
+		calc(100% - 12px) 52%;
+	background-size: 6px 6px, 6px 6px;
+	background-repeat: no-repeat;
 	transition: border-color var(--transition-fast);
 }
 
@@ -139,6 +152,11 @@
 	flex-direction: column;
 	align-items: center;
 	gap: var(--space-md);
+}
+
+.students-error {
+	margin: 0;
+	color: var(--danger);
 }
 
 /* ── Table ── */
@@ -224,6 +242,10 @@
 .th-total,
 .td-total {
 	width: 80px;
+}
+
+.td-total-centered {
+	text-align: center;
 }
 
 .th-level,
@@ -350,6 +372,28 @@
 	color: var(--text-secondary);
 }
 
+.total-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.collab-tag-wrap,
+.collab-role-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.collab-project-tag {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.collab-project-tag-overflow {
+	background: rgba(255, 255, 255, 0.02);
+}
+
 .level-badge {
 	display: inline-block;
 	padding: 0.2rem 0.6rem;
@@ -359,6 +403,35 @@
 	font-size: var(--font-xs);
 	font-weight: 700;
 	color: var(--accent-start);
+}
+
+.level-badge.role-partner {
+	background: var(--accent-start);
+	color: #fff;
+	border-color: transparent;
+}
+
+.level-badge.role-captain {
+	background: rgba(99, 102, 241, 0.18);
+	color: #a5b4fc;
+	border-color: rgba(129, 140, 248, 0.35);
+}
+
+.level-badge.role-auditor {
+	background: rgba(59, 130, 246, 0.15);
+	color: #60a5fa;
+	border-color: rgba(59, 130, 246, 0.3);
+}
+
+.level-badge.role-member {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--text-secondary);
+	border-color: rgba(255, 255, 255, 0.15);
+}
+
+.collab-date-cell {
+	font-size: 0.85rem;
+	color: var(--text-muted);
 }
 
 .ratio-chip {
@@ -505,9 +578,7 @@
 	align-items: start;
 	min-width: 0;
 	overflow: hidden;
-	transition:
-		grid-template-columns var(--transition-slow),
-		gap var(--transition-slow);
+	transition: gap var(--transition-slow);
 }
 
 .sp-main-column {
@@ -539,6 +610,10 @@
 	padding: var(--space-lg);
 	position: sticky;
 	top: calc(var(--space-lg) + 52px);
+	max-height: calc(90vh - 140px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	will-change: transform, opacity;
 }
 
 .sp-layout.sp-layout-expanded .sp-project-panel {
@@ -594,6 +669,10 @@
 	color: var(--text-secondary);
 }
 
+.sp-path-label {
+	margin-bottom: 0.25rem;
+}
+
 .sp-project-members {
 	list-style: none;
 	margin: 0 0 var(--space-md);
@@ -610,6 +689,15 @@
 	background: rgba(255, 255, 255, 0.06);
 	border: 1px solid rgba(255, 255, 255, 0.09);
 	color: var(--text-secondary);
+}
+
+.sp-project-member-current-user {
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--text-primary);
+	border-color: rgba(14, 165, 233, 0.38);
+	background: rgba(14, 165, 233, 0.14);
+	text-transform: none;
 }
 
 .sp-project-my-role {
@@ -886,6 +974,8 @@
 	.sp-project-panel {
 		position: relative;
 		top: 0;
+		max-height: none;
+		overflow-y: visible;
 	}
 }
 

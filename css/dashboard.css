@@ -5,11 +5,73 @@
 /* ── User Card ── */
 .user-card {
 	grid-area: user;
+	display: flex;
+	flex-direction: column;
 }
 .user-info {
 	display: flex;
 	align-items: center;
 	gap: var(--space-xl);
+}
+
+.profile-roles-section {
+	margin-top: auto;
+	padding-top: var(--space-lg);
+}
+
+.profile-roles-title {
+	font-size: var(--font-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-muted);
+	margin-bottom: var(--space-sm);
+}
+
+.profile-role-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--space-md);
+	width: 100%;
+}
+
+.profile-role-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	padding: 0.95rem 0.75rem;
+	min-height: 84px;
+	border-radius: var(--radius-md);
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	transition:
+		border-color var(--transition-fast),
+		background var(--transition-fast);
+}
+
+.profile-role-item:hover,
+.profile-role-item:focus-visible {
+	background: rgba(14, 165, 233, 0.09);
+	border-color: rgba(14, 165, 233, 0.32);
+	outline: none;
+}
+
+.profile-role-label {
+	font-size: var(--font-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-muted);
+}
+
+.profile-role-value {
+	font-size: var(--font-2xl);
+	font-weight: 700;
+	color: var(--text-primary);
 }
 
 .avatar-ring {
@@ -91,11 +153,14 @@
 /* ── Audit Card ── */
 .audit-card {
 	grid-area: audit;
+	display: flex;
+	flex-direction: column;
 }
 .audit-stats {
 	display: flex;
 	align-items: center;
 	gap: var(--space-xl);
+	flex: 1;
 }
 
 .audit-ratio-display {
@@ -104,7 +169,7 @@
 }
 
 .ratio-number {
-	font-size: var(--font-3xl);
+	font-size: clamp(3rem, 6vw, 4.25rem);
 	font-weight: 800;
 	background: var(--accent-gradient);
 	-webkit-background-clip: text;
@@ -248,6 +313,13 @@
 #section-skills {
 	grid-area: skills;
 }
+
+.dashboard-empty-message {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--text-muted);
+}
+
 .skills-list {
 	display: flex;
 	flex-direction: column;
@@ -532,6 +604,12 @@
 	}
 	.audit-stats {
 		flex-direction: column;
+	}
+	.audit-bars {
+		width: 100%;
+	}
+	.profile-role-stats {
+		grid-template-columns: 1fr;
 	}
 	.xp-stats {
 		grid-template-columns: 1fr;

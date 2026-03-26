@@ -82,50 +82,23 @@ export const filterVerifiedCollaborations = (collabs, userCampus = "") => {
  * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
  */
 export const normalizeCollaboratorNamesByLogin = (collabs) => {
-	const canonicalByLogin = collabs.reduce((map, collab) => {
-		const current = map.get(collab.login) ?? { firstName: "", lastName: "" };
-		const candidate = {
-			firstName: toReadableName(collab.firstName),
-			lastName: toReadableName(collab.lastName),
-		};
-
-		const hasCurrentFull =
-			hasText(current.firstName) && hasText(current.lastName);
-		const hasCandidateFull =
-			hasText(candidate.firstName) && hasText(candidate.lastName);
-
-		// Prefer a record that has both parts filled
-		if (!hasCurrentFull && hasCandidateFull) {
-			map.set(collab.login, candidate);
-			return map;
-		}
-
-		// Fill in any missing parts from the candidate
-		if (!hasCurrentFull) {
-			map.set(collab.login, {
-				firstName: hasText(current.firstName)
-					? current.firstName
-					: candidate.firstName,
-				lastName: hasText(current.lastName)
-					? current.lastName
-					: candidate.lastName,
+	const canonicalByLogin = new Map();
+	
+	for (const collab of collabs) {
+		const current = canonicalByLogin.get(collab.login) ?? { firstName: "", lastName: "" };
+		
+		if (!hasText(current.firstName) || !hasText(current.lastName)) {
+			canonicalByLogin.set(collab.login, {
+				firstName: current.firstName || toReadableName(collab.firstName),
+				lastName: current.lastName || toReadableName(collab.lastName),
 			});
 		}
+	}
 
-		return map;
-	}, new Map());
-
-	// Apply canonical names back to every record
-	return collabs.map((collab) => {
-		const canonical = canonicalByLogin.get(collab.login);
-		if (!canonical) return collab;
-
-		return {
-			...collab,
-			firstName: canonical.firstName,
-			lastName: canonical.lastName,
-		};
-	});
+	return collabs.map((collab) => ({
+		...collab,
+		...canonicalByLogin.get(collab.login),
+	}));
 };
 
 // ── Collaborator summary builder ───────────────────────────────────
@@ -156,41 +129,26 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		[bestName.firstName, bestName.lastName].filter(Boolean).join(" ") || login;
 
 	// Count collaborations grouped by role
-	const byRole = matches.reduce((map, collab) => {
-		map.set(collab.role, (map.get(collab.role) ?? 0) + 1);
-		return map;
-	}, new Map());
+	const byRole = Object.groupBy(matches, (m) => m.role);
+	const roleCounts = Object.entries(byRole)
+		.map(([role, items]) => ({ role, count: items.length }))
+		.toSorted((a, b) => a.role.localeCompare(b.role));
 
 	// Aggregate project details including roles per project
-	const projects = [
-		...matches
-			.reduce((map, collab) => {
-				const current = map.get(collab.project);
-				if (!current) {
-					map.set(collab.project, {
-						name: collab.project,
-						path: collab.projectPath ?? "",
-						roles: new Set([collab.role]),
-						latestTs: collab.ts,
-						latestDate: collab.date,
-						count: 1,
-					});
-					return map;
-				}
-
-				map.set(collab.project, {
-					...current,
-					path: current.path || collab.projectPath || "",
-					roles: current.roles.union(new Set([collab.role])),
-					latestTs: Math.max(current.latestTs, collab.ts),
-					latestDate:
-						collab.ts >= current.latestTs ? collab.date : current.latestDate,
-					count: current.count + 1,
-				});
-				return map;
-			}, new Map())
-			.values(),
-	].toSorted((a, b) => b.latestTs - a.latestTs);
+	const groupedProjects = Map.groupBy(matches, (m) => m.project);
+	const projects = Array.from(groupedProjects.values())
+		.map((projectMatches) => {
+			const latest = projectMatches.reduce((a, b) => (a.ts >= b.ts ? a : b));
+			return {
+				name: latest.project,
+				path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
+				roles: [...new Set(projectMatches.map((m) => m.role))].toSorted(),
+				latestDate: latest.date,
+				latestTs: latest.ts,
+				count: projectMatches.length,
+			};
+		})
+		.toSorted((a, b) => b.latestTs - a.latestTs);
 
 	return {
 		login,
@@ -200,15 +158,13 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		totalProjects: projects.length,
 		latestTs: primary.ts,
 		latestDate: primary.date,
-		byRole: [...byRole.entries()]
-			.toSorted(([a], [b]) => a.localeCompare(b))
-			.map(([role, count]) => ({ role, count })),
-		projects: projects.map((project) => ({
-			name: project.name,
-			path: project.path,
-			roles: [...project.roles].toSorted(),
-			latestDate: project.latestDate,
-			count: project.count,
+		byRole: roleCounts,
+		projects: projects.map(({ name, path, roles, latestDate, count }) => ({
+			name,
+			path,
+			roles,
+			latestDate,
+			count,
 		})),
 	};
 };
