@@ -7,6 +7,10 @@
 
 import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummary } from "./collaborations.core.js";
+import { getSortedCollaborations } from "./collaborations.view.filters.js";
+import { renderCollabsPagination } from "./collaborations.view.pagination.js";
+import { renderCollabsTableBody } from "./collaborations.view.table.js";
+import { $, formatLocalDate } from "./infra.ui.js";
 import {
 	closeCollaboratorDetail,
 	openCollaboratorDetail,
@@ -35,76 +39,7 @@ let currentPage = 1;
 
 // ── DOM helpers ────────────────────────────────────────────────────
 
-const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
-
-const toLocalDate = (isoDate) => {
-	try {
-		const zdt = Temporal.Instant.from(isoDate).toZonedDateTimeISO(
-			Temporal.Now.timeZoneId(),
-		);
-		return zdt.toLocaleString("en", { dateStyle: "medium" });
-	} catch {
-		return isoDate?.split("T")?.[0] ?? "—";
-	}
-};
-
-// ── Filter & Sort pipeline ─────────────────────────────────────────
-
-/** @returns {typeof uniqueCollabs} Filtered subset matching search and role. */
-const getFiltered = () => {
-	const query = filterText.toLowerCase();
-	return uniqueCollabs.filter((c) => {
-		const matchText =
-			!query ||
-			c.login.toLowerCase().includes(query) ||
-			c.displayName.toLowerCase().includes(query) ||
-			c.projects.some((p) => p.name.toLowerCase().includes(query));
-		const matchRole =
-			!filterRole || c.byRole.some((r) => r.role === filterRole);
-		return matchText && matchRole;
-	});
-};
-
-/** @returns {typeof uniqueCollabs} Filtered and sorted collaborations. */
-const getSorted = () => {
-	const filtered = getFiltered();
-	return filtered.toSorted((a, b) => {
-		if (sortField === "date")
-			return sortDir === "asc"
-				? a.latestTs - b.latestTs
-				: b.latestTs - a.latestTs;
-		if (sortField === "totalCollaborations") {
-			const getVal = (c) =>
-				filterRole
-					? c.byRole.find((r) => r.role === filterRole)?.count || 0
-					: c.totalCollaborations;
-			return sortDir === "asc" ? getVal(a) - getVal(b) : getVal(b) - getVal(a);
-		}
-
-		let av = "";
-		let bv = "";
-		if (sortField === "project") {
-			av = a.projects.map((p) => p.name).join(", ");
-			bv = b.projects.map((p) => p.name).join(", ");
-		} else if (sortField === "role") {
-			if (filterRole) {
-				const aVal = a.byRole.find((r) => r.role === filterRole)?.count || 0;
-				const bVal = b.byRole.find((r) => r.role === filterRole)?.count || 0;
-				return sortDir === "asc" ? aVal - bVal : bVal - aVal;
-			}
-			av = a.byRole.map((r) => r.role).join(", ");
-			bv = b.byRole.map((r) => r.role).join(", ");
-		} else {
-			av = a[sortField] || "";
-			bv = b[sortField] || "";
-		}
-
-		return sortDir === "asc"
-			? String(av).localeCompare(String(bv))
-			: String(bv).localeCompare(String(av));
-	});
-};
 
 // ── Table row rendering ────────────────────────────────────────────
 
@@ -113,7 +48,13 @@ export const renderCollabsList = () => {
 	const tbody = $("#collabs-tbody");
 	if (!tbody) return;
 
-	const sorted = getSorted();
+	const sorted = getSortedCollaborations(
+		uniqueCollabs,
+		sortField,
+		sortDir,
+		filterText,
+		filterRole,
+	);
 	const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
 	currentPage = Math.min(currentPage, totalPages);
 
@@ -122,178 +63,20 @@ export const renderCollabsList = () => {
 		currentPage * PAGE_SIZE,
 	);
 
-	// Clear and rebuild tbody
-	tbody.replaceChildren();
-	if (!pageSlice.length) {
-		const tr = document.createElement("tr");
-		const td = document.createElement("td");
-		td.colSpan = 6;
-		td.className = "students-empty";
-		td.textContent = "No collaborations match your search.";
-		tr.append(td);
-		tbody.append(tr);
+	const hasRows = renderCollabsTableBody({
+		tbody,
+		pageSlice,
+		currentPage,
+		pageSize: PAGE_SIZE,
+		filterRole,
+		allCollabs,
+		onOpenCollaboratorDetail: openCollaboratorDetail,
+		formatDate: formatLocalDate,
+	});
+
+	if (!hasRows) {
 		renderPagination(totalPages);
 		return;
-	}
-
-	for (const [rank, collab] of pageSlice.entries()) {
-		const globalRank = (currentPage - 1) * PAGE_SIZE + rank + 1;
-		const firstPart = collab.displayName.split(" ")[0];
-		const secondPart = collab.displayName.split(" ")[1];
-		const initials =
-			`${firstPart?.[0] ?? ""}${secondPart?.[0] ?? ""}`.toUpperCase() ||
-			collab.login[0].toUpperCase();
-		const displayName = collab.displayName || collab.login;
-
-		// Clickable row that opens collaborator detail
-		const tr = document.createElement("tr");
-		tr.className = "student-row collab-row-action";
-		tr.setAttribute("role", "button");
-		tr.setAttribute("tabindex", "0");
-		tr.setAttribute(
-			"aria-label",
-			`Open collaborator details for ${displayName}`,
-		);
-		tr.addEventListener("click", () =>
-			openCollaboratorDetail(collab.login, allCollabs),
-		);
-		tr.addEventListener("keydown", (event) => {
-			if (event.key !== "Enter" && event.key !== " ") return;
-			event.preventDefault();
-			openCollaboratorDetail(collab.login, allCollabs);
-		});
-
-		// Rank cell
-		const rankCell = document.createElement("td");
-		rankCell.className = "td-rank";
-		const rankNum = document.createElement("span");
-		rankNum.className = "rank-num";
-		rankNum.textContent = String(globalRank);
-		rankCell.append(rankNum);
-
-		// Avatar + name cell
-		const avatarNameCell = document.createElement("td");
-		avatarNameCell.className = "td-avatar-name";
-		const avatar = document.createElement("div");
-		avatar.className = "student-avatar-mini";
-		avatar.textContent = initials;
-		const nameCol = document.createElement("div");
-		nameCol.className = "student-name-col";
-		const displayNameEl = document.createElement("span");
-		displayNameEl.className = "student-display-name";
-		displayNameEl.textContent = displayName;
-		const loginTag = document.createElement("span");
-		loginTag.className = "student-login-tag";
-		loginTag.textContent = `@${collab.login}`;
-		nameCol.append(displayNameEl, loginTag);
-		avatarNameCell.append(avatar, nameCol);
-
-		// Total Collabs cell
-		const totalCell = document.createElement("td");
-		totalCell.className = "td-total";
-		totalCell.style.textAlign = "center";
-		const totalBadge = document.createElement("span");
-		totalBadge.className = "total-badge";
-		totalBadge.style.background = "rgba(255,255,255,0.05)";
-		totalBadge.style.padding = "4px 8px";
-		totalBadge.style.borderRadius = "12px";
-		const displayedCollabsCount = filterRole
-			? collab.byRole.find((r) => r.role === filterRole)?.count || 0
-			: collab.totalCollaborations;
-		totalBadge.textContent = String(displayedCollabsCount);
-		totalCell.append(totalBadge);
-
-		// Project cell
-		const projectCell = document.createElement("td");
-		projectCell.className = "td-campus";
-
-		const projectWrap = document.createElement("div");
-		projectWrap.style.display = "flex";
-		projectWrap.style.flexWrap = "wrap";
-		projectWrap.style.gap = "6px";
-
-		const displayedProjects = filterRole
-			? collab.projects.filter((p) => p.roles.includes(filterRole))
-			: collab.projects;
-
-		const maxProjects = 4;
-		const visibleProjects = displayedProjects.slice(0, maxProjects);
-		for (const proj of visibleProjects) {
-			const projectTag = document.createElement("span");
-			projectTag.className = "campus-tag";
-			projectTag.style.background = "rgba(255,255,255,0.05)";
-			projectTag.textContent =
-				proj.count > 1 ? `${proj.name} x${proj.count}` : proj.name;
-			projectWrap.append(projectTag);
-		}
-
-		if (displayedProjects.length > maxProjects) {
-			const overflowTag = document.createElement("span");
-			overflowTag.className = "campus-tag";
-			overflowTag.style.background = "rgba(255,255,255,0.02)";
-			overflowTag.textContent = "...";
-			projectWrap.append(overflowTag);
-		}
-
-		projectCell.append(projectWrap);
-
-		// Role cell with conditional styling
-		const roleCell = document.createElement("td");
-		roleCell.className = "td-level";
-
-		const roleWrap = document.createElement("div");
-		roleWrap.style.display = "flex";
-		roleWrap.style.flexWrap = "wrap";
-		roleWrap.style.gap = "6px";
-
-		const displayedRoles = filterRole
-			? collab.byRole.filter((r) => r.role === filterRole)
-			: collab.byRole;
-
-		for (const r of displayedRoles) {
-			const roleBadge = document.createElement("span");
-			roleBadge.className = "level-badge";
-
-			if (r.role === "Partner") {
-				roleBadge.style.background = "var(--accent-start)";
-				roleBadge.style.color = "#fff";
-				roleBadge.style.borderColor = "transparent";
-			} else if (r.role === "Captain") {
-				roleBadge.style.background = "rgba(99, 102, 241, 0.18)";
-				roleBadge.style.color = "#a5b4fc";
-				roleBadge.style.borderColor = "rgba(129, 140, 248, 0.35)";
-			} else if (r.role === "Auditor") {
-				roleBadge.style.background = "rgba(59, 130, 246, 0.15)";
-				roleBadge.style.color = "#60a5fa";
-				roleBadge.style.borderColor = "rgba(59, 130, 246, 0.3)";
-			} else {
-				roleBadge.style.background = "rgba(255, 255, 255, 0.1)";
-				roleBadge.style.color = "var(--text-secondary)";
-				roleBadge.style.borderColor = "rgba(255, 255, 255, 0.15)";
-			}
-
-			roleBadge.textContent = r.count > 1 ? `${r.role} x${r.count}` : r.role;
-			roleWrap.append(roleBadge);
-		}
-
-		roleCell.append(roleWrap);
-
-		// Date cell
-		const dateCell = document.createElement("td");
-		dateCell.className = "td-date";
-		dateCell.style.fontSize = "0.85rem";
-		dateCell.style.color = "var(--text-muted)";
-		dateCell.textContent = toLocalDate(collab.latestDate);
-
-		tr.append(
-			rankCell,
-			avatarNameCell,
-			totalCell,
-			projectCell,
-			roleCell,
-			dateCell,
-		);
-		tbody.append(tr);
 	}
 
 	renderPagination(totalPages);
@@ -307,52 +90,15 @@ export const renderCollabsList = () => {
 const renderPagination = (totalPages) => {
 	const container = $("#collabs-pagination");
 	if (!container) return;
-	container.replaceChildren();
-	if (totalPages <= 1) return;
-
-	// Helper to create a pagination button
-	const mkBtn = (label, page, disabled = false, active = false) => {
-		const btn = document.createElement("button");
-		btn.className = `page-btn${active ? " page-active" : ""}`;
-		btn.textContent = label;
-		btn.disabled = disabled;
-		btn.addEventListener("click", () => {
+	renderCollabsPagination({
+		container,
+		totalPages,
+		currentPage,
+		onPageChange: (page) => {
 			currentPage = page;
 			renderCollabsList();
-			$("#collaborations-view")?.scrollIntoView({
-				behavior: "smooth",
-				block: "start",
-			});
-		});
-		return btn;
-	};
-
-	container.append(mkBtn("‹", currentPage - 1, currentPage === 1));
-	const start = Math.max(1, currentPage - 3);
-	const end = Math.min(totalPages, currentPage + 3);
-
-	if (start > 1) {
-		container.append(mkBtn("1", 1));
-		if (start > 2) {
-			const dots = document.createElement("span");
-			dots.className = "page-dots";
-			dots.textContent = "…";
-			container.append(dots);
-		}
-	}
-	for (let p = start; p <= end; p++) {
-		container.append(mkBtn(String(p), p, false, p === currentPage));
-	}
-	if (end < totalPages) {
-		if (end < totalPages - 1) {
-			const dots = document.createElement("span");
-			dots.className = "page-dots";
-			dots.textContent = "…";
-			container.append(dots);
-		}
-		container.append(mkBtn(String(totalPages), totalPages));
-	}
-	container.append(mkBtn("›", currentPage + 1, currentPage === totalPages));
+		},
+	});
 };
 
 // ── Sort header indicators ─────────────────────────────────────────
@@ -460,7 +206,7 @@ export const initCollaborationsView = async (userId) => {
 		if (!loadingEl) return;
 		loadingEl.replaceChildren();
 		const errorMsg = document.createElement("p");
-		errorMsg.style.color = "var(--danger)";
+		errorMsg.className = "students-error";
 		errorMsg.textContent = "Failed to load collaborations data.";
 		loadingEl.append(errorMsg);
 	};

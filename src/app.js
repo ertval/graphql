@@ -23,8 +23,7 @@ import {
 	saveToken,
 } from "./infra.auth.js";
 import { configureGraphqlAuth } from "./infra.graphql.js";
-
-const $ = (sel) => document.querySelector(sel);
+import { $ } from "./infra.ui.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 const loginView = $("#login-view");

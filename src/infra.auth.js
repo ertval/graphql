@@ -5,13 +5,13 @@
  */
 
 import { fail, ok } from "./infra.result.js";
+import { createRequestController } from "./infra.network.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";
 const AUTH_URL = `${PLATFORM}/api/auth/signin`;
 export const TOKEN_STORAGE_KEY = "graphql_jwt_session";
 export const AUTH_SYNC_KEY = "graphql_auth_event";
-const REQUEST_TIMEOUT_MS = 12_000;
 const TOKEN_EXP_LEEWAY_SECONDS = 30;
 const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const LAST_ACTIVE_KEY = "graphql_jwt_last_active";
@@ -57,16 +57,6 @@ const touchSessionActivity = (storage) => {
 	storage?.setItem(LAST_ACTIVE_KEY, String(nowEpochMs()));
 };
 
-/** Builds an AbortController that auto-cancels after the timeout. */
-const createRequestController = () => {
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-	return {
-		controller,
-		[Symbol.dispose]: () => clearTimeout(timeoutId),
-	};
-};
-
 // ── Login ──────────────────────────────────────────────────────────
 /**
  * Authenticates via Basic auth and returns a Result wrapping the JWT.
@@ -75,9 +65,9 @@ const createRequestController = () => {
  * @returns {Promise<{ok:true,data:string}|{ok:false,error:Error}>}
  */
 export const login = async (identifier, password) => {
+	const requestControl = createRequestController();
 	try {
 		const credentials = btoa(`${identifier}:${password}`);
-		using requestControl = createRequestController();
 
 		const response = await fetch(AUTH_URL, {
 			method: "POST",
@@ -130,6 +120,8 @@ export const login = async (identifier, password) => {
 			return fail(new Error("Request timed out. Please try again."));
 		}
 		return fail(error);
+	} finally {
+		requestControl[Symbol.dispose]();
 	}
 };
 

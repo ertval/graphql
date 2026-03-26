@@ -74,6 +74,140 @@ export const fetchCollaborations = async (userId) => {
 	}));
 };
 
+/** @typedef {{ login: string, firstName: string, lastName: string, campus: string }} TeamMember */
+
+/** @param {string | null | undefined} isoDate */
+const toEpochMsSafe = (isoDate) => {
+	if (!isoDate) return 0;
+	try {
+		return Temporal.Instant.from(isoDate).epochMilliseconds;
+	} catch {
+		return 0;
+	}
+};
+
+/** @param {Array<{ user?: { login?: string, firstName?: string, lastName?: string, campus?: string } }>} groupMembers */
+const toTeamMembers = (groupMembers = []) =>
+	groupMembers.flatMap(({ user }) => (user
+		? [{
+			login: user.login,
+			firstName: user.firstName ?? "",
+			lastName: user.lastName ?? "",
+			campus: user.campus ?? "",
+		}]
+		: []));
+
+const canonicalizeIdentityByLogin = (collabs) => {
+	const identityByLogin = collabs.reduce((map, collab) => {
+		const current = map.get(collab.login) ?? { firstName: "", lastName: "", campus: "" };
+		map.set(collab.login, {
+			firstName: current.firstName || collab.firstName || "",
+			lastName: current.lastName || collab.lastName || "",
+			campus: current.campus || collab.campus || "",
+		});
+		return map;
+	}, new Map());
+
+	return collabs.map((collab) => {
+		const canonical = identityByLogin.get(collab.login);
+		if (!canonical) return collab;
+		return {
+			...collab,
+			firstName: collab.firstName || canonical.firstName,
+			lastName: collab.lastName || canonical.lastName,
+			campus: collab.campus || canonical.campus,
+		};
+	});
+};
+
+const dedupeByLoginProjectRole = (collabs) => {
+	const seen = new Set();
+	return collabs.filter((collab) => {
+		const key = `${collab.login}|${collab.project}|${collab.role}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+};
+
+const mapGroupRecords = (groups, userId) =>
+	(groups ?? []).flatMap((g) => {
+		const prjName = g.group?.object?.name || "Unknown Project";
+		const projectPath = g.group?.path ?? g.path ?? "";
+		const teamMembers = toTeamMembers(g.group?.members ?? []);
+		return (g.group?.members ?? []).flatMap((member) => {
+			if (member.userId === userId || !member.user) return [];
+			const isCaptain = member.user.login === g.group?.captainLogin;
+			return [{
+				id: `u_${member.userId}_${g.createdAt}`,
+				login: member.user.login,
+				firstName: member.user.firstName,
+				lastName: member.user.lastName,
+				campus: member.user.campus,
+				project: prjName,
+				projectPath,
+				role: isCaptain ? "Captain" : "Partner",
+				relationType: "group_member",
+				teamCaptainLogin: g.group?.captainLogin ?? "",
+				date: g.createdAt,
+				ts: toEpochMsSafe(g.createdAt),
+				teamMembers,
+			}];
+		});
+	});
+
+const mapAuditRecords = (audits, mapper) =>
+	(audits ?? []).flatMap((audit) => (audit.grade === null ? [] : mapper(audit)));
+
+const mapAuditGivenRecords = (auditsGiven) =>
+	mapAuditRecords(auditsGiven, (a) => {
+		if (!a.group?.captainLogin) return [];
+		const teamMembers = toTeamMembers(a.group?.members ?? []);
+		const captainMember = (a.group?.members ?? []).find((member) => member.user?.login === a.group.captainLogin);
+		return [{
+			id: `a_${a.group.captainLogin}_${a.createdAt}`,
+			login: a.group.captainLogin,
+			firstName: captainMember?.user?.firstName ?? "",
+			lastName: captainMember?.user?.lastName ?? "",
+			campus: captainMember?.user?.campus ?? "",
+			project: a.group?.object?.name || "Unknown",
+			projectPath: a.group?.path ?? "",
+			role: "Captain",
+			relationType: "audit_given",
+			teamCaptainLogin: a.group?.captainLogin ?? "",
+			date: a.createdAt,
+			ts: toEpochMsSafe(a.createdAt),
+			teamMembers,
+		}];
+	});
+
+const mapAuditReceivedRecords = (auditsReceived) =>
+	mapAuditRecords(auditsReceived, (a) => {
+		if (!a.auditor?.login) return [];
+		const teamMembers = toTeamMembers(a.group?.members ?? []);
+		return [{
+			id: `r_${a.auditor.login}_${a.createdAt}`,
+			login: a.auditor.login,
+			firstName: a.auditor.firstName,
+			lastName: a.auditor.lastName,
+			campus: a.auditor.campus,
+			project: a.group?.object?.name || "Unknown",
+			projectPath: a.group?.path ?? "",
+			role: "Auditor",
+			relationType: "audit_received",
+			teamCaptainLogin: a.group?.captainLogin ?? "",
+			date: a.createdAt,
+			ts: toEpochMsSafe(a.createdAt),
+			teamMembers,
+		}];
+	});
+
+const mapCollaborationRecords = (records, userId) => [
+	...mapGroupRecords(records.groups, userId),
+	...mapAuditGivenRecords(records.auditsGiven),
+	...mapAuditReceivedRecords(records.auditsReceived),
+];
+
 /** Fetches and normalizes collaboration records into view-ready objects. */
 export const loadCollaborationsData = async (userId) => {
 	const [collabsResult, userResult] = await Promise.all([
@@ -85,153 +219,11 @@ export const loadCollaborationsData = async (userId) => {
 	}
 
 	const userCampus = userResult.ok ? userResult.data?.campus ?? "" : "";
-
-	const { groups, auditsGiven, auditsReceived } = collabsResult.data;
-	const collabs = [];
-
-	// Convert ISO dates to epoch ms for sorting
-	const toEpochMs = (isoDate) =>
-		Temporal.Instant.from(isoDate).epochMilliseconds;
-
-	// Groups (Partners)
-	for (const g of groups) {
-		const prjName = g.group?.object?.name || "Unknown Project";
-		const projectPath = g.group?.path ?? g.path ?? "";
-		const teamMembers = (g.group?.members ?? [])
-			.map((member) => member.user)
-			.filter(Boolean)
-			.map((user) => ({
-				login: user.login,
-				firstName: user.firstName ?? "",
-				lastName: user.lastName ?? "",
-				campus: user.campus ?? "",
-			}));
-		for (const member of g.group?.members || []) {
-			if (member.userId !== userId && member.user) {
-				const isCaptain = member.user.login === g.group?.captainLogin;
-				collabs.push({
-					id: `u_${member.userId}_${g.createdAt}`,
-					login: member.user.login,
-					firstName: member.user.firstName,
-					lastName: member.user.lastName,
-					campus: member.user.campus,
-					project: prjName,
-					projectPath,
-					role: isCaptain ? "Captain" : "Partner",
-					relationType: "group_member",
-					teamCaptainLogin: g.group?.captainLogin ?? "",
-					date: g.createdAt,
-					ts: toEpochMs(g.createdAt),
-					teamMembers,
-				});
-			}
-		}
-	}
-
-	// Audits Given (they were the Captain)
-	for (const a of auditsGiven) {
-		if (a.grade !== null && a.group?.captainLogin) {
-			const teamMembers = (a.group?.members ?? [])
-				.map((member) => member.user)
-				.filter(Boolean)
-				.map((user) => ({
-					login: user.login,
-					firstName: user.firstName ?? "",
-					lastName: user.lastName ?? "",
-					campus: user.campus ?? "",
-				}));
-			const captainMember = (a.group?.members ?? []).find(
-				(member) => member.user?.login === a.group.captainLogin,
-			);
-			collabs.push({
-				id: `a_${a.group.captainLogin}_${a.createdAt}`,
-				login: a.group.captainLogin,
-				firstName: captainMember?.user?.firstName ?? "",
-				lastName: captainMember?.user?.lastName ?? "",
-				campus: captainMember?.user?.campus ?? "",
-				project: a.group?.object?.name || "Unknown",
-				projectPath: a.group?.path ?? "",
-				role: "Captain",
-				relationType: "audit_given",
-				teamCaptainLogin: a.group?.captainLogin ?? "",
-				date: a.createdAt,
-				ts: toEpochMs(a.createdAt),
-				teamMembers,
-			});
-		}
-	}
-
-	// Audits Received (they were the Auditor)
-	for (const a of auditsReceived) {
-		if (a.grade !== null && a.auditor?.login) {
-			const teamMembers = (a.group?.members ?? [])
-				.map((member) => member.user)
-				.filter(Boolean)
-				.map((user) => ({
-					login: user.login,
-					firstName: user.firstName ?? "",
-					lastName: user.lastName ?? "",
-					campus: user.campus ?? "",
-				}));
-			collabs.push({
-				id: `r_${a.auditor.login}_${a.createdAt}`,
-				login: a.auditor.login,
-				firstName: a.auditor.firstName,
-				lastName: a.auditor.lastName,
-				campus: a.auditor.campus,
-				project: a.group?.object?.name || "Unknown",
-				projectPath: a.group?.path ?? "",
-				role: "Auditor",
-				relationType: "audit_received",
-				teamCaptainLogin: a.group?.captainLogin ?? "",
-				date: a.createdAt,
-				ts: toEpochMs(a.createdAt),
-				teamMembers,
-			});
-		}
-	}
-
-	const identityByLogin = collabs.reduce((map, collab) => {
-		const current = map.get(collab.login) ?? {
-			firstName: "",
-			lastName: "",
-			campus: "",
-		};
-
-		map.set(collab.login, {
-			firstName: current.firstName || collab.firstName || "",
-			lastName: current.lastName || collab.lastName || "",
-			campus: current.campus || collab.campus || "",
-		});
-
-		return map;
-	}, new Map());
-
-	const enrichedCollabs = collabs.map((collab) => {
-		const canonical = identityByLogin.get(collab.login);
-		if (!canonical) return collab;
-
-		return {
-			...collab,
-			firstName: collab.firstName || canonical.firstName,
-			lastName: collab.lastName || canonical.lastName,
-			campus: collab.campus || canonical.campus,
-		};
-	});
-
-	// Deduplicate by login|project|role composite key
-	const unique = [];
-	const seen = new Set();
-	for (const c of enrichedCollabs) {
-		const key = `${c.login}|${c.project}|${c.role}`;
-		if (!seen.has(key)) {
-			seen.add(key);
-			unique.push(c);
-		}
-	}
-
-	const verifiedCollabs = filterVerifiedCollaborations(unique, userCampus);
-	const collabsByLogin = Object.groupBy(verifiedCollabs, c => c.login);
+	const collabs = mapCollaborationRecords(collabsResult.data, userId);
+	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
+	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);
+	const verifiedCollabs = filterVerifiedCollaborations(dedupedCollabs, userCampus);
+	const collabsByLogin = Object.groupBy(verifiedCollabs, (collab) => collab.login);
 
 	const withTotalCollabs = verifiedCollabs.map((collab) => ({
 		...collab,

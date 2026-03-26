@@ -154,6 +154,11 @@
 	gap: var(--space-md);
 }
 
+.students-error {
+	margin: 0;
+	color: var(--danger);
+}
+
 /* ── Table ── */
 .students-table-wrap {
 	border-radius: var(--radius-lg);
@@ -237,6 +242,10 @@
 .th-total,
 .td-total {
 	width: 80px;
+}
+
+.td-total-centered {
+	text-align: center;
 }
 
 .th-level,
@@ -363,6 +372,28 @@
 	color: var(--text-secondary);
 }
 
+.total-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.collab-tag-wrap,
+.collab-role-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.collab-project-tag {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.collab-project-tag-overflow {
+	background: rgba(255, 255, 255, 0.02);
+}
+
 .level-badge {
 	display: inline-block;
 	padding: 0.2rem 0.6rem;
@@ -372,6 +403,35 @@
 	font-size: var(--font-xs);
 	font-weight: 700;
 	color: var(--accent-start);
+}
+
+.level-badge.role-partner {
+	background: var(--accent-start);
+	color: #fff;
+	border-color: transparent;
+}
+
+.level-badge.role-captain {
+	background: rgba(99, 102, 241, 0.18);
+	color: #a5b4fc;
+	border-color: rgba(129, 140, 248, 0.35);
+}
+
+.level-badge.role-auditor {
+	background: rgba(59, 130, 246, 0.15);
+	color: #60a5fa;
+	border-color: rgba(59, 130, 246, 0.3);
+}
+
+.level-badge.role-member {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--text-secondary);
+	border-color: rgba(255, 255, 255, 0.15);
+}
+
+.collab-date-cell {
+	font-size: 0.85rem;
+	color: var(--text-muted);
 }
 
 .ratio-chip {
@@ -605,6 +665,10 @@
 	font-weight: 600;
 	margin-bottom: var(--space-sm);
 	color: var(--text-secondary);
+}
+
+.sp-path-label {
+	margin-bottom: 0.25rem;
 }
 
 .sp-project-members {

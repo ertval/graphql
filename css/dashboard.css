@@ -248,6 +248,13 @@
 #section-skills {
 	grid-area: skills;
 }
+
+.dashboard-empty-message {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--text-muted);
+}
+
 .skills-list {
 	display: flex;
 	flex-direction: column;

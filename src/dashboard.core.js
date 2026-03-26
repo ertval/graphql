@@ -4,6 +4,8 @@
  * @module dashboard.core
  */
 
+export { isAuthFailureError } from "./infra.errors.js";
+
 /**
  * Computes total XP and the number of completed projects from raw data.
  * @param {Array<{amount:number}>} transactions
@@ -39,19 +41,3 @@ export const computeTopSkills = (skills, limit = 8) => {
 		.slice(0, limit);
 };
 
-/**
- * Checks if an error string/message indicates the session is no longer valid.
- * @param {unknown} err
- * @returns {boolean}
- */
-export const isAuthFailureError = (err) => {
-	const message = err instanceof Error ? err.message.toLowerCase() : "";
-	return (
-		message.includes("session expired") ||
-		message.includes("not authenticated") ||
-		message.includes("unauthorized") ||
-		message.includes("forbidden") ||
-		message.includes("graphql error: jwt") ||
-		message.includes("graphql error: token")
-	);
-};

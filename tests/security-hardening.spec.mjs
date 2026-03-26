@@ -15,6 +15,7 @@ const dashboardApiJs = read("src/dashboard.api.js");
 const dashboardViewJs = read("src/dashboard.view.js");
 const collaborationsCss = read("css/collaborations.css");
 const apiJs = read("src/infra.graphql.js");
+const infraErrorsJs = read("src/infra.errors.js");
 const indexHtml = read("index.html");
 
 test("collaborations loading error uses safe textContent and no template innerHTML sink", () => {
@@ -134,10 +135,14 @@ test("api clears token on 401 and 403 GraphQL responses", () => {
 });
 
 test("api clears token on GraphQL auth-related errors", () => {
-	assert.match(apiJs, /const isAuthErrorMessage = \(message\) =>/);
 	assert.match(
 		apiJs,
-		/if \(isAuthErrorMessage\(messages\)\) \{\s*\n\s*graphqlAuth\.clearToken\(\);/,
+		/import\s+\{\s*isAuthFailureMessage\s*\}\s+from\s+"\.\/infra\.errors\.js"/,
+	);
+	assert.match(infraErrorsJs, /export const isAuthFailureMessage = \(message\) =>/);
+	assert.match(
+		apiJs,
+		/if \(isAuthFailureMessage\(messages\)\) \{\s*\n\s*graphqlAuth\.clearToken\(\);/,
 	);
 });
 

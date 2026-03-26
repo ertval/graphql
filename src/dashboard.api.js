@@ -178,9 +178,18 @@ export const fetchProjectTeams = async (userId, projectObjectIds) => {
   `;
 
 	return mapResult(await graphqlQuery(query, { userId, projectObjectIds }), (data) => {
-		const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
-		const grouped = Map.groupBy(groups, (group) => String(group.object?.id));
-		grouped.delete("undefined");
+    const groups = (data.group_user ?? []).map((entry) => entry.group).filter(Boolean);
+    const grouped = groups.reduce((map, group) => {
+      const projectObjectId = group.object?.id;
+      if (typeof projectObjectId !== "number") {
+        return map;
+      }
+
+      const key = String(projectObjectId);
+      const existing = map.get(key) ?? [];
+      map.set(key, [...existing, group]);
+      return map;
+    }, new Map());
 
 		const result = new Map();
 		for (const [key, projectGroups] of grouped.entries()) {
