@@ -230,19 +230,12 @@ export const loadCollaborationsData = async (userId) => {
 		}
 	}
 
-	// Calculate total collaborations per login
 	const verifiedCollabs = filterVerifiedCollaborations(unique, userCampus);
+	const collabsByLogin = Object.groupBy(verifiedCollabs, c => c.login);
 
-	const totalCollabsByLogin = new Map();
-	for (const c of verifiedCollabs) {
-		totalCollabsByLogin.set(
-			c.login,
-			(totalCollabsByLogin.get(c.login) ?? 0) + 1,
-		);
-	}
 	const withTotalCollabs = verifiedCollabs.map((collab) => ({
 		...collab,
-		totalCollaborations: totalCollabsByLogin.get(collab.login) ?? 0,
+		totalCollaborations: collabsByLogin[collab.login].length,
 	}));
 
 	const allCollabs = normalizeCollaboratorNamesByLogin(withTotalCollabs);

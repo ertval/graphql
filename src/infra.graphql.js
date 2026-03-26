@@ -33,7 +33,7 @@ const createRequestController = () => {
 	const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 	return {
 		controller,
-		release: () => clearTimeout(timeoutId),
+		[Symbol.dispose]: () => clearTimeout(timeoutId),
 	};
 };
 
@@ -59,14 +59,13 @@ const isAuthErrorMessage = (message) => {
  * @returns {Promise<{ok:true,data:object}|{ok:false,error:Error}>}
  */
 export const graphqlQuery = async (query, variables = {}) => {
-	let requestControl;
 	try {
 		const token = graphqlAuth.getToken();
 		if (!token) {
 			return fail(new Error("Not authenticated. Please log in."));
 		}
 
-		requestControl = createRequestController();
+		using requestControl = createRequestController();
 		const response = await fetch(GRAPHQL_URL, {
 			method: "POST",
 			headers: {
@@ -120,7 +119,5 @@ export const graphqlQuery = async (query, variables = {}) => {
 			return fail(new Error("Request timed out. Please try again."));
 		}
 		return fail(error);
-	} finally {
-		requestControl?.release();
 	}
 };

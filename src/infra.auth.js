@@ -63,7 +63,7 @@ const createRequestController = () => {
 	const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 	return {
 		controller,
-		release: () => clearTimeout(timeoutId),
+		[Symbol.dispose]: () => clearTimeout(timeoutId),
 	};
 };
 
@@ -75,10 +75,9 @@ const createRequestController = () => {
  * @returns {Promise<{ok:true,data:string}|{ok:false,error:Error}>}
  */
 export const login = async (identifier, password) => {
-	let requestControl;
 	try {
 		const credentials = btoa(`${identifier}:${password}`);
-		requestControl = createRequestController();
+		using requestControl = createRequestController();
 
 		const response = await fetch(AUTH_URL, {
 			method: "POST",
@@ -131,8 +130,6 @@ export const login = async (identifier, password) => {
 			return fail(new Error("Request timed out. Please try again."));
 		}
 		return fail(error);
-	} finally {
-		requestControl?.release();
 	}
 };
 
