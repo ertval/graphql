@@ -4,14 +4,28 @@
  */
 
 const $ = (sel) => document.querySelector(sel);
+const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 const normalizeProjectName = (name) =>
 	typeof name === "string" ? name.trim().toLowerCase() : "";
-const PLATFORM_ORIGIN = "https://platform.zone01.gr";
 
 const getActiveUserLogin = () => {
 	const loginText = $("#user-login")?.textContent?.trim() ?? "";
 	if (!loginText) return "";
 	return loginText.startsWith("@") ? loginText.slice(1) : loginText;
+};
+
+const getActiveUserDisplayName = () => {
+	const fullNameText = $("#user-fullname")?.textContent?.trim() ?? "";
+	if (fullNameText) return fullNameText;
+
+	const login = getActiveUserLogin();
+	if (!login) return "";
+
+	return login
+		.split(/[._-]+/)
+		.filter(Boolean)
+		.map((part) => part[0].toUpperCase() + part.slice(1))
+		.join(" ");
 };
 
 const toProjectUrl = (pathValue) => {
@@ -149,13 +163,10 @@ const openProjectDetail = (result, xpByName) => {
 
 	const name = result.object?.name ?? "Unknown Project";
 	const projectRoles = result.projectRoles ?? [result.myRole ?? "Member"];
-	const activeUserLogin = getActiveUserLogin();
-	const isCaptain =
-		activeUserLogin && result.teamCaptainLogin === activeUserLogin;
-	const isMember = (result.teamMembers ?? []).some(
-		(member) => member.login === activeUserLogin,
-	);
-	const myRole = result.myRole ?? (isCaptain ? "Captain" : "Member");
+	const activeUserLogin = result.activeUserLogin ?? "";
+	const activeUserDisplayName = result.activeUserDisplayName ?? "";
+	const teamMembers = (result.teamMembers ?? []).filter(Boolean);
+	const myRole = result.myRole ?? "Member";
 
 	// Format date using Temporal
 	const dateStr = (() => {
@@ -206,23 +217,24 @@ const openProjectDetail = (result, xpByName) => {
 	membersTitle.className = "sp-project-subtitle";
 	membersTitle.textContent = "Project Members";
 
-	const members = (result.teamMembers ?? []).filter(Boolean);
 	const membersList = document.createElement("ul");
 	membersList.className = "sp-project-members";
 
-	if (!members.length) {
+	if (!teamMembers.length) {
 		const item = document.createElement("li");
 		item.className = "sp-project-member";
 		item.textContent = "Team data unavailable";
 		membersList.append(item);
 	} else {
-		for (const member of members) {
+		for (const member of teamMembers) {
 			const item = document.createElement("li");
-			item.className = "sp-project-member";
+			const isCurrentUser = member.login === activeUserLogin;
+			const memberDisplayName = member.displayName ?? member.login ?? "Unknown";
+			item.className = `sp-project-member${isCurrentUser ? " sp-project-member-current-user" : ""}`;
 			item.textContent =
-				member.login === activeUserLogin
-					? `${member.displayName ?? member.login ?? "Unknown"} (you)`
-					: (member.displayName ?? member.login ?? "Unknown");
+				isCurrentUser && activeUserDisplayName
+					? activeUserDisplayName
+					: memberDisplayName;
 			membersList.append(item);
 		}
 	}
@@ -321,13 +333,25 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 				return normalizeProjectName(r.object?.name) === normalizedProjectName;
 			},
 		);
-		const fallbackTeamInfo =
-			(projectObjectId !== null
+		const resolvedProjectObjectId =
+			projectObjectId !== null
+				? projectObjectId
+				: typeof resultRecord?.objectId === "number"
+					? resultRecord.objectId
+					: null;
+		const directTeamInfo =
+			projectObjectId !== null
 				? getTeamsByProject().get(String(projectObjectId))
-				: null) ?? { members: [], captainLogin: "" };
+				: null;
+		const fallbackTeamInfo =
+			(directTeamInfo ??
+				(resolvedProjectObjectId !== null
+				? getTeamsByProject().get(String(resolvedProjectObjectId))
+				: null)) ?? { members: [], captainLogin: "" };
 		const fallbackTeamMembers = fallbackTeamInfo.members ?? [];
 		const fallbackCreatedAt = Temporal.Now.instant().toString();
 		const activeUserLogin = getActiveUserLogin();
+		const activeUserDisplayName = getActiveUserDisplayName();
 		const fallbackIsCaptain =
 			activeUserLogin && fallbackTeamInfo.captainLogin === activeUserLogin;
 		const fallbackIsMember = fallbackTeamMembers.some(
@@ -339,6 +363,13 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 				normalizeProjectName(record.object?.name) ===
 				normalizeProjectName(projectName),
 		).length;
+
+		const hasHydratedTeamData =
+			(resultRecord?.teamMembers?.length ?? 0) > 0 ||
+			typeof resultRecord?.teamCaptainLogin === "string";
+		const resolvedMyRole = hasHydratedTeamData
+			? (resultRecord?.myRole ?? fallbackMyRole)
+			: fallbackMyRole;
 
 		const detailResult = {
 			object: {
@@ -355,10 +386,12 @@ export const initProjectDetailClose = (getXpTx, getResults, getTeamsByProject) =
 					: fallbackTeamMembers),
 			teamCaptainLogin:
 				resultRecord?.teamCaptainLogin ?? fallbackTeamInfo.captainLogin ?? "",
-			myRole: resultRecord?.myRole ?? fallbackMyRole,
-			projectRoles: resultRecord?.projectRoles ?? [resultRecord?.myRole ?? fallbackMyRole],
+			myRole: resolvedMyRole,
+			projectRoles: resultRecord?.projectRoles ?? [resolvedMyRole],
 			sharedRecordsCount:
 				resultRecord?.sharedRecordsCount ?? (sharedRecordsCount || 1),
+			activeUserLogin,
+			activeUserDisplayName,
 		};
 
 		const tempXpMap = new Map([[projectName, xpAmount]]);

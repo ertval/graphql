@@ -85,14 +85,48 @@ const mockGraphqlData = {
 			object: { name: "Beta Project", type: "project" },
 		},
 	],
+	projectTeams: [
+		{
+			group: {
+				captainLogin: "runtime-user",
+				object: { id: 1, name: "Alpha Project" },
+				members: [
+					{
+						user: {
+							login: "runtime-user",
+							firstName: "Runtime",
+							lastName: "Tester",
+						},
+					},
+					{
+						user: {
+							login: "peer-user",
+							firstName: "Peer",
+							lastName: "One",
+						},
+					},
+				],
+			},
+		},
+	],
 	objectById: [{ id: 1, name: "Alpha Project", type: "project" }],
 	collabs: {
 		group_user: [
 			{
 				createdAt: "2026-01-25T10:00:00.000Z",
 				group: {
+					captainLogin: "runtime-user",
 					object: { name: "Alpha Project" },
 					members: [
+						{
+							userId: 101,
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+								campus: "Athens",
+							},
+						},
 						{
 							userId: 999,
 							user: {
@@ -126,7 +160,21 @@ const installMockAuthAndGraphql = async (page) => {
 		const requestBody = route.request().postDataJSON();
 		const query = requestBody?.query ?? "";
 
-		if (query.includes("user {")) {
+		if (
+			query.includes("GetProjectTeams") ||
+			(query.includes("group_user(") && query.includes("projectObjectIds"))
+		) {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					data: { group_user: mockGraphqlData.projectTeams },
+				}),
+			});
+			return;
+		}
+
+		if (query.trim().startsWith("{") && query.includes("user {")) {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
@@ -289,6 +337,11 @@ test("XP by Project interaction opens project detail modal", async ({
 	await page.click('[aria-label="View details for Alpha Project"]');
 	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
 	await expect(page.locator("#pd-title")).toContainText("Alpha Project");
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"Runtime Tester",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText("Peer One");
+	await expect(page.locator("#project-detail-content")).toContainText("Captain");
 
 	await page.click("#project-detail-close");
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(

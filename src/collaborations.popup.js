@@ -16,6 +16,20 @@ const getActiveUserLogin = () => {
 	return loginText.startsWith("@") ? loginText.slice(1) : loginText;
 };
 
+const getActiveUserDisplayName = () => {
+	const fullNameText = $("#user-fullname")?.textContent?.trim() ?? "";
+	if (fullNameText) return fullNameText;
+
+	const login = getActiveUserLogin();
+	if (!login) return "";
+
+	return login
+		.split(/[._-]+/)
+		.filter(Boolean)
+		.map((part) => part[0].toUpperCase() + part.slice(1))
+		.join(" ");
+};
+
 /** @param {string} isoDate */
 const toLocalDate = (isoDate) => {
 	try {
@@ -60,8 +74,14 @@ const getProjectMembers = (
 	activeUserLogin,
 ) => {
 	const namesByLogin = buildDisplayNameByLogin(allCollabs);
-	if (activeUserLogin && !namesByLogin.has(activeUserLogin)) {
-		namesByLogin.set(activeUserLogin, activeUserLogin);
+	if (activeUserLogin) {
+		const activeUserDisplayName = getActiveUserDisplayName();
+		const existingName = namesByLogin.get(activeUserLogin) ?? "";
+		if (activeUserDisplayName && (!existingName || existingName === activeUserLogin)) {
+			namesByLogin.set(activeUserLogin, activeUserDisplayName);
+		} else if (!existingName) {
+			namesByLogin.set(activeUserLogin, activeUserLogin);
+		}
 	}
 
 	const projectRecords = allCollabs.filter(
@@ -220,9 +240,9 @@ const renderProjectPanelContent = (
 	membersList.className = "sp-project-members";
 	for (const member of members) {
 		const item = document.createElement("li");
-		item.className = "sp-project-member";
-		item.textContent =
-			member.login === activeUserLogin ? `${member.label} (you)` : member.label;
+		const isCurrentUser = member.login === activeUserLogin;
+		item.className = `sp-project-member${isCurrentUser ? " sp-project-member-current-user" : ""}`;
+		item.textContent = member.label;
 		membersList.append(item);
 	}
 

@@ -165,8 +165,8 @@ export const loadDashboard = async (
 
 		const teamsByProject = projectTeamsResult.data;
 		_teamsByProject = teamsByProject;
-		const projectCountByName = rawResults.reduce((map, result) => {
-			const projectKey = normalizeProjectName(result.object?.name);
+		const projectCountByObjectId = rawResults.reduce((map, result) => {
+			const projectKey = String(result.objectId ?? "");
 			if (!projectKey) return map;
 			map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
 			return map;
@@ -187,7 +187,7 @@ export const loadDashboard = async (
 				teamCaptainLogin: teamInfo.captainLogin,
 				myRole,
 				projectRoles: [myRole],
-				sharedRecordsCount: projectCountByName.get(projectKey) ?? 1,
+				sharedRecordsCount: projectCountByObjectId.get(projectKey) ?? 1,
 			};
 		});
 
