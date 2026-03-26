@@ -14,8 +14,12 @@ import {
 	fetchUserRoleStats,
 	fetchXPTransactions,
 } from "./dashboard.api.js";
-import { computeAuditRoleStats, isAuthFailureError } from "./dashboard.core.js";
+import { computeDashboardRoleData, isAuthFailureError } from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
+import {
+	closeRoleProjectsPopup,
+	initRoleProjectsPopup,
+} from "./dashboard.popup.roles.js";
 import {
 	renderAuditSection,
 	renderGraphs,
@@ -36,12 +40,20 @@ let _results = [];
 /** @type {Map<string, {captainLogin:string, members:Array<{login:string, displayName:string}>}>} */
 let _teamsByProject = new Map();
 
+/** @type {{Captain:Array, Partner:Array, Auditor:Array}} */
+let _roleProjectsByRole = {
+	Captain: [],
+	Partner: [],
+	Auditor: [],
+};
+
 export const initDashboard = () => {
 	initProjectDetailClose(
 		() => _xpTransactions,
 		() => _results,
 		() => _teamsByProject,
 	);
+	initRoleProjectsPopup(() => _roleProjectsByRole);
 };
 
 // ── Dashboard Data Loading ─────────────────────────────────────────
@@ -89,6 +101,12 @@ export const resetDashboard = () => {
 	_xpTransactions = [];
 	_results = [];
 	_teamsByProject = new Map();
+	_roleProjectsByRole = {
+		Captain: [],
+		Partner: [],
+		Auditor: [],
+	};
+	closeRoleProjectsPopup();
 };
 
 /** Fetches all dashboard data and renders every section. */
@@ -180,12 +198,14 @@ export const loadDashboard = async (
 
 		const teamsByProject = projectTeamsResult.data;
 		_teamsByProject = teamsByProject;
-		const roleStats = computeAuditRoleStats(
+		const roleData = computeDashboardRoleData(
 			completedProjects,
 			teamsByProject,
 			user.login,
-			roleStatsResult.data?.auditor ?? 0,
+			roleStatsResult.data?.audits ?? [],
 		);
+		const roleStats = roleData.stats;
+		_roleProjectsByRole = roleData.projectsByRole;
 		const dashboardUser = { ...user, roleStats };
 		const projectCountByObjectId = rawResults.reduce((map, result) => {
 			const projectKey = String(result.objectId ?? "");
@@ -217,6 +237,7 @@ export const loadDashboard = async (
 		_xpTransactions = xpTransactions;
 		_results = results;
 
+		renderUserSection(dashboardUser);
 		renderXPSection(xpTransactions, level, progress);
 		renderAuditSection(dashboardUser);
 		renderGraphs(xpTransactions, dashboardUser, progress);

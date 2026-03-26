@@ -35,13 +35,52 @@ export const fetchUserRoleStats = async (userId) => {
     query GetUserRoleStats($userId: Int!) {
       audit(where: { auditorId: { _eq: $userId }, grade: { _is_null: false } }) {
         id
+        createdAt
+        group {
+          path
+          captainLogin
+          object {
+            id
+            name
+          }
+          members {
+            user {
+              login
+              firstName
+              lastName
+            }
+          }
+        }
       }
     }
   `;
 
 	return mapResult(await graphqlQuery(query, { userId }), (data) => {
+    const audits = (data.audit ?? []).map((audit) => {
+      const members = (audit.group?.members ?? [])
+        .map((member) => member.user)
+        .filter(Boolean)
+        .map((member) => ({
+          login: member.login,
+          displayName:
+            [member.firstName, member.lastName].filter(Boolean).join(" ") ||
+            member.login,
+        }))
+        .filter((member) => member.login);
+
+      return {
+        id: audit.id,
+        createdAt: audit.createdAt,
+        objectId: audit.group?.object?.id ?? null,
+        projectName: audit.group?.object?.name ?? "Unknown Project",
+        projectPath: audit.group?.path ?? "",
+        captainLogin: audit.group?.captainLogin ?? "",
+        teamMembers: [...new Map(members.map((member) => [member.login, member])).values()],
+      };
+    });
+
 		return {
-			auditor: (data.audit ?? []).length,
+      audits,
 		};
 	});
 };

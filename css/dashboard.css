@@ -5,11 +5,73 @@
 /* ── User Card ── */
 .user-card {
 	grid-area: user;
+	display: flex;
+	flex-direction: column;
 }
 .user-info {
 	display: flex;
 	align-items: center;
 	gap: var(--space-xl);
+}
+
+.profile-roles-section {
+	margin-top: auto;
+	padding-top: var(--space-lg);
+}
+
+.profile-roles-title {
+	font-size: var(--font-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-muted);
+	margin-bottom: var(--space-sm);
+}
+
+.profile-role-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--space-md);
+	width: 100%;
+}
+
+.profile-role-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	padding: 0.95rem 0.75rem;
+	min-height: 84px;
+	border-radius: var(--radius-md);
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	transition:
+		border-color var(--transition-fast),
+		background var(--transition-fast);
+}
+
+.profile-role-item:hover,
+.profile-role-item:focus-visible {
+	background: rgba(14, 165, 233, 0.09);
+	border-color: rgba(14, 165, 233, 0.32);
+	outline: none;
+}
+
+.profile-role-label {
+	font-size: var(--font-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-muted);
+}
+
+.profile-role-value {
+	font-size: var(--font-2xl);
+	font-weight: 700;
+	color: var(--text-primary);
 }
 
 .avatar-ring {
@@ -120,41 +182,6 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-md);
-}
-
-.audit-role-stats {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: var(--space-md);
-	margin-top: auto;
-	padding-top: var(--space-xl);
-	width: 100%;
-}
-
-.audit-role-item {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 0.3rem;
-	padding: 0.95rem 0.75rem;
-	min-height: 84px;
-	border-radius: var(--radius-md);
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.audit-role-label {
-	font-size: var(--font-xs);
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	color: var(--text-muted);
-}
-
-.audit-role-value {
-	font-size: var(--font-2xl);
-	font-weight: 700;
-	color: var(--text-primary);
 }
 
 .audit-bar-label {
@@ -581,7 +608,7 @@
 	.audit-bars {
 		width: 100%;
 	}
-	.audit-role-stats {
+	.profile-role-stats {
 		grid-template-columns: 1fr;
 	}
 	.xp-stats {

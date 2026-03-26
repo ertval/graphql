@@ -156,6 +156,44 @@
               <p id="user-campus" class="user-campus"></p>
             </div>
           </div>
+          <section class="profile-roles-section" aria-label="Role totals">
+            <h3 class="profile-roles-title">Roles</h3>
+            <div class="profile-role-stats">
+              <button
+                type="button"
+                class="profile-role-item"
+                id="role-counter-captain"
+                data-role="Captain"
+                aria-haspopup="dialog"
+                aria-label="View projects as Captain"
+              >
+                <span class="profile-role-label">Captain</span>
+                <span class="profile-role-value" id="audit-role-captain">0</span>
+              </button>
+              <button
+                type="button"
+                class="profile-role-item"
+                id="role-counter-partner"
+                data-role="Partner"
+                aria-haspopup="dialog"
+                aria-label="View projects as Partner"
+              >
+                <span class="profile-role-label">Partner</span>
+                <span class="profile-role-value" id="audit-role-partner">0</span>
+              </button>
+              <button
+                type="button"
+                class="profile-role-item"
+                id="role-counter-auditor"
+                data-role="Auditor"
+                aria-haspopup="dialog"
+                aria-label="View projects as Auditor"
+              >
+                <span class="profile-role-label">Auditor</span>
+                <span class="profile-role-value" id="audit-role-auditor">0</span>
+              </button>
+            </div>
+          </section>
         </div>
 
         <!-- Section 2: XP & Level -->
@@ -203,20 +241,6 @@
                   <div class="audit-bar-fill received" id="audit-received-bar"></div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="audit-role-stats" aria-label="Your role totals">
-            <div class="audit-role-item">
-              <span class="audit-role-label">Captain</span>
-              <span class="audit-role-value" id="audit-role-captain">0</span>
-            </div>
-            <div class="audit-role-item">
-              <span class="audit-role-label">Partner</span>
-              <span class="audit-role-value" id="audit-role-partner">0</span>
-            </div>
-            <div class="audit-role-item">
-              <span class="audit-role-label">Auditor</span>
-              <span class="audit-role-value" id="audit-role-auditor">0</span>
             </div>
           </div>
         </div>
@@ -389,6 +413,26 @@
           </button>
         </div>
         <div id="student-profile-content" class="student-profile-content"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ROLE PROJECTS OVERLAY
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="role-projects-overlay" class="student-profile-overlay" role="dialog"
+      aria-modal="true" aria-label="Role projects details">
+      <div class="student-profile-modal glass">
+        <div class="student-profile-modal-header">
+          <h2 id="role-projects-title">Role Projects</h2>
+          <button id="role-projects-close" class="modal-close-btn" type="button" aria-label="Close role projects">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+              stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div id="role-projects-content" class="student-profile-content"></div>
       </div>
     </div>
 
