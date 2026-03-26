@@ -126,29 +126,8 @@ const getActiveUserProjectRole = (
 	return orderedRoles.join(", ");
 };
 
-const stabilizeExpandedLayout = (layout, onApplyExpanded) => {
-	const startHeight = Math.ceil(layout.getBoundingClientRect().height);
-	if (startHeight > 0) {
-		layout.style.minHeight = `${startHeight}px`;
-	}
-
-	onApplyExpanded();
-
-	const releaseLayoutLock = () => {
-		layout.style.minHeight = "";
-	};
-
-	const onTransitionEnd = () => {
-		releaseLayoutLock();
-	};
-
-	layout.addEventListener("transitionend", onTransitionEnd, { once: true });
-	setTimeout(releaseLayoutLock, 700);
-};
-
 const resetProjectPanel = (refs) => {
 	const { panel, panelBody, layout } = refs;
-	layout.style.minHeight = "";
 	layout.classList.remove("sp-layout-expanded");
 	panel.classList.remove("active");
 	panelBody.replaceChildren();
@@ -253,8 +232,8 @@ const openProjectDetail = (
 			activeUserLogin,
 		);
 
-		stabilizeExpandedLayout(layout, () => {
-			layout.classList.add("sp-layout-expanded");
+		layout.classList.add("sp-layout-expanded");
+		requestAnimationFrame(() => {
 			panel.classList.add("active");
 		});
 	});

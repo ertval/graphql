@@ -578,9 +578,7 @@
 	align-items: start;
 	min-width: 0;
 	overflow: hidden;
-	transition:
-		grid-template-columns var(--transition-slow),
-		gap var(--transition-slow);
+	transition: gap var(--transition-slow);
 }
 
 .sp-main-column {

@@ -79,16 +79,17 @@ test("collaborator detail toggles extended project panel when same project is cl
 });
 
 test("collaborator split-panel animation uses theme slow timing and avoids left crop transform", () => {
-	assert.match(collaborationsCss, /grid-template-columns var\(--transition-slow\)/);
+	assert.match(collaborationsCss, /transition:\s*gap var\(--transition-slow\);/);
 	assert.match(collaborationsCss, /transform 520ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
 	assert.doesNotMatch(collaborationsCss, /translateX\(-/);
 	assert.doesNotMatch(collaborationsCss, /scrollbar-gutter:\s*stable/);
 	assert.doesNotMatch(collaborationsCss, /max-height:\s*min\(560px, calc\(90vh - 170px\)\);/);
 	assert.match(collaborationsCss, /\.sp-project-panel \{[\s\S]*overflow-y:\s*auto;/);
 	assert.match(collaborationsCss, /\.sp-project-panel \{[\s\S]*max-height:\s*calc\(90vh - 140px\);/);
-	assert.match(collaborationsPopupJs, /stabilizeExpandedLayout\(layout, \(\) => \{\s*\n\s*layout\.classList\.add\("sp-layout-expanded"\);\s*\n\s*panel\.classList\.add\("active"\);/);
+	assert.match(collaborationsPopupJs, /layout\.classList\.add\("sp-layout-expanded"\);/);
+	assert.match(collaborationsPopupJs, /requestAnimationFrame\(\(\) => \{\s*\n\s*panel\.classList\.add\("active"\);/);
+	assert.doesNotMatch(collaborationsPopupJs, /layout\.style\.minHeight/);
 	assert.doesNotMatch(collaborationsPopupJs, /Loading project details\.\.\./);
-	assert.doesNotMatch(collaborationsPopupJs, /requestAnimationFrame\(\(\) => \{\s*\n\s*requestAnimationFrame\(\(\) => \{/);
 });
 
 test("collaborator project detail renders My Role section for active user", () => {

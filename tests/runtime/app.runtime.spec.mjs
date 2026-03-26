@@ -525,9 +525,38 @@ test("collaboration project panel does not retain oversized height after project
 	await page.click('[aria-label="Open collaborator details for Peer One"]');
 	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
 
-	await page.click('[aria-label="View details for Mega Project"]');
+	const [firstOpenSamples] = await Promise.all([
+		page.evaluate(async () => {
+			const modal = document.querySelector(".student-profile-modal");
+			if (!modal) return [];
+
+			const samples = [];
+			const start = performance.now();
+			while (performance.now() - start <= 950) {
+				samples.push({
+					t: performance.now() - start,
+					h: Math.round(modal.getBoundingClientRect().height),
+				});
+				await new Promise((resolve) => requestAnimationFrame(resolve));
+			}
+
+			return samples;
+		}),
+		page.click('[aria-label="View details for Mega Project"]'),
+	]);
+
 	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
-	await page.waitForTimeout(450);
+
+	expect(firstOpenSamples.length > 3).toBe(true);
+	const firstOpenEarly = firstOpenSamples.filter((sample) => sample.t <= 350);
+	const firstOpenLate = firstOpenSamples.filter((sample) => sample.t >= 650);
+	const firstOpenPeak = Math.max(...firstOpenEarly.map((sample) => sample.h));
+	const firstOpenSettled = Math.min(...firstOpenLate.map((sample) => sample.h));
+
+	// Prevent first-open overshoot where modal gets taller then immediately shrinks.
+	expect(firstOpenPeak - firstOpenSettled).toBeLessThanOrEqual(20);
+
+	await page.waitForTimeout(250);
 
 	const [heightSamples] = await Promise.all([
 		page.evaluate(async () => {
