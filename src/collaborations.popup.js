@@ -28,7 +28,9 @@ let selectedProjectName = "";
 const buildDisplayNameByLogin = (allCollabs) =>
 	allCollabs.reduce((map, collab) => {
 		if (map.has(collab.login)) return map;
-		const fullName = [collab.firstName, collab.lastName].filter(Boolean).join(" ");
+		const fullName = [collab.firstName, collab.lastName]
+			.filter(Boolean)
+			.join(" ");
 		map.set(collab.login, fullName || collab.login);
 		return map;
 	}, new Map());
@@ -44,7 +46,10 @@ const getProjectMembers = (
 	if (activeUserLogin) {
 		const activeUserDisplayName = getActiveUserDisplayName();
 		const existingName = namesByLogin.get(activeUserLogin) ?? "";
-		if (activeUserDisplayName && (!existingName || existingName === activeUserLogin)) {
+		if (
+			activeUserDisplayName &&
+			(!existingName || existingName === activeUserLogin)
+		) {
 			namesByLogin.set(activeUserLogin, activeUserDisplayName);
 		} else if (!existingName) {
 			namesByLogin.set(activeUserLogin, activeUserLogin);
@@ -52,11 +57,13 @@ const getProjectMembers = (
 	}
 
 	const projectRecords = allCollabs.filter(
-		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
+		(collab) =>
+			collab.login === collaboratorLogin && collab.project === projectName,
 	);
 
 	const hasSharedTeamMembership = projectRecords.some(
-		(record) => record.relationType === "group_member" || record.role === "Partner",
+		(record) =>
+			record.relationType === "group_member" || record.role === "Partner",
 	);
 
 	const availableProjectRoles = new Set(projectRoles);
@@ -94,7 +101,8 @@ const getActiveUserProjectRole = (
 	if (!activeUserLogin) return "Partner";
 
 	const projectRecords = allCollabs.filter(
-		(collab) => collab.login === collaboratorLogin && collab.project === projectName,
+		(collab) =>
+			collab.login === collaboratorLogin && collab.project === projectName,
 	);
 
 	const activeRoles = projectRecords.reduce((roles, record) => {

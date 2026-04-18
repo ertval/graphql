@@ -53,7 +53,9 @@ const toEpochMsSafe = (isoDate) => {
 
 /** @param {number | null | undefined} objectId @param {string} name */
 const toProjectKey = (objectId, name) =>
-	typeof objectId === "number" ? `id:${objectId}` : `name:${name.toLowerCase()}`;
+	typeof objectId === "number"
+		? `id:${objectId}`
+		: `name:${name.toLowerCase()}`;
 
 /**
  * @param {Array<{
@@ -125,13 +127,13 @@ export const computeDashboardRoleData = (
 		const teamInfo =
 			objectId !== null
 				? (teamsByProject.get(String(objectId)) ?? {
-					captainLogin: "",
-					members: [],
-				})
+						captainLogin: "",
+						members: [],
+					})
 				: {
-					captainLogin: "",
-					members: [],
-				};
+						captainLogin: "",
+						members: [],
+					};
 
 		const baseRecord = {
 			objectId,
@@ -151,11 +153,12 @@ export const computeDashboardRoleData = (
 	}
 
 	const auditorRecords = auditorAudits
-		.filter((audit) => typeof audit.projectName === "string" && audit.projectName)
+		.filter(
+			(audit) => typeof audit.projectName === "string" && audit.projectName,
+		)
 		.map((audit) => ({
 			role: "Auditor",
-			objectId:
-				typeof audit.objectId === "number" ? audit.objectId : null,
+			objectId: typeof audit.objectId === "number" ? audit.objectId : null,
 			name: audit.projectName ?? "Unknown Project",
 			path: audit.projectPath ?? "",
 			date: audit.createdAt ?? "",
@@ -211,4 +214,3 @@ export const computeAuditRoleStats = (
 		auditor: Number.isFinite(auditorCount) ? auditorCount : 0,
 	};
 };
-

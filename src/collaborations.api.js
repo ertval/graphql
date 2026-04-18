@@ -88,18 +88,26 @@ const toEpochMsSafe = (isoDate) => {
 
 /** @param {Array<{ user?: { login?: string, firstName?: string, lastName?: string, campus?: string } }>} groupMembers */
 const toTeamMembers = (groupMembers = []) =>
-	groupMembers.flatMap(({ user }) => (user
-		? [{
-			login: user.login,
-			firstName: user.firstName ?? "",
-			lastName: user.lastName ?? "",
-			campus: user.campus ?? "",
-		}]
-		: []));
+	groupMembers.flatMap(({ user }) =>
+		user
+			? [
+					{
+						login: user.login,
+						firstName: user.firstName ?? "",
+						lastName: user.lastName ?? "",
+						campus: user.campus ?? "",
+					},
+				]
+			: [],
+	);
 
 const canonicalizeIdentityByLogin = (collabs) => {
 	const identityByLogin = collabs.reduce((map, collab) => {
-		const current = map.get(collab.login) ?? { firstName: "", lastName: "", campus: "" };
+		const current = map.get(collab.login) ?? {
+			firstName: "",
+			lastName: "",
+			campus: "",
+		};
 		map.set(collab.login, {
 			firstName: current.firstName || collab.firstName || "",
 			lastName: current.lastName || collab.lastName || "",
@@ -138,68 +146,78 @@ const mapGroupRecords = (groups, userId) =>
 		return (g.group?.members ?? []).flatMap((member) => {
 			if (member.userId === userId || !member.user) return [];
 			const isCaptain = member.user.login === g.group?.captainLogin;
-			return [{
-				id: `u_${member.userId}_${g.createdAt}`,
-				login: member.user.login,
-				firstName: member.user.firstName,
-				lastName: member.user.lastName,
-				campus: member.user.campus,
-				project: prjName,
-				projectPath,
-				role: isCaptain ? "Captain" : "Partner",
-				relationType: "group_member",
-				teamCaptainLogin: g.group?.captainLogin ?? "",
-				date: g.createdAt,
-				ts: toEpochMsSafe(g.createdAt),
-				teamMembers,
-			}];
+			return [
+				{
+					id: `u_${member.userId}_${g.createdAt}`,
+					login: member.user.login,
+					firstName: member.user.firstName,
+					lastName: member.user.lastName,
+					campus: member.user.campus,
+					project: prjName,
+					projectPath,
+					role: isCaptain ? "Captain" : "Partner",
+					relationType: "group_member",
+					teamCaptainLogin: g.group?.captainLogin ?? "",
+					date: g.createdAt,
+					ts: toEpochMsSafe(g.createdAt),
+					teamMembers,
+				},
+			];
 		});
 	});
 
 const mapAuditRecords = (audits, mapper) =>
-	(audits ?? []).flatMap((audit) => (audit.grade === null ? [] : mapper(audit)));
+	(audits ?? []).flatMap((audit) =>
+		audit.grade === null ? [] : mapper(audit),
+	);
 
 const mapAuditGivenRecords = (auditsGiven) =>
 	mapAuditRecords(auditsGiven, (a) => {
 		if (!a.group?.captainLogin) return [];
 		const teamMembers = toTeamMembers(a.group?.members ?? []);
-		const captainMember = (a.group?.members ?? []).find((member) => member.user?.login === a.group.captainLogin);
-		return [{
-			id: `a_${a.group.captainLogin}_${a.createdAt}`,
-			login: a.group.captainLogin,
-			firstName: captainMember?.user?.firstName ?? "",
-			lastName: captainMember?.user?.lastName ?? "",
-			campus: captainMember?.user?.campus ?? "",
-			project: a.group?.object?.name || "Unknown",
-			projectPath: a.group?.path ?? "",
-			role: "Captain",
-			relationType: "audit_given",
-			teamCaptainLogin: a.group?.captainLogin ?? "",
-			date: a.createdAt,
-			ts: toEpochMsSafe(a.createdAt),
-			teamMembers,
-		}];
+		const captainMember = (a.group?.members ?? []).find(
+			(member) => member.user?.login === a.group.captainLogin,
+		);
+		return [
+			{
+				id: `a_${a.group.captainLogin}_${a.createdAt}`,
+				login: a.group.captainLogin,
+				firstName: captainMember?.user?.firstName ?? "",
+				lastName: captainMember?.user?.lastName ?? "",
+				campus: captainMember?.user?.campus ?? "",
+				project: a.group?.object?.name || "Unknown",
+				projectPath: a.group?.path ?? "",
+				role: "Captain",
+				relationType: "audit_given",
+				teamCaptainLogin: a.group?.captainLogin ?? "",
+				date: a.createdAt,
+				ts: toEpochMsSafe(a.createdAt),
+				teamMembers,
+			},
+		];
 	});
 
 const mapAuditReceivedRecords = (auditsReceived) =>
 	mapAuditRecords(auditsReceived, (a) => {
 		if (!a.auditor?.login) return [];
 		const teamMembers = toTeamMembers(a.group?.members ?? []);
-		return [{
-			id: `r_${a.auditor.login}_${a.createdAt}`,
-			login: a.auditor.login,
-			firstName: a.auditor.firstName,
-			lastName: a.auditor.lastName,
-			campus: a.auditor.campus,
-			project: a.group?.object?.name || "Unknown",
-			projectPath: a.group?.path ?? "",
-			role: "Auditor",
-			relationType: "audit_received",
-			teamCaptainLogin: a.group?.captainLogin ?? "",
-			date: a.createdAt,
-			ts: toEpochMsSafe(a.createdAt),
-			teamMembers,
-		}];
+		return [
+			{
+				id: `r_${a.auditor.login}_${a.createdAt}`,
+				login: a.auditor.login,
+				firstName: a.auditor.firstName,
+				lastName: a.auditor.lastName,
+				campus: a.auditor.campus,
+				project: a.group?.object?.name || "Unknown",
+				projectPath: a.group?.path ?? "",
+				role: "Auditor",
+				relationType: "audit_received",
+				teamCaptainLogin: a.group?.captainLogin ?? "",
+				date: a.createdAt,
+				ts: toEpochMsSafe(a.createdAt),
+				teamMembers,
+			},
+		];
 	});
 
 const mapCollaborationRecords = (records, userId) => [
@@ -218,12 +236,18 @@ export const loadCollaborationsData = async (userId) => {
 		return collabsResult;
 	}
 
-	const userCampus = userResult.ok ? userResult.data?.campus ?? "" : "";
+	const userCampus = userResult.ok ? (userResult.data?.campus ?? "") : "";
 	const collabs = mapCollaborationRecords(collabsResult.data, userId);
 	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
 	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);
-	const verifiedCollabs = filterVerifiedCollaborations(dedupedCollabs, userCampus);
-	const collabsByLogin = Object.groupBy(verifiedCollabs, (collab) => collab.login);
+	const verifiedCollabs = filterVerifiedCollaborations(
+		dedupedCollabs,
+		userCampus,
+	);
+	const collabsByLogin = Object.groupBy(
+		verifiedCollabs,
+		(collab) => collab.login,
+	);
 
 	const withTotalCollabs = verifiedCollabs.map((collab) => ({
 		...collab,

@@ -14,7 +14,10 @@ import {
 	fetchUserRoleStats,
 	fetchXPTransactions,
 } from "./dashboard.api.js";
-import { computeDashboardRoleData, isAuthFailureError } from "./dashboard.core.js";
+import {
+	computeDashboardRoleData,
+	isAuthFailureError,
+} from "./dashboard.core.js";
 import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
 import {
 	closeRoleProjectsPopup,
@@ -116,7 +119,7 @@ export const loadDashboard = async (
 ) => {
 	const shouldLogout = (error) =>
 		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
-	const normalizeProjectName = (name) =>
+	const _normalizeProjectName = (name) =>
 		typeof name === "string" ? name.trim().toLowerCase() : "";
 
 	try {
@@ -139,15 +142,14 @@ export const loadDashboard = async (
 			levelResult,
 			resultsResult,
 			roleStatsResult,
-		] =
-			await Promise.all([
-				fetchXPTransactions(user.id),
-				fetchProgress(user.id),
-				fetchSkills(user.id),
-				fetchUserLevel(user.id),
-				fetchResults(user.id),
-				fetchUserRoleStats(user.id),
-			]);
+		] = await Promise.all([
+			fetchXPTransactions(user.id),
+			fetchProgress(user.id),
+			fetchSkills(user.id),
+			fetchUserLevel(user.id),
+			fetchResults(user.id),
+			fetchUserRoleStats(user.id),
+		]);
 
 		const firstError = [
 			xpResult,
@@ -174,21 +176,22 @@ export const loadDashboard = async (
 			(project) => project.grade >= 1 && project.object?.type === "project",
 		);
 		const projectObjectIds = [
-			...new Set(
-				[
-					...rawResults
-						.map((result) => result.objectId)
-						.filter((id) => typeof id === "number"),
-					...xpTransactions
-						.map((transaction) => transaction.object?.id)
-						.filter((id) => typeof id === "number"),
-					...completedProjects
-						.map((project) => project.object?.id)
-						.filter((id) => typeof id === "number"),
-				],
-			),
+			...new Set([
+				...rawResults
+					.map((result) => result.objectId)
+					.filter((id) => typeof id === "number"),
+				...xpTransactions
+					.map((transaction) => transaction.object?.id)
+					.filter((id) => typeof id === "number"),
+				...completedProjects
+					.map((project) => project.object?.id)
+					.filter((id) => typeof id === "number"),
+			]),
 		];
-		const projectTeamsResult = await fetchProjectTeams(user.id, projectObjectIds);
+		const projectTeamsResult = await fetchProjectTeams(
+			user.id,
+			projectObjectIds,
+		);
 		if (!projectTeamsResult.ok) {
 			if (shouldLogout(projectTeamsResult.error)) {
 				onAuthFailure();

@@ -12,9 +12,18 @@ const rolePopupJs = read("src/dashboard.popup.roles.js");
 
 test("user profile card contains role counters and roles title", () => {
 	assert.match(indexHtml, /<h3 class="profile-roles-title">Roles<\/h3>/);
-	assert.match(indexHtml, /id="role-counter-captain"[\s\S]*id="audit-role-captain"/);
-	assert.match(indexHtml, /id="role-counter-partner"[\s\S]*id="audit-role-partner"/);
-	assert.match(indexHtml, /id="role-counter-auditor"[\s\S]*id="audit-role-auditor"/);
+	assert.match(
+		indexHtml,
+		/id="role-counter-captain"[\s\S]*id="audit-role-captain"/,
+	);
+	assert.match(
+		indexHtml,
+		/id="role-counter-partner"[\s\S]*id="audit-role-partner"/,
+	);
+	assert.match(
+		indexHtml,
+		/id="role-counter-auditor"[\s\S]*id="audit-role-auditor"/,
+	);
 	assert.doesNotMatch(indexHtml, /class="audit-role-stats"/);
 });
 

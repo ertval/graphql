@@ -62,9 +62,7 @@ export const getSortedCollaborations = (
 				filterRole
 					? collab.byRole.find((role) => role.role === filterRole)?.count || 0
 					: collab.totalCollaborations;
-			return sortDir === "asc"
-				? getVal(a) - getVal(b)
-				: getVal(b) - getVal(a);
+			return sortDir === "asc" ? getVal(a) - getVal(b) : getVal(b) - getVal(a);
 		}
 
 		let av = "";
@@ -74,8 +72,10 @@ export const getSortedCollaborations = (
 			bv = b.projects.map((project) => project.name).join(", ");
 		} else if (sortField === "role") {
 			if (filterRole) {
-				const aVal = a.byRole.find((role) => role.role === filterRole)?.count || 0;
-				const bVal = b.byRole.find((role) => role.role === filterRole)?.count || 0;
+				const aVal =
+					a.byRole.find((role) => role.role === filterRole)?.count || 0;
+				const bVal =
+					b.byRole.find((role) => role.role === filterRole)?.count || 0;
 				return sortDir === "asc" ? aVal - bVal : bVal - aVal;
 			}
 			av = a.byRole.map((role) => role.role).join(", ");
