@@ -82,9 +82,15 @@ const ensureCollaborationsView = async () => {
 
 	collabsViewStatus = "loading";
 	const loadGeneration = ++collabsViewLoadGeneration;
-	const result = await initCollaborationsView(userId);
-	if (loadGeneration !== collabsViewLoadGeneration) return;
-	collabsViewStatus = result?.ok ? "ready" : "idle";
+	try {
+		const result = await initCollaborationsView(userId);
+		if (loadGeneration !== collabsViewLoadGeneration) return;
+		collabsViewStatus = result?.ok ? "ready" : "idle";
+	} catch {
+		if (loadGeneration === collabsViewLoadGeneration) {
+			collabsViewStatus = "idle";
+		}
+	}
 };
 
 /** @param {'dashboard'|'collabs'} tab */
