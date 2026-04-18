@@ -65,10 +65,7 @@ export const filterVerifiedCollaborations = (collabs, userCampus = "") => {
 		if (!collab?.date || typeof collab.ts !== "number") return false;
 		if (!VERIFIED_ROLES.has(collab.role)) return false;
 		if (!hasCampus(collab.campus)) return false;
-		if (
-			normalizedCampus &&
-			collab.campus !== normalizedCampus
-		) {
+		if (normalizedCampus && collab.campus !== normalizedCampus) {
 			return false;
 		}
 		return true;
@@ -83,10 +80,13 @@ export const filterVerifiedCollaborations = (collabs, userCampus = "") => {
  */
 export const normalizeCollaboratorNamesByLogin = (collabs) => {
 	const canonicalByLogin = new Map();
-	
+
 	for (const collab of collabs) {
-		const current = canonicalByLogin.get(collab.login) ?? { firstName: "", lastName: "" };
-		
+		const current = canonicalByLogin.get(collab.login) ?? {
+			firstName: "",
+			lastName: "",
+		};
+
 		if (!hasText(current.firstName) || !hasText(current.lastName)) {
 			canonicalByLogin.set(collab.login, {
 				firstName: current.firstName || toReadableName(collab.firstName),

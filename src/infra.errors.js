@@ -40,7 +40,6 @@ export const isAuthFailureError = (err) => {
 
 	const normalized = err.message.toLowerCase();
 	return (
-		normalized.includes("session expired") ||
-		isAuthFailureMessage(normalized)
+		normalized.includes("session expired") || isAuthFailureMessage(normalized)
 	);
 };

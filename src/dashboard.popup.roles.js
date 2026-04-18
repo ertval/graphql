@@ -4,7 +4,12 @@
  */
 
 import { createProjectDetailPanelElements } from "./collaborations.popup.project-panel.js";
-import { $, formatLocalDate, getActiveUserLogin, toProjectUrl } from "./infra.ui.js";
+import {
+	$,
+	formatLocalDate,
+	getActiveUserLogin,
+	toProjectUrl,
+} from "./infra.ui.js";
 import {
 	createProjectMembersSection,
 	createProjectPathAndLinkSection,
@@ -57,7 +62,10 @@ const renderProjectPanelContent = (project, panelBody, activeUserLogin) => {
 	);
 	panelBody.append(roleTitle, roleValue);
 
-	const pathNodes = createProjectPathAndLinkSection(project.path ?? "", toProjectUrl);
+	const pathNodes = createProjectPathAndLinkSection(
+		project.path ?? "",
+		toProjectUrl,
+	);
 	if (pathNodes.length) {
 		panelBody.append(...pathNodes);
 	}
@@ -70,7 +78,10 @@ const openProjectDetail = (project, refs, activeUserLogin) => {
 		panel.classList.contains("active") &&
 		layout.classList.contains("sp-layout-expanded");
 
-	if (selectedProjectKey === project.key && panel.classList.contains("active")) {
+	if (
+		selectedProjectKey === project.key &&
+		panel.classList.contains("active")
+	) {
 		selectedProjectKey = "";
 		resetProjectPanel(refs);
 		return;

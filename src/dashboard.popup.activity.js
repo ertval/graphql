@@ -22,7 +22,9 @@ export const renderDashboardActivity = (
 	list.replaceChildren();
 
 	const projectResults = results
-		.filter((result) => result.object?.name && result.object?.type === "project")
+		.filter(
+			(result) => result.object?.name && result.object?.type === "project",
+		)
 		.slice(0, 20);
 
 	const items = projectResults.length

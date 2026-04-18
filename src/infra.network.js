@@ -11,7 +11,9 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 12_000;
  * @param {number} [timeoutMs=12000]
  * @returns {{controller:AbortController,[Symbol.dispose]:()=>void}}
  */
-export const createRequestController = (timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS) => {
+export const createRequestController = (
+	timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+) => {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 	return {

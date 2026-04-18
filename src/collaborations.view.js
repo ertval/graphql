@@ -7,14 +7,14 @@
 
 import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummary } from "./collaborations.core.js";
-import { getSortedCollaborations } from "./collaborations.view.filters.js";
-import { renderCollabsPagination } from "./collaborations.view.pagination.js";
-import { renderCollabsTableBody } from "./collaborations.view.table.js";
-import { $, formatLocalDate } from "./infra.ui.js";
 import {
 	closeCollaboratorDetail,
 	openCollaboratorDetail,
 } from "./collaborations.popup.js";
+import { getSortedCollaborations } from "./collaborations.view.filters.js";
+import { renderCollabsPagination } from "./collaborations.view.pagination.js";
+import { renderCollabsTableBody } from "./collaborations.view.table.js";
+import { $, formatLocalDate } from "./infra.ui.js";
 
 // ── Module state ───────────────────────────────────────────────────
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */
@@ -202,6 +202,7 @@ export const bindEvents = () => {
 export const initCollaborationsView = async (userId) => {
 	const loadingEl = $("#collabs-loading");
 	const tableWrap = $("#collabs-table-wrap");
+
 	const showLoadError = () => {
 		if (!loadingEl) return;
 		loadingEl.replaceChildren();
@@ -209,25 +210,33 @@ export const initCollaborationsView = async (userId) => {
 		errorMsg.className = "students-error";
 		errorMsg.textContent = "Failed to load collaborations data.";
 		loadingEl.append(errorMsg);
+		loadingEl.hidden = false;
 	};
 
-	if (loadingEl) loadingEl.hidden = false;
-	if (tableWrap) tableWrap.hidden = true;
+	try {
+		if (loadingEl) {
+			loadingEl.hidden = false;
+		}
+		if (tableWrap) tableWrap.hidden = true;
 
-	const collabsResult = await loadCollaborationsData(userId);
-	if (!collabsResult.ok) {
+		const collabsResult = await loadCollaborationsData(userId);
+		if (!collabsResult.ok) {
+			showLoadError();
+			return collabsResult;
+		}
+
+		if (loadingEl) loadingEl.hidden = true;
+		if (tableWrap) tableWrap.hidden = false;
+
+		setAllCollabsData(collabsResult.data);
+		renderCollabsList();
+		bindEvents();
+
+		return { ok: true, data: true };
+	} catch (error) {
 		showLoadError();
-		return collabsResult;
+		return { ok: false, error };
 	}
-
-	if (loadingEl) loadingEl.hidden = true;
-	if (tableWrap) tableWrap.hidden = false;
-
-	setAllCollabsData(collabsResult.data);
-	renderCollabsList();
-	bindEvents();
-
-	return { ok: true, data: true };
 };
 
 // ── Public API ─────────────────────────────────────────────────────

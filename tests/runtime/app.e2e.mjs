@@ -183,8 +183,8 @@ const installMockAuthAndGraphql = async (page, overrides = {}) => {
 			(query.includes("group_user(") && query.includes("projectObjectIds"))
 		) {
 			const requestedProjectIds = new Set(
-				(requestBody?.variables?.projectObjectIds ?? []).filter((id) =>
-					typeof id === "number",
+				(requestBody?.variables?.projectObjectIds ?? []).filter(
+					(id) => typeof id === "number",
 				),
 			);
 			const matchingProjectTeams = scenarioData.projectTeams.filter((entry) => {
@@ -370,8 +370,12 @@ test("XP by Project interaction opens project detail modal", async ({
 	await expect(page.locator("#project-detail-content")).toContainText(
 		"Runtime Tester",
 	);
-	await expect(page.locator("#project-detail-content")).toContainText("Peer One");
-	await expect(page.locator("#project-detail-content")).toContainText("Captain");
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"Peer One",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"Captain",
+	);
 
 	await page.click("#project-detail-close");
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
@@ -436,8 +440,12 @@ test("dashboard popup resolves role and members for projects missing from recent
 
 	await page.click('[aria-label="View details for Gamma Project"]');
 	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
-	await expect(page.locator("#project-detail-content")).toContainText("Gamma Partner");
-	await expect(page.locator("#project-detail-content")).toContainText("Captain");
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"Gamma Partner",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"Captain",
+	);
 	await page
 		.locator("#project-detail-content")
 		.screenshot({ path: "test-results/visual/dashboard-gamma-popup.png" });
@@ -586,9 +594,9 @@ test("collaboration project panel does not retain oversized height after project
 
 	// Prevent late-stage height collapse that appears as a jagged pop animation.
 	expect(earlyMin - lateMin).toBeLessThanOrEqual(20);
-	await page
-		.locator(".student-profile-modal")
-		.screenshot({ path: "test-results/visual/collaborations-project-panel.png" });
+	await page.locator(".student-profile-modal").first().screenshot({
+		path: "test-results/visual/collaborations-project-panel.png",
+	});
 });
 
 test("main nav switches between dashboard and collaborations tab", async ({

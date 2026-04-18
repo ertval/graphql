@@ -43,7 +43,11 @@ test("audit role counters align Captain+Partner with completed projects", () => 
 });
 
 test("projects without team metadata default to Partner", () => {
-	const completedProjects = [createProject(1), createProject(2), createProject(3)];
+	const completedProjects = [
+		createProject(1),
+		createProject(2),
+		createProject(3),
+	];
 	const teamsByProject = new Map([["1", { captainLogin: "alice" }]]);
 
 	const roleData = computeDashboardRoleData(
@@ -89,10 +93,13 @@ test("auditor role count deduplicates repeated audits of the same project", () =
 
 	assert.equal(roleData.stats.auditor, 2);
 	assert.equal(roleData.projectsByRole.Auditor.length, 2);
-	const countByProject = roleData.projectsByRole.Auditor.reduce((map, project) => {
-		map.set(project.name, project.count);
-		return map;
-	}, new Map());
+	const countByProject = roleData.projectsByRole.Auditor.reduce(
+		(map, project) => {
+			map.set(project.name, project.count);
+			return map;
+		},
+		new Map(),
+	);
 	assert.equal(countByProject.get("Graph Explorer"), 2);
 	assert.equal(countByProject.get("Go Reloaded"), 1);
 });

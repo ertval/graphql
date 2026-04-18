@@ -4,8 +4,8 @@
  * @module infra.auth
  */
 
-import { fail, ok } from "./infra.result.js";
 import { createRequestController } from "./infra.network.js";
+import { fail, ok } from "./infra.result.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";

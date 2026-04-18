@@ -39,7 +39,10 @@ test("collaborations api maps group member collaborator role to Captain when log
 });
 
 test("verified collaborator role set excludes dead Auditee role", () => {
-	assert.match(collaborationsCoreJs, /new Set\(\["Partner", "Captain", "Auditor"\]\)/);
+	assert.match(
+		collaborationsCoreJs,
+		/new Set\(\["Partner", "Captain", "Auditor"\]\)/,
+	);
 	assert.doesNotMatch(collaborationsCoreJs, /Auditee/);
 });
 
