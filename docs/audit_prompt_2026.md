@@ -17,15 +17,30 @@ You MUST execute the audit in three distinct phases:
 1.  **Agent 🛡️ (Security Auditor)**: 
     - `spawn full subagent with all tool access`
     - **Scope**: Audit `src/infra.auth.js`, `src/infra.graphql.js`, and `index.html`. 
-    - **Tasks**: Check JWT lifecycle (no localStorage), XSS in SVG strings, and CSP/Trusted Types compliance.
+    - **Tasks**: 
+        - Check JWT lifecycle (no `localStorage`).
+        - Audit for XSS in SVG strings and DOM sinks.
+        - Verify CSP and Trusted Types compliance.
+        - **Supply Chain**: Run `npm audit` and check for unpinned dependencies.
+        - **Data Leakage**: Search for hardcoded secrets, keys, or PII in code/logs.
+        - **ReDoS**: Identify exponential backoff risks in complex RegEx.
 2.  **Agent 📉 (Logic & Performance Auditor)**:
     - `spawn full subagent with all tool access`
     - **Scope**: Audit `src/charts.*.js` and `src/dashboard.api.js`.
-    - **Tasks**: Identify O(n²) grouping logic, redundant GraphQL fetches, and verify the "Result Pattern" implementation across all API calls.
+    - **Tasks**: 
+        - Identify O(n²) grouping logic.
+        - Detect redundant GraphQL fetches or over-fetching.
+        - Verify "Result Pattern" implementation across all API calls.
+        - **Async Hygiene**: Detect race conditions and ensure `AbortController` usage in long-running tasks.
+        - **Resource Leaks**: Confirm cleanup of event listeners and file handles via `using`.
 3.  **Agent 🏗️ (Architectural Integrity Auditor)**:
     - `spawn full subagent with all tool access`
     - **Scope**: Audit the dependency graph across all `src/` files.
-    - **Tasks**: Detect "Leaky Abstractions" (e.g., UI touching API directly) and enforce "Screaming Architecture" boundaries.
+    - **Tasks**: 
+        - Detect "Leaky Abstractions" (e.g., UI touching API directly).
+        - Enforce "Screaming Architecture" boundaries and encapsulation.
+        - **Complexity Metrics**: Identify modules with high cyclomatic complexity.
+        - **Naming & Consistency**: Enforce `#privateFields` and PascalCase/camelCase standards.
 4.  **Agent 🧪 (Verification & Repro Agent)**:
     - `spawn full subagent with all tool access`
     - **Scope**: Entire codebase.

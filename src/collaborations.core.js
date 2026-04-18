@@ -168,3 +168,68 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		})),
 	};
 };
+
+/**
+ * Builds collaborator summaries in one grouped pass to avoid repeated rescans.
+ * @param {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} collabs
+ */
+export const buildCollaboratorSummaries = (collabs) =>
+	Object.entries(Object.groupBy(collabs, (collab) => collab.login))
+		.map(([login, matches]) => {
+			const sortedMatches = (matches ?? []).toSorted((a, b) => b.ts - a.ts);
+			if (!sortedMatches.length) return null;
+
+			const primary = sortedMatches[0];
+
+			const bestName = sortedMatches.reduce(
+				(acc, collab) => ({
+					firstName: acc.firstName || collab.firstName || "",
+					lastName: acc.lastName || collab.lastName || "",
+				}),
+				{ firstName: "", lastName: "" },
+			);
+			const displayName =
+				[bestName.firstName, bestName.lastName].filter(Boolean).join(" ") ||
+				login;
+
+			const byRole = Object.groupBy(sortedMatches, (m) => m.role);
+			const roleCounts = Object.entries(byRole)
+				.map(([role, items]) => ({ role, count: items.length }))
+				.toSorted((a, b) => a.role.localeCompare(b.role));
+
+			const groupedProjects = Map.groupBy(sortedMatches, (m) => m.project);
+			const projects = Array.from(groupedProjects.values())
+				.map((projectMatches) => {
+					const latest = projectMatches.reduce((a, b) =>
+						a.ts >= b.ts ? a : b,
+					);
+					return {
+						name: latest.project,
+						path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
+						roles: [...new Set(projectMatches.map((m) => m.role))].toSorted(),
+						latestDate: latest.date,
+						latestTs: latest.ts,
+						count: projectMatches.length,
+					};
+				})
+				.toSorted((a, b) => b.latestTs - a.latestTs);
+
+			return {
+				login,
+				displayName,
+				campus: primary.campus || "—",
+				totalCollaborations: sortedMatches.length,
+				totalProjects: projects.length,
+				latestTs: primary.ts,
+				latestDate: primary.date,
+				byRole: roleCounts,
+				projects: projects.map(({ name, path, roles, latestDate, count }) => ({
+					name,
+					path,
+					roles,
+					latestDate,
+					count,
+				})),
+			};
+		})
+		.filter(Boolean);

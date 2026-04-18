@@ -6,7 +6,7 @@
  */
 
 import { loadCollaborationsData } from "./collaborations.api.js";
-import { buildCollaboratorSummary } from "./collaborations.core.js";
+import { buildCollaboratorSummaries } from "./collaborations.core.js";
 import {
 	closeCollaboratorDetail,
 	openCollaboratorDetail,
@@ -23,8 +23,7 @@ let uniqueCollabs = [];
 
 export const setAllCollabsData = (data) => {
 	allCollabs = data;
-	const logins = [...new Set(data.map((c) => c.login))];
-	uniqueCollabs = logins.map((login) => buildCollaboratorSummary(data, login));
+	uniqueCollabs = buildCollaboratorSummaries(data);
 };
 
 /** @type {'login'|'project'|'role'|'date'} */

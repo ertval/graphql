@@ -14,10 +14,12 @@ import { mapResult } from "./infra.result.js";
 
 // ── Collaboration data (groups + audits given / received) ──────────
 
+const COLLABS_HISTORY_LIMIT = 250;
+
 export const fetchCollaborations = async (userId) => {
 	const query = `
-    query GetCollabs($userId: Int!) {
-      group_user(where: {userId: {_eq: $userId}}) {
+		query GetCollabs($userId: Int!, $historyLimit: Int!) {
+			group_user(where: {userId: {_eq: $userId}}, limit: $historyLimit, order_by: {createdAt: desc}) {
         group {
 					path
 					captainLogin
@@ -29,7 +31,7 @@ export const fetchCollaborations = async (userId) => {
         }
         createdAt
       }
-      audit(where: {auditorId: {_eq: $userId}}) {
+			audit(where: {auditorId: {_eq: $userId}}, limit: $historyLimit, order_by: {createdAt: desc}) {
         grade
         createdAt
 				group {
@@ -46,13 +48,12 @@ export const fetchCollaborations = async (userId) => {
 					}
 				}
       }
-      audit_received: audit(where: {group: {members: {userId: {_eq: $userId}}}}) {
+      audit_received: audit(where: {group: {members: {userId: {_eq: $userId}}}}, limit: $historyLimit, order_by: {createdAt: desc}) {
         grade
         createdAt
         auditor { login firstName lastName campus }
 				group {
 					path
-					captainLogin
 					captainLogin
 					object { name }
 					members {
@@ -67,11 +68,14 @@ export const fetchCollaborations = async (userId) => {
       }
     }
   `;
-	return mapResult(await graphqlQuery(query, { userId }), (data) => ({
-		groups: data.group_user ?? [],
-		auditsGiven: data.audit ?? [],
-		auditsReceived: data.audit_received ?? [],
-	}));
+	return mapResult(
+		await graphqlQuery(query, { userId, historyLimit: COLLABS_HISTORY_LIMIT }),
+		(data) => ({
+			groups: data.group_user ?? [],
+			auditsGiven: data.audit ?? [],
+			auditsReceived: data.audit_received ?? [],
+		}),
+	);
 };
 
 /** @typedef {{ login: string, firstName: string, lastName: string, campus: string }} TeamMember */
