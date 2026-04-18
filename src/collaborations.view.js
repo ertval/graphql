@@ -215,36 +215,6 @@ export const initCollaborationsView = async (userId) => {
 
 	try {
 		if (loadingEl) {
-			loadingEl.replaceChildren();
-			const spinner = document.createElementNS(
-				"http://www.w3.org/2000/svg",
-				"svg",
-			);
-			spinner.setAttribute("class", "spinner");
-			spinner.setAttribute("viewBox", "0 0 24 24");
-			spinner.setAttribute("width", "48");
-			spinner.setAttribute("height", "48");
-			spinner.setAttribute("aria-hidden", "true");
-
-			const circle = document.createElementNS(
-				"http://www.w3.org/2000/svg",
-				"circle",
-			);
-			circle.setAttribute("cx", "12");
-			circle.setAttribute("cy", "12");
-			circle.setAttribute("r", "10");
-			circle.setAttribute("stroke", "currentColor");
-			circle.setAttribute("stroke-width", "3");
-			circle.setAttribute("fill", "none");
-			circle.setAttribute("stroke-dasharray", "31.4 31.4");
-			circle.setAttribute("stroke-linecap", "round");
-
-			spinner.append(circle);
-
-			const text = document.createElement("p");
-			text.textContent = "Loading collaborations\u2026";
-
-			loadingEl.append(spinner, text);
 			loadingEl.hidden = false;
 		}
 		if (tableWrap) tableWrap.hidden = true;

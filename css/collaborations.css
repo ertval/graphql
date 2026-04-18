@@ -156,6 +156,10 @@
 	gap: var(--space-md);
 }
 
+.students-loading[hidden] {
+	display: none;
+}
+
 .students-error {
 	margin: 0;
 	color: var(--danger);
