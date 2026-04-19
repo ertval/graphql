@@ -32,13 +32,26 @@ const getSessionStorage = () => {
 	}
 };
 
+/**
+ * Converts a base64url string to standard base64 for atob().
+ * JWT payloads use base64url encoding (RFC 7515 §2), which replaces
+ * '+' with '-', '/' with '_', and omits trailing '=' padding.
+ * @param {string} base64url
+ * @returns {string}
+ */
+const base64urlToBase64 = (base64url) => {
+	const standardChars = base64url.replace(/-/g, "+").replace(/_/g, "/");
+	const padLength = (4 - (standardChars.length % 4)) % 4;
+	return standardChars + "=".repeat(padLength);
+};
+
 const parseJwtPayload = (token) => {
 	if (typeof token !== "string") return null;
 	const parts = token.split(".");
 	if (parts.length !== 3) return null;
 
 	try {
-		const payload = JSON.parse(atob(parts[1]));
+		const payload = JSON.parse(atob(base64urlToBase64(parts[1])));
 		if (typeof payload?.exp !== "number") return null;
 		return payload;
 	} catch {

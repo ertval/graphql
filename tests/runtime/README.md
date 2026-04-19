@@ -26,11 +26,11 @@ npx serve . -l 4173
 3. Run runtime tests:
 
 ```bash
-npm run test:runtime
+npm run test:e2e
 ```
 
 You can override the target URL with `BASE_URL`:
 
 ```bash
-BASE_URL=http://127.0.0.1:4173 npm run test:runtime
+BASE_URL=http://127.0.0.1:4173 npm run test:e2e
 ```

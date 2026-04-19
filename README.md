@@ -68,6 +68,11 @@ python -m http.server 3000
 ```
 Then open `http://localhost:3000` in your browser.
 
+### Run tests
+```bash
+npm run test
+```
+
 ## 🔄 Data Flows
 
 The application follows a strict unidirectional data flow, ensuring predictability and decoupling logic from the UI:
