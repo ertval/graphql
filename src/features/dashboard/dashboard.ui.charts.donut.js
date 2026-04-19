@@ -4,7 +4,7 @@
  * @module graphs.donut
  */
 
-import { svgEl } from "./helpers.js";
+import { svgEl } from "./dashboard.ui.charts.helpers.js";
 
 // ── Public renderer ────────────────────────────────────────────────
 /**
