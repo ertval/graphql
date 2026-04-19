@@ -70,7 +70,7 @@ Then open `http://localhost:3000` in your browser.
 
 ### Run tests
 ```bash
-npm run test
+npm test
 ```
 
 ## 🔄 Data Flows

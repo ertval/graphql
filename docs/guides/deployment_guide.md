@@ -80,7 +80,7 @@ Then visit `http://localhost:3000`.
 Run the test suite locally with:
 
 ```bash
-npm run test
+npm test
 ```
 
 > **Why a server?** ES modules are blocked on `file://` by browser security policies. A local HTTP server also provides the correct CORS origin for the GraphQL API requests. See `docs/architecture_and_learning_guide.md` for a detailed explanation.
