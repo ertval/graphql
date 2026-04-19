@@ -3,19 +3,19 @@
  * @module dashboard.popup.roles
  */
 
-import { createProjectDetailPanelElements } from "./collaborations.popup.project-panel.js";
 import {
 	$,
 	formatLocalDate,
 	getActiveUserLogin,
 	toProjectUrl,
-} from "./infra.ui.js";
+} from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
 	createProjectPathAndLinkSection,
 	createProjectRoleSection,
 	createProjectStatGrid,
-} from "./popup.shared.js";
+} from "../../shared/ui/popup.shared.js";
+import { createProjectDetailPanelElements } from "../collaborations/collaborations.ui.popup.project-panel.js";
 
 const ROLE_ORDER = ["Captain", "Partner", "Auditor"];
 let selectedProjectKey = "";

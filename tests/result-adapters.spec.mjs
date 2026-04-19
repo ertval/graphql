@@ -7,10 +7,14 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const appJs = read("src/app.js");
-const collaborationsApiJs = read("src/collaborations.api.js");
-const collaborationsViewJs = read("src/collaborations.view.js");
-const dashboardViewJs = read("src/dashboard.view.js");
-const infraResultJs = read("src/infra.result.js");
+const collaborationsApiJs = read(
+	"src/features/collaborations/collaborations.api.js",
+);
+const collaborationsViewJs = read(
+	"src/features/collaborations/collaborations.ui.view.js",
+);
+const dashboardViewJs = read("src/features/dashboard/dashboard.ui.view.js");
+const infraResultJs = read("src/infra/result.js");
 
 test("app login adapter handles Result object contract", () => {
 	assert.match(

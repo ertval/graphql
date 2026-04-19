@@ -10,9 +10,11 @@ const indexHtml = read("index.html");
 const appJs = read("src/app.js");
 
 // Graph code is now split across multiple files — concat for assertions
-const graphsHelpersJs = read("src/charts.helpers.js");
-const graphsBarJs = read("src/charts.bar.js");
-const graphsLineJs = read("src/charts.line.js");
+const graphsHelpersJs = read(
+	"src/features/dashboard/dashboard.ui.charts.helpers.js",
+);
+const graphsBarJs = read("src/features/dashboard/dashboard.ui.charts.bar.js");
+const graphsLineJs = read("src/features/dashboard/dashboard.ui.charts.line.js");
 const graphsJs = graphsHelpersJs + graphsBarJs + graphsLineJs;
 
 test("login form supports username/email and password inputs", () => {

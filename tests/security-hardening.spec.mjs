@@ -7,15 +7,21 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const appJs = read("src/app.js");
-const collaborationsJs = read("src/collaborations.view.js");
-const collaborationsViewJs = read("src/collaborations.view.js");
-const collaborationsPopupJs = read("src/collaborations.popup.js");
-const dashboardPopupJs = read("src/dashboard.popup.js");
-const dashboardApiJs = read("src/dashboard.api.js");
-const dashboardViewJs = read("src/dashboard.view.js");
+const collaborationsJs = read(
+	"src/features/collaborations/collaborations.ui.view.js",
+);
+const collaborationsViewJs = read(
+	"src/features/collaborations/collaborations.ui.view.js",
+);
+const collaborationsPopupJs = read(
+	"src/features/collaborations/collaborations.ui.popup.js",
+);
+const dashboardPopupJs = read("src/features/dashboard/dashboard.ui.popup.js");
+const dashboardApiJs = read("src/features/dashboard/dashboard.api.js");
+const dashboardViewJs = read("src/features/dashboard/dashboard.ui.view.js");
 const collaborationsCss = read("css/collaborations.css");
-const apiJs = read("src/infra.graphql.js");
-const infraErrorsJs = read("src/infra.errors.js");
+const apiJs = read("src/infra/graphql.js");
+const infraErrorsJs = read("src/infra/errors.js");
 const indexHtml = read("index.html");
 
 test("collaborations loading error uses safe textContent and no template innerHTML sink", () => {
@@ -191,7 +197,7 @@ test("api clears token on 401 and 403 GraphQL responses", () => {
 test("api clears token on GraphQL auth-related errors", () => {
 	assert.match(
 		apiJs,
-		/import\s+\{\s*isAuthFailureMessage\s*\}\s+from\s+"\.\/infra\.errors\.js"/,
+		/import\s+\{\s*isAuthFailureMessage\s*\}\s+from\s+"\.\/errors\.js"/,
 	);
 	assert.match(
 		infraErrorsJs,

@@ -6,8 +6,12 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const collaborationsView = read("src/collaborations.view.js");
-const collaborationsCore = read("src/collaborations.core.js");
+const collaborationsView = read(
+	"src/features/collaborations/collaborations.ui.view.js",
+);
+const collaborationsCore = read(
+	"src/features/collaborations/collaborations.core.js",
+);
 
 test("repro PERF-001: collaborations summary build avoids per-login full rescans", () => {
 	assert.doesNotMatch(

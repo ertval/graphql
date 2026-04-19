@@ -3,7 +3,6 @@
  * @module dashboard.popup
  */
 
-import { renderDashboardActivity } from "./dashboard.popup.activity.js";
 import {
 	$,
 	formatLongLocalDate,
@@ -11,13 +10,14 @@ import {
 	getActiveUserDisplayName,
 	getActiveUserLogin,
 	toProjectUrl,
-} from "./infra.ui.js";
+} from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
 	createProjectPathAndLinkSection,
 	createProjectRoleSection,
 	createProjectStatGrid,
-} from "./popup.shared.js";
+} from "../../shared/ui/popup.shared.js";
+import { renderDashboardActivity } from "./dashboard.ui.popup.activity.js";
 
 const normalizeProjectName = (name) =>
 	typeof name === "string" ? name.trim().toLowerCase() : "";

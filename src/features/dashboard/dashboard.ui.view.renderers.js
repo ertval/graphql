@@ -3,13 +3,13 @@
  * @module dashboard.view.renderers
  */
 
-import { renderProjectBarChart } from "./charts.bar.js";
-import { renderAuditDonutChart } from "./charts.donut.js";
-import { formatXP } from "./charts.helpers.js";
-import { renderXPLineChart } from "./charts.line.js";
-import { renderPassFailPieChart } from "./charts.pie.js";
+import { $ } from "../../infra/ui.js";
 import { computeTopSkills, computeXpSummary } from "./dashboard.core.js";
-import { $ } from "./infra.ui.js";
+import { renderProjectBarChart } from "./dashboard.ui.charts.bar.js";
+import { renderAuditDonutChart } from "./dashboard.ui.charts.donut.js";
+import { formatXP } from "./dashboard.ui.charts.helpers.js";
+import { renderXPLineChart } from "./dashboard.ui.charts.line.js";
+import { renderPassFailPieChart } from "./dashboard.ui.charts.pie.js";
 
 /** @param {object} user */
 export const renderUserSection = (user) => {

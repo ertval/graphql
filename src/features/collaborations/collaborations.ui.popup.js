@@ -3,25 +3,25 @@
  * @module collaborations.popup
  */
 
-import { buildCollaboratorSummary } from "./collaborations.core.js";
-import {
-	createCollaboratorHeader,
-	createCollaboratorRolesSection,
-} from "./collaborations.popup.profile.js";
-import { createProjectDetailPanelElements } from "./collaborations.popup.project-panel.js";
 import {
 	$,
 	formatLocalDate,
 	getActiveUserDisplayName,
 	getActiveUserLogin,
 	toProjectUrl,
-} from "./infra.ui.js";
+} from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
 	createProjectPathAndLinkSection,
 	createProjectRoleSection,
 	createProjectStatGrid,
-} from "./popup.shared.js";
+} from "../../shared/ui/popup.shared.js";
+import { buildCollaboratorSummary } from "./collaborations.core.js";
+import {
+	createCollaboratorHeader,
+	createCollaboratorRolesSection,
+} from "./collaborations.ui.popup.profile.js";
+import { createProjectDetailPanelElements } from "./collaborations.ui.popup.project-panel.js";
 
 let selectedProjectName = "";
 

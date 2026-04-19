@@ -4,8 +4,8 @@
  * @module dashboard.api
  */
 
-import { graphqlQuery } from "./infra.graphql.js";
-import { mapResult } from "./infra.result.js";
+import { graphqlQuery } from "../../infra/graphql.js";
+import { mapResult } from "../../infra/result.js";
 
 // ── User profile ───────────────────────────────────────────────────
 

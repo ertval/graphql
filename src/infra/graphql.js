@@ -4,9 +4,9 @@
  * @module infra.graphql
  */
 
-import { isAuthFailureMessage } from "./infra.errors.js";
-import { createRequestController } from "./infra.network.js";
-import { fail, ok } from "./infra.result.js";
+import { isAuthFailureMessage } from "./errors.js";
+import { createRequestController } from "./network.js";
+import { fail, ok } from "./result.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 const PLATFORM = "https://platform.zone01.gr";

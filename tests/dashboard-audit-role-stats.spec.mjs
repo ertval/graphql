@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { computeDashboardRoleData } from "../src/dashboard.core.js";
+import { computeDashboardRoleData } from "../src/features/dashboard/dashboard.core.js";
 
 const createProject = (id, name = `Project ${id}`) => ({
 	object: { id, name, type: "project" },

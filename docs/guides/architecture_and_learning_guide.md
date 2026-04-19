@@ -27,12 +27,12 @@ query GetXP($userId: Int!) {
 { result { grade object { name type } } }
 ```
 
-This project demonstrates all three query types. See `src/dashboard.api.js` for concrete implementations.
+This project demonstrates all three query types. See `src/features/dashboard/dashboard.api.js` for concrete implementations.
 
 ### JWT Authentication
 When you log in, the server verifies credentials and returns a **JWT (JSON Web Token)** — a cryptographically signed ticket. Every subsequent GraphQL request includes this token in the `Authorization: Bearer <token>` header. If the token expires or is tampered with, the server rejects the request.
 
-The token is session-scoped in memory with `sessionStorage` fallback in `src/infra.auth.js`. `isAuthenticated()` validates token expiry before allowing API calls.
+The token is session-scoped in memory with `sessionStorage` fallback in `src/infra/auth.js`. `isAuthenticated()` validates token expiry before allowing API calls.
 
 ### SVG Graphics
 All four charts are drawn using the browser's native **SVG (Scalable Vector Graphics)** API:
@@ -54,26 +54,25 @@ A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
 
 ## 2. Module Architecture
 
-```
 ┌──────────────────────────────────────────────────────────────┐
 │                         Browser                              │
 │                                                              │
 │  index.html  ──links──►  css/ (7 files)                      │
 │       │                                                      │
-│       └──module──► src/dashboard.view.js                     │
+│       └──module──► src/app.js                                │
 │                         │                                    │
-│                         ├──► src/collaborations.*.js         │
-│                         ├──► src/charts.*.js                 │
-│                         └──► src/infra.*.js                  │
+│                         ├──► src/features/dashboard/         │
+│                         ├──► src/features/collaborations/    │
+│                         ├──► src/shared/                     │
+│                         └──► src/infra/                      │
 └──────────────────────────────────────────────────────────────┘
-```
 
 | File Group | Responsibility |
 |---|---|
 | `dashboard.*.js` | Tab routing, dashboard load pipeline, project detail overlays (`.popup`), pure transform logic (`.core`), and GraphQL queries (`.api`). |
 | `collaborations.*.js` | Collaborations domain normalisation (`.core`), API fetching (`.api`), DOM orchestration and filtering (`.view`), and profile overlays (`.popup`). |
-| `charts.*.js` | Shared native SVG graph rendering components and math formatters. |
-| `infra.*.js` | Auth token management, HTTP/GraphQL transport wrapper, and the Result logic pattern. |
+| `shared/` | Shared UI components and SVG charts. |
+| `infra/` | Auth token management, HTTP/GraphQL transport wrapper, and the Result logic pattern. |
 
 ### CSS Module Split
 

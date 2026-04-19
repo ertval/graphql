@@ -42,9 +42,9 @@ before(async () => {
 	}
 
 	({ clearToken, decodeToken, getToken, login, saveToken, TOKEN_STORAGE_KEY } =
-		await import("../src/infra.auth.js"));
+		await import("../src/infra/auth.js"));
 	({ configureGraphqlAuth, graphqlQuery } = await import(
-		"../src/infra.graphql.js"
+		"../src/infra/graphql.js"
 	));
 
 	configureGraphqlAuth({

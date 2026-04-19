@@ -6,7 +6,9 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const collaborationsApi = read("src/collaborations.api.js");
+const collaborationsApi = read(
+	"src/features/collaborations/collaborations.api.js",
+);
 
 const extractGetCollabsQuery = () => {
 	const match = collaborationsApi.match(/const query = `([\s\S]*?)`;/);
