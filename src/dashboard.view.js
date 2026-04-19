@@ -49,6 +49,11 @@ let _roleProjectsByRole = {
 	Partner: [],
 	Auditor: [],
 };
+let dashboardLoadGeneration = 0;
+
+export const invalidateDashboardLoads = () => {
+	dashboardLoadGeneration += 1;
+};
 
 export const initDashboard = () => {
 	initProjectDetailClose(
@@ -63,6 +68,7 @@ export const initDashboard = () => {
 
 /** Clears all dashboard UI elements back to empty state. */
 export const resetDashboard = () => {
+	invalidateDashboardLoads();
 	const textOf = (id, val) => {
 		const el = $(id);
 		if (el) el.textContent = val;
@@ -117,13 +123,22 @@ export const loadDashboard = async (
 	onAuthFailure,
 	isSessionValid = () => true,
 ) => {
+	const loadGeneration = ++dashboardLoadGeneration;
 	const shouldLogout = (error) =>
 		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
 	const _normalizeProjectName = (name) =>
 		typeof name === "string" ? name.trim().toLowerCase() : "";
+	const staleResult = () => {
+		if (loadGeneration !== dashboardLoadGeneration) {
+			return { ok: false, error: new Error("Stale dashboard load cancelled.") };
+		}
+		return null;
+	};
 
 	try {
 		const userResult = await fetchUserInfo();
+		const staleAfterUser = staleResult();
+		if (staleAfterUser) return staleAfterUser;
 		if (!userResult.ok) {
 			if (shouldLogout(userResult.error)) {
 				onAuthFailure();
@@ -150,6 +165,8 @@ export const loadDashboard = async (
 			fetchResults(user.id),
 			fetchUserRoleStats(user.id),
 		]);
+		const staleAfterParallel = staleResult();
+		if (staleAfterParallel) return staleAfterParallel;
 
 		const firstError = [
 			xpResult,
@@ -192,6 +209,8 @@ export const loadDashboard = async (
 			user.id,
 			projectObjectIds,
 		);
+		const staleAfterTeams = staleResult();
+		if (staleAfterTeams) return staleAfterTeams;
 		if (!projectTeamsResult.ok) {
 			if (shouldLogout(projectTeamsResult.error)) {
 				onAuthFailure();
@@ -239,6 +258,9 @@ export const loadDashboard = async (
 		// Store for project detail cross-referencing
 		_xpTransactions = xpTransactions;
 		_results = results;
+
+		const staleBeforeRender = staleResult();
+		if (staleBeforeRender) return staleBeforeRender;
 
 		renderUserSection(dashboardUser);
 		renderXPSection(xpTransactions, level, progress);

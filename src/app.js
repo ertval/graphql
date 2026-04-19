@@ -10,6 +10,7 @@ import {
 } from "./collaborations.view.js";
 import {
 	initDashboard,
+	invalidateDashboardLoads,
 	loadDashboard,
 	resetDashboard,
 } from "./dashboard.view.js";
@@ -134,6 +135,7 @@ const showLogin = () => {
 /** Full logout flow — clears state and returns to login. */
 const performLogout = (broadcast = true) => {
 	clearToken();
+	invalidateDashboardLoads();
 	collabsViewStatus = "idle";
 	collabsViewLoadGeneration += 1;
 	resetDashboard();
