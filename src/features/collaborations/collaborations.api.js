@@ -4,13 +4,13 @@
  * @module collaborations.api
  */
 
+import { graphqlQuery } from "../../infra/graphql.js";
+import { mapResult } from "../../infra/result.js";
+import { fetchUserInfo } from "../dashboard/dashboard.api.js";
 import {
 	filterVerifiedCollaborations,
 	normalizeCollaboratorNamesByLogin,
 } from "./collaborations.core.js";
-import { fetchUserInfo } from "./dashboard.api.js";
-import { graphqlQuery } from "./infra.graphql.js";
-import { mapResult } from "./infra.result.js";
 
 // ── Collaboration data (groups + audits given / received) ──────────
 

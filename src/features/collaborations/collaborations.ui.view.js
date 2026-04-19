@@ -5,16 +5,16 @@
  * @module collaborations.view
  */
 
+import { $, formatLocalDate } from "../../infra/ui.js";
 import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummaries } from "./collaborations.core.js";
 import {
 	closeCollaboratorDetail,
 	openCollaboratorDetail,
-} from "./collaborations.popup.js";
-import { getSortedCollaborations } from "./collaborations.view.filters.js";
-import { renderCollabsPagination } from "./collaborations.view.pagination.js";
-import { renderCollabsTableBody } from "./collaborations.view.table.js";
-import { $, formatLocalDate } from "./infra.ui.js";
+} from "./collaborations.ui.popup.js";
+import { getSortedCollaborations } from "./collaborations.ui.view.filters.js";
+import { renderCollabsPagination } from "./collaborations.ui.view.pagination.js";
+import { renderCollabsTableBody } from "./collaborations.ui.view.table.js";
 
 // ── Module state ───────────────────────────────────────────────────
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */

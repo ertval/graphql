@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 const apiJs = fs.readFileSync(
-	path.join(process.cwd(), "src/dashboard.api.js"),
+	path.join(process.cwd(), "src/features/dashboard/dashboard.api.js"),
 	"utf8",
 );
 

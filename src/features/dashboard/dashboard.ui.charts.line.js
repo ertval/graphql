@@ -9,7 +9,7 @@ import {
 	formatDateLabel,
 	formatXP,
 	svgEl,
-} from "./charts.helpers.js";
+} from "./dashboard.ui.charts.helpers.js";
 
 // ── Public renderer ────────────────────────────────────────────────
 /**

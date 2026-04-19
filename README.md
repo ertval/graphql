@@ -28,13 +28,23 @@ A vanilla JavaScript web application that displays a user's school progression a
 ## 📂 Project Structure
 
 ```text
-├── index.html              # App Entry (loads app.js)
 ├── src/
-│   ├── app.js              # Main application router and state orchestrator
-│   ├── dashboard.*.js      # Main Dashboard feature (Domain, API, View, Popup)
-│   ├── collaborations.*.js # Collaborations feature (Domain, API, View, Popup) 
-│   ├── charts.*.js         # Shared SVG graph components and helpers
-│   └── infra.*.js          # Core infrastructure (Auth, GraphQL, Result types)
+│   ├── features/           # Domain-driven vertical slices
+│   │   ├── dashboard/      # Dashboard feature (flat structure)
+│   │   │   ├── dashboard.api.js
+│   │   │   ├── dashboard.core.js
+│   │   │   ├── dashboard.ui.view.js
+│   │   │   ├── dashboard.ui.popup.js
+│   │   │   └── dashboard.ui.charts.*.js
+│   │   └── collaborations/ # Collaborations feature (flat structure)
+│   │       ├── collaborations.api.js
+│   │       ├── collaborations.core.js
+│   │       ├── collaborations.ui.view.js
+│   │       └── collaborations.ui.popup.js
+│   ├── core/               # Global domain logic (Result pattern)
+│   ├── infra/              # Technical adapters (Auth, GraphQL, UI)
+│   ├── shared/             # Shared UI components
+│   └── app.js              # Application entry and routing
 ├── css/
 │   ├── theme.css           # Global design tokens
 │   ├── base.css            # Base layouts and glass effects
@@ -43,8 +53,7 @@ A vanilla JavaScript web application that displays a user's school progression a
 │   └── graphs.css          # SVG styling
 └── docs/
     ├── requirements.md     # Original project requirements
-    ├── architecture_and_learning_guide.md
-    └── refactor_guide_2026.md # Detailed technical architecture & data flows
+    └── guides/             # Architecture and deployment guides
 ```
 
 ## 🚀 Getting Started
@@ -58,6 +67,11 @@ npx serve .
 python -m http.server 3000
 ```
 Then open `http://localhost:3000` in your browser.
+
+### Run tests
+```bash
+npm run test
+```
 
 ## 🔄 Data Flows
 

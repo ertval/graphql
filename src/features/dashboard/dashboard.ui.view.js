@@ -4,6 +4,7 @@
  * @module dashboard.view
  */
 
+import { $ } from "../../infra/ui.js";
 import {
 	fetchProgress,
 	fetchProjectTeams,
@@ -18,19 +19,21 @@ import {
 	computeDashboardRoleData,
 	isAuthFailureError,
 } from "./dashboard.core.js";
-import { initProjectDetailClose, renderActivity } from "./dashboard.popup.js";
+import {
+	initProjectDetailClose,
+	renderActivity,
+} from "./dashboard.ui.popup.js";
 import {
 	closeRoleProjectsPopup,
 	initRoleProjectsPopup,
-} from "./dashboard.popup.roles.js";
+} from "./dashboard.ui.popup.roles.js";
 import {
 	renderAuditSection,
 	renderGraphs,
 	renderSkills,
 	renderUserSection,
 	renderXPSection,
-} from "./dashboard.view.renderers.js";
-import { $ } from "./infra.ui.js";
+} from "./dashboard.ui.view.renderers.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 // ── Module-level state (needed for project detail cross-reference) ─

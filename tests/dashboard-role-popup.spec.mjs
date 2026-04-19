@@ -7,8 +7,8 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const dashboardViewJs = read("src/dashboard.view.js");
-const rolePopupJs = read("src/dashboard.popup.roles.js");
+const dashboardViewJs = read("src/features/dashboard/dashboard.ui.view.js");
+const rolePopupJs = read("src/features/dashboard/dashboard.ui.popup.roles.js");
 
 test("user profile card contains role counters and roles title", () => {
 	assert.match(indexHtml, /<h3 class="profile-roles-title">Roles<\/h3>/);

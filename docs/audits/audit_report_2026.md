@@ -46,7 +46,7 @@ export const setAllCollabsData = (data) => {
 };
 ```
 - Verification: Repro failed before fix, then passed after fix.
-  - Baseline: `node --test tests/audit/repro_audit_perf_collaborator_summary_scaling.spec.mjs ...` -> fail
+  - Baseline: `npm run test:audit` -> fail
   - Post-fix: same command -> pass
 
 #### AUDIT-002
@@ -188,7 +188,7 @@ Observed alignment:
 ## Verification Log
 
 - Baseline repro run (pre-fix): 3/3 failing
-  - Command: `node --test tests/audit/repro_audit_perf_collaborator_summary_scaling.spec.mjs tests/audit/repro_audit_gql_collaborations_query_budget.spec.mjs tests/audit/repro_audit_async_dashboard_stale_guard.spec.mjs`
+  - Command: `npm run test:audit`
 - Post-fix repro run: 3/3 passing
   - Same command
 - Final project validation:

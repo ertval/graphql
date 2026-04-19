@@ -4,7 +4,7 @@
  * @module dashboard.core
  */
 
-export { isAuthFailureError } from "./infra.errors.js";
+export { isAuthFailureError } from "../../infra/errors.js";
 
 /**
  * Computes total XP and the number of completed projects from raw data.

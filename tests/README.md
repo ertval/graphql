@@ -6,4 +6,4 @@ This folder contains pre-refactor validation tests based on:
 
 Run all tests with:
 
-node --test tests/*.mjs
+npm run test:all

@@ -4,7 +4,11 @@
  * @module graphs.bar
  */
 
-import { createTooltip, formatXP, svgEl } from "./charts.helpers.js";
+import {
+	createTooltip,
+	formatXP,
+	svgEl,
+} from "./dashboard.ui.charts.helpers.js";
 
 // ── Layout computation (also used by tests) ────────────────────────
 /**

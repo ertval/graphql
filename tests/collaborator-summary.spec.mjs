@@ -4,7 +4,7 @@ import test from "node:test";
 import {
 	buildCollaboratorSummary,
 	filterVerifiedCollaborations,
-} from "../src/collaborations.core.js";
+} from "../src/features/collaborations/collaborations.core.js";
 
 test("buildCollaboratorSummary aggregates projects, roles and counts for a login", () => {
 	const records = [

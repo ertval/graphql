@@ -7,13 +7,13 @@
 import {
 	initCollaborationsView,
 	resetCollabsState,
-} from "./collaborations.view.js";
+} from "./features/collaborations/collaborations.ui.view.js";
 import {
 	initDashboard,
 	invalidateDashboardLoads,
 	loadDashboard,
 	resetDashboard,
-} from "./dashboard.view.js";
+} from "./features/dashboard/dashboard.ui.view.js";
 import {
 	AUTH_SYNC_KEY,
 	clearToken,
@@ -22,9 +22,9 @@ import {
 	isAuthenticated,
 	login,
 	saveToken,
-} from "./infra.auth.js";
-import { configureGraphqlAuth } from "./infra.graphql.js";
-import { $ } from "./infra.ui.js";
+} from "./infra/auth.js";
+import { configureGraphqlAuth } from "./infra/graphql.js";
+import { $ } from "./infra/ui.js";
 
 // ── DOM References ─────────────────────────────────────────────────
 const loginView = $("#login-view");

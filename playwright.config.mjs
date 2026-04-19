@@ -18,4 +18,10 @@ export default defineConfig({
 		screenshot: "only-on-failure",
 		video: "retain-on-failure",
 	},
+	webServer: {
+		command: "npx serve . -l 3000 --no-clipboard",
+		url: baseURL,
+		reuseExistingServer: true,
+		timeout: 10_000,
+	},
 });

@@ -12,26 +12,27 @@ The application is structured into **Features** (business domains) and **Infrast
 
 ```text
 src/
-├── app.js                  # Main Application Router & State Orchestrator
-├── dashboard.view.js       # Main Dashboard Tab Rendering
-├── dashboard.api.js        # GraphQL Queries for Dashboard
-├── dashboard.popup.js      # Modal & Activity UI Logic
-├── dashboard.core.js       # Pure Logic (Math, Grouping, Normalisation)
-│
-├── collaborations.view.js  # Leaderboard Table & State
-├── collaborations.api.js   # Fetches & Normalises Collabs
-├── collaborations.popup.js # Collaborator Profile Overlay
-├── collaborations.core.js  # Pure Collab Domain Logic
-│
-├── charts.bar.js           # SVG Project XP Bar Chart
-├── charts.donut.js         # SVG Audit Ratio Donut
-├── charts.line.js          # SVG Cumulative XP Line
-├── charts.pie.js           # SVG Pass/Fail Ratio Pie
-├── charts.helpers.js       # SVG Factory & Formatters
-│
-├── infra.auth.js           # JWT & Session Management
-├── infra.graphql.js        # HTTP Fetch & Error Handling
-└── infra.result.js         # Result Pattern (ok/fail)
+├── features/               # Vertical slices
+│   ├── dashboard/          # Dashboard feature (flat)
+│   │   ├── dashboard.api.js
+│   │   ├── dashboard.core.js
+│   │   ├── dashboard.ui.view.js
+│   │   └── dashboard.ui.charts.*.js
+│   └── collaborations/     # Collaborations feature (flat)
+│       ├── collaborations.api.js
+│       ├── collaborations.core.js
+│       ├── collaborations.ui.view.js
+│       └── collaborations.ui.popup.js
+├── infra/                  # Shared technical adapters
+│   ├── auth.js
+│   ├── graphql.js
+│   ├── result.js
+│   └── ui.js
+├── core/                   # Global business logic
+│   └── result.js           # (Shared result pattern logic)
+├── shared/                 # Reusable UI components
+│   └── ui/
+└── app.js                  # Main Application Orchestrator
 ```
 
 ### 2. The 4-File Feature Pattern

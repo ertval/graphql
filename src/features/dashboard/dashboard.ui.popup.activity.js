@@ -3,7 +3,7 @@
  * @module dashboard.popup.activity
  */
 
-import { $ } from "./infra.ui.js";
+import { $ } from "../../infra/ui.js";
 
 /**
  * @param {Array} results

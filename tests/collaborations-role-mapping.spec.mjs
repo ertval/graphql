@@ -6,8 +6,12 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const collaborationsApiJs = read("src/collaborations.api.js");
-const collaborationsCoreJs = read("src/collaborations.core.js");
+const collaborationsApiJs = read(
+	"src/features/collaborations/collaborations.api.js",
+);
+const collaborationsCoreJs = read(
+	"src/features/collaborations/collaborations.core.js",
+);
 const indexHtml = read("index.html");
 
 test("collaborations api maps audits received collaborator role to Auditor", () => {
