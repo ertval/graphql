@@ -17,7 +17,7 @@ const authChannel =
 		? new BroadcastChannel("graphql_auth_channel")
 		: null;
 
-export const initAuthUI = ({ onLoginSuccess, onLogout }) => {
+export const initAuth = () => {
 	const loginForm = $("#login-form");
 	const loginError = $("#login-error");
 	const loginBtn = $("#login-btn");
@@ -29,7 +29,7 @@ export const initAuthUI = ({ onLoginSuccess, onLogout }) => {
 
 	const performLogout = (broadcast = true) => {
 		clearToken();
-		onLogout();
+		document.dispatchEvent(new CustomEvent("auth:logout"));
 		history.replaceState(null, "", location.pathname);
 
 		if (broadcast) {
@@ -83,7 +83,7 @@ export const initAuthUI = ({ onLoginSuccess, onLogout }) => {
 				return;
 			}
 
-			await onLoginSuccess();
+			document.dispatchEvent(new CustomEvent("auth:login"));
 		} catch (err) {
 			if (loginError)
 				loginError.textContent = toPublicErrorMessage(err, "auth");
@@ -105,6 +105,4 @@ export const initAuthUI = ({ onLoginSuccess, onLogout }) => {
 	authChannel?.addEventListener("message", (event) => {
 		if (event.data?.type === "logout") performLogout(false);
 	});
-
-	return { performLogout };
 };

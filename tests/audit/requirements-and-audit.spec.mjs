@@ -7,7 +7,6 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const appJs = read("src/app.js");
 const authUiJs = read("src/features/auth/auth.ui.view.js");
 
 // Graph code is now split across multiple files — concat for assertions

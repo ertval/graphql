@@ -5,6 +5,7 @@
  * @module collaborations.view
  */
 
+import { decodeToken } from "../../infra/auth.js";
 import { $, formatLocalDate } from "../../infra/ui.js";
 import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummaries } from "./collaborations.core.js";
@@ -280,4 +281,28 @@ export const resetCollabsState = () => {
 	const pagination = $("#collabs-pagination");
 	if (pagination) pagination.replaceChildren();
 	closeCollaboratorDetail();
+};
+
+export const initCollaborations = () => {
+	let activeUserId = null;
+
+	document.addEventListener("dashboard:loaded", (e) => {
+		activeUserId = e.detail.userId;
+	});
+
+	document.addEventListener("shell:tab", (e) => {
+		if (e.detail.tab === "collabs") {
+			const decoded = decodeToken();
+			const userId =
+				typeof activeUserId === "number" && Number.isInteger(activeUserId)
+					? activeUserId
+					: Number(decoded?.sub);
+			void loadCollaborationsLazy(userId);
+		}
+	});
+
+	document.addEventListener("auth:logout", () => {
+		resetCollabsState();
+		activeUserId = null;
+	});
 };

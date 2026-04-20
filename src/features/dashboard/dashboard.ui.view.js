@@ -4,6 +4,7 @@
  * @module dashboard.view
  */
 
+import { isAuthenticated } from "../../infra/auth.js";
 import { $ } from "../../infra/ui.js";
 import {
 	fetchProgress,
@@ -65,6 +66,25 @@ export const initDashboard = () => {
 		() => _teamsByProject,
 	);
 	initRoleProjectsPopup(() => _roleProjectsByRole);
+
+	document.addEventListener("auth:login", async () => {
+		const result = await loadDashboard(
+			() => document.dispatchEvent(new CustomEvent("auth:logout")),
+			isAuthenticated,
+		);
+		if (result?.ok) {
+			document.dispatchEvent(
+				new CustomEvent("dashboard:loaded", {
+					detail: { userId: result.data.userId },
+				}),
+			);
+		}
+	});
+
+	document.addEventListener("auth:logout", () => {
+		invalidateDashboardLoads();
+		resetDashboard();
+	});
 };
 
 // ── Dashboard Data Loading ─────────────────────────────────────────

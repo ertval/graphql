@@ -7,7 +7,6 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const dashboardView = read("src/features/dashboard/dashboard.ui.view.js");
-const appJs = read("src/app.js");
 
 test("repro ASYNC-001: dashboard load uses generation guard and logout invalidation", () => {
 	assert.match(
@@ -31,12 +30,7 @@ test("repro ASYNC-001: dashboard load uses generation guard and logout invalidat
 		"loadDashboard should cancel stale completions before mutating UI/state.",
 	);
 	assert.match(
-		appJs,
-		/import \{[\s\S]*?invalidateDashboardLoads,[\s\S]*?\} from "\.\/features\/dashboard\/dashboard\.ui\.view\.js";/,
-		"App should import invalidateDashboardLoads from dashboard view.",
-	);
-	assert.match(
-		appJs,
+		dashboardView,
 		/invalidateDashboardLoads\(\);/,
 		"Logout flow should invalidate in-flight dashboard loads.",
 	);

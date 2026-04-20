@@ -4,24 +4,11 @@
  * @module app
  */
 
-import { initAuthUI } from "./features/auth/auth.ui.view.js";
-import {
-	loadCollaborationsLazy,
-	resetCollabsState,
-} from "./features/collaborations/collaborations.ui.view.js";
-import {
-	initDashboard,
-	invalidateDashboardLoads,
-	loadDashboard,
-	resetDashboard,
-} from "./features/dashboard/dashboard.ui.view.js";
-import { initShellUI } from "./features/shell/shell.ui.view.js";
-import {
-	clearToken,
-	decodeToken,
-	getToken,
-	isAuthenticated,
-} from "./infra/auth.js";
+import { initAuth } from "./features/auth/auth.ui.view.js";
+import { initCollaborations } from "./features/collaborations/collaborations.ui.view.js";
+import { initDashboard } from "./features/dashboard/dashboard.ui.view.js";
+import { initShell } from "./features/shell/shell.ui.view.js";
+import { clearToken, getToken, isAuthenticated } from "./infra/auth.js";
 import { configureGraphqlAuth } from "./infra/graphql.js";
 
 configureGraphqlAuth({
@@ -29,65 +16,21 @@ configureGraphqlAuth({
 	clearToken,
 });
 
-let activeUserId = null;
-
 const init = async () => {
-	// 1. Initialize UI Shell and routing
-	const { showProfile, showLogin } = initShellUI({
-		onTabSwitch: (tab) => {
-			if (tab === "collabs") {
-				const decoded = decodeToken();
-				const userId =
-					typeof activeUserId === "number" && Number.isInteger(activeUserId)
-						? activeUserId
-						: Number(decoded?.sub);
-				void loadCollaborationsLazy(userId);
-			}
-		},
-	});
-
-	// 2. Initialize Auth UI interactions
-	const { performLogout } = initAuthUI({
-		onLoginSuccess: async () => {
-			showProfile();
-			const dashboardResult = await loadDashboard(
-				performLogout,
-				isAuthenticated,
-			);
-			if (dashboardResult?.ok) {
-				activeUserId = dashboardResult.data.userId;
-			}
-		},
-		onLogout: () => {
-			invalidateDashboardLoads();
-			resetDashboard();
-			resetCollabsState();
-			activeUserId = null;
-			showLogin();
-		},
-	});
-
-	// 3. Initialize Dashboard structural elements
+	// 1. Initialize UI components (setup listeners)
+	initShell();
+	initAuth();
 	initDashboard();
+	initCollaborations();
 
-	// Global navigation handlers
-	globalThis.addEventListener("popstate", () => {
-		if (!isAuthenticated()) {
-			showLogin();
-		}
-	});
-
-	// Initial route
+	// 2. Initial Route Check
 	if (isAuthenticated()) {
-		showProfile();
-		const dashboardResult = await loadDashboard(performLogout, isAuthenticated);
-		if (dashboardResult?.ok) {
-			activeUserId = dashboardResult.data.userId;
-		}
+		// Trigger initial authenticated flow via feature exports
+		document.dispatchEvent(new CustomEvent("auth:login"));
 	} else {
-		clearToken();
-		showLogin();
+		// Trigger initial guest flow
+		document.dispatchEvent(new CustomEvent("auth:logout"));
 	}
 };
 
-init();
+void init();

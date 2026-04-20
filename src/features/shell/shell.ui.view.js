@@ -3,9 +3,10 @@
  * @module features/shell/view
  */
 
+import { clearToken, isAuthenticated } from "../../infra/auth.js";
 import { $ } from "../../infra/ui.js";
 
-export const initShellUI = ({ onTabSwitch }) => {
+export const initShell = () => {
 	const loginView = $("#login-view");
 	const profileView = $("#profile-view");
 	const tabDashboard = $("#tab-dashboard");
@@ -33,7 +34,7 @@ export const initShellUI = ({ onTabSwitch }) => {
 			collabsPanel?.classList.add("active");
 		}
 
-		if (onTabSwitch) onTabSwitch(tab);
+		document.dispatchEvent(new CustomEvent("shell:tab", { detail: { tab } }));
 	};
 
 	tabDashboard?.addEventListener("click", () => switchTab("dashboard"));
@@ -54,5 +55,13 @@ export const initShellUI = ({ onTabSwitch }) => {
 		switchTab("dashboard");
 	};
 
-	return { showProfile, showLogin, switchTab };
+	document.addEventListener("auth:login", showProfile);
+	document.addEventListener("auth:logout", showLogin);
+
+	globalThis.addEventListener("popstate", () => {
+		if (!isAuthenticated()) {
+			clearToken();
+			document.dispatchEvent(new CustomEvent("auth:logout"));
+		}
+	});
 };

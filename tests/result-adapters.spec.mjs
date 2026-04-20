@@ -6,7 +6,6 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const appJs = read("src/app.js");
 const authUiJs = read("src/features/auth/auth.ui.view.js");
 const collaborationsApiJs = read(
 	"src/features/collaborations/collaborations.api.js",
