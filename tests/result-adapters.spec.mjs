@@ -7,6 +7,7 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const appJs = read("src/app.js");
+const authUiJs = read("src/features/auth/auth.ui.view.js");
 const collaborationsApiJs = read(
 	"src/features/collaborations/collaborations.api.js",
 );
@@ -18,12 +19,12 @@ const infraResultJs = read("src/infra/result.js");
 
 test("app login adapter handles Result object contract", () => {
 	assert.match(
-		appJs,
+		authUiJs,
 		/const loginResult = await login\(identifier, password\);/,
 	);
-	assert.match(appJs, /if \(!loginResult\.ok\) \{/);
+	assert.match(authUiJs, /if \(!loginResult\.ok\) \{/);
 	assert.match(
-		appJs,
+		authUiJs,
 		/toPublicErrorMessage\(\s*\n\s*loginResult\.error,\s*\n\s*"auth",?\s*\n\s*\)/,
 	);
 });

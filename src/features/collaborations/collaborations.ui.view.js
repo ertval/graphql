@@ -21,6 +21,9 @@ import { renderCollabsTableBody } from "./collaborations.ui.view.table.js";
 export let allCollabs = [];
 let uniqueCollabs = [];
 
+let collabsViewStatus = "idle";
+let collabsViewLoadGeneration = 0;
+
 export const setAllCollabsData = (data) => {
 	allCollabs = data;
 	uniqueCollabs = buildCollaboratorSummaries(data);
@@ -238,6 +241,27 @@ export const initCollaborationsView = async (userId) => {
 	}
 };
 
+/**
+ * Lazy loads collaborations data. Prevents concurrent duplicate loads.
+ * @param {number} userId
+ */
+export const loadCollaborationsLazy = async (userId) => {
+	if (collabsViewStatus !== "idle") return;
+	if (!Number.isInteger(userId) || userId <= 0) return;
+
+	collabsViewStatus = "loading";
+	const loadGeneration = ++collabsViewLoadGeneration;
+	try {
+		const result = await initCollaborationsView(userId);
+		if (loadGeneration !== collabsViewLoadGeneration) return;
+		collabsViewStatus = result?.ok ? "ready" : "idle";
+	} catch {
+		if (loadGeneration === collabsViewLoadGeneration) {
+			collabsViewStatus = "idle";
+		}
+	}
+};
+
 // ── Public API ─────────────────────────────────────────────────────
 
 /** Resets all collaborations state for logout / view teardown. */
@@ -249,6 +273,8 @@ export const resetCollabsState = () => {
 	filterText = "";
 	filterRole = "";
 	currentPage = 1;
+	collabsViewStatus = "idle";
+	collabsViewLoadGeneration += 1;
 	const tbody = $("#collabs-tbody");
 	if (tbody) tbody.replaceChildren();
 	const pagination = $("#collabs-pagination");

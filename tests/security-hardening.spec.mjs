@@ -7,6 +7,7 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const appJs = read("src/app.js");
+const authUiJs = read("src/features/auth/auth.ui.view.js");
 const collaborationsJs = read(
 	"src/features/collaborations/collaborations.ui.view.js",
 );
@@ -178,9 +179,9 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {
-	assert.match(appJs, /BroadcastChannel/);
-	assert.match(appJs, /AUTH_SYNC_KEY/);
-	assert.match(appJs, /event\.key === AUTH_SYNC_KEY/);
+	assert.match(authUiJs, /BroadcastChannel/);
+	assert.match(authUiJs, /AUTH_SYNC_KEY/);
+	assert.match(authUiJs, /event\.key === AUTH_SYNC_KEY/);
 });
 
 test("api clears token on 401 and 403 GraphQL responses", () => {
