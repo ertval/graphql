@@ -1,96 +1,74 @@
 # Refactored Architecture Guide (2026)
 
-This document provides a comprehensive overview of the refactored GraphQL Profile application. The architecture has been flattened and standardised into a **Feature-First** structure, adhering to Clean Architecture principles and ES2026 standards.
+This document provides a comprehensive overview of the **Screaming Vertical Slice Architecture** implemented in the GraphQL Profile application.
 
 ---
 
 ## 🏗️ Architectural Overview
 
-The application is structured into **Features** (business domains) and **Infrastructure** (technical adapters). Each feature follows a consistent 4-file pattern to ensure "screaming architecture" where the file names communicate their purpose.
+The application is structured into **Feature Slices** (business domains) and **Infrastructure** (technical adapters). This structure ensures that adding a new feature (like "Profile Edit") doesn't require modifying existing feature code.
 
 ### 1. File Structure
 
 ```text
 src/
-├── features/               # Vertical slices
-│   ├── dashboard/          # Dashboard feature (flat)
-│   │   ├── dashboard.api.js
-│   │   ├── dashboard.core.js
-│   │   ├── dashboard.ui.view.js
-│   │   └── dashboard.ui.charts.*.js
-│   └── collaborations/     # Collaborations feature (flat)
-│       ├── collaborations.api.js
-│       ├── collaborations.core.js
-│       ├── collaborations.ui.view.js
-│       └── collaborations.ui.popup.js
-├── infra/                  # Shared technical adapters
-│   ├── auth.js
-│   ├── graphql.js
-│   ├── result.js
-│   └── ui.js
-├── core/                   # Global business logic
-│   └── result.js           # (Shared result pattern logic)
-├── shared/                 # Reusable UI components
-│   └── ui/
-└── app.js                  # Main Application Orchestrator
+├── features/               # Domain-driven vertical slices
+│   ├── auth/               # Identity and session management
+│   ├── collaborations/     # Peer leaderboard and profiling
+│   ├── dashboard/          # Stats and SVG analytics
+│   └── shell/              # App layout and navigation
+├── infra/                  # Shared technical adapters (Auth, GQL, UI)
+├── shared/                 # Reusable UI components (Shared popups)
+└── app.js                  # Decoupled Event Orchestrator
 ```
 
-### 2. The 4-File Feature Pattern
+### 2. Feature Slice Pattern
 
-Every major feature (e.g., `dashboard`, `collaborations`) is built using these suffixes:
+Every major feature follows a consistent naming convention:
 
 | Suffix | Responsibility | Implementation Rules |
 |---|---|---|
-| `.core.js` | **Pure Business Logic**. Normalisation, math, and entities. | No DOM, no `fetch`, no side effects. |
-| `.api.js` | **Data Access Layer**. Encapsulates queries and DTO mapping. | Depends on `infra.graphql.js`. |
-| `.view.js` | **UI Orchestration**. Event listeners, state, and rendering. | Connects `.api` to the DOM. |
-| `.popup.js` | **Overlay/Detail Logic**. Specific modal/dialog management. | Self-contained UI components. |
+| `.core.js` | **Pure Business Logic**. | Side-effect free. No DOM or fetch. |
+| `.api.js` | **Data Access Layer**. | Encapsulates GraphQL queries and mapping. |
+| `.ui.view.js` | **UI Controller**. | Orchestrates DOM rendering and events. |
+| `.ui.popup.js` | **Detail/Overlay View**. | Handles specific drill-down UI logic. |
 
 ---
 
 ## 🔄 Critical Data Flows
 
-### A. Authentication & Session Lifecycle
-1. **Login**: `app.js` captures credentials → calls `infra.auth:login()`.
-2. **Persistence**: On success, `infra.auth:saveToken()` stores a session-scoped JWT (memory-first, `sessionStorage` fallback).
-3. **Implicit Auth**: Every request via `infra.graphql:graphqlQuery()` adds the `Authorization: Bearer` header.
-4. **Expiration**: If the API returns 401/403, `infra.graphql` calls `infra.auth:clearToken()` and the UI triggers `performLogout()`.
+### A. Decoupled Event-Driven Auth
+1. `auth.ui.view` triggers login via `infra.auth`.
+2. On success, a global `auth:login` event is dispatched.
+3. Other slices (`dashboard`, `collaborations`) listen for this event and initialize their respective domains.
+4. **Benefit**: The Auth feature doesn't need to know that the Dashboard exists.
 
-### B. Dashboard Loading (The "Functional Core")
-1. `app.js` triggers `loadDashboard()` which fires `Promise.all()` across multiple `dashboard.api` queries.
-2. The pure logic functions in `dashboard.core.js` compute stats (top skills, total XP) isolated from the DOM.
-3. Resulting data is passed into **Pure Renderers** (`charts.*` and `dashboard.view` DOM functions).
-4. `Object.groupBy()` is used to bucket XP transactions by project name for the bar chart.
-5. `Temporal` API processes all timestamps for accurate local date display in the activity feed.
+### B. Dashboard Pipeline (Functional Core)
+1. `loadDashboard()` fires multiple `dashboard.api` queries in parallel via `Promise.all()`.
+2. `dashboard.core` computes derived stats (e.g., aggregating XP by project).
+3. `dashboard.ui.view.renderers` updates the DOM and generates native SVG charts.
+4. **Stale Guard**: A generation counter (`dashboardLoadGeneration`) prevents async race conditions.
 
 ### C. Collaborations Lifecycle
-1. **Lazy Loading**: Data is only fetched when the user clicks the "Collaborations" tab.
-2. **Aggregation**: `collaborations.api` fetches raw groups/audits and aggregates them into a unique list of logins.
-3. **Normalisation**: `collaborations.core:normalizeCollaboratorNamesByLogin()` ensures name consistency across different records (e.g., Partner vs Auditor).
-4. **Reactivity**: Sorting and filtering in `collaborations.view` use **Immutable Array Methods** (`.toSorted()`, `.with()`) to manage state without side effects.
+1. **Lazy Loading**: Data is only fetched when the user switches to the "Collaborations" tab.
+2. **Immutable State**: Sorting and filtering use ES2026 methods (`.toSorted()`, `.toSpliced()`) to maintain predictable UI state.
 
 ---
 
-## 🛡️ ES2026 & Engineering Guidelines
+## 🛡️ ES2026 Engineering Standards
 
-The codebase strictly follows the requirements set in `AGENTS.md`:
-
-- **Immutability**: Mutating methods like `.sort()` are replaced with `.toSorted()`.
-- **Temporal API**: The legacy `Date` object is 100% removed. All date math and formatting use `Temporal`.
-- **Result Pattern**: Business logic rejections return `{ ok: false, error }` instead of throwing, allowing for type-safe error handling.
-- **Screaming Structure**: Directory flattening ensures all files related to "Collaborations" or "Charts" stay prefixed and grouped.
-- **Resource Management**: Network requests are bound by `AbortController` timeouts (12s) to prevent hanging UI.
-- **Security**: Static-hosting-compatible hardening via CSP/Trusted Types meta policy, session-scoped JWT storage, and sanitized user-visible errors.
+- **Temporal API**: All date handling uses the `Temporal` proposal (zero `Date` objects).
+- **Object.groupBy()**: Used for project-based XP aggregation in charts.
+- **Result Pattern**: Uniform success/failure objects (`{ ok, data/error }`) for explicit error handling.
+- **Security**: Strict CSP, Trusted Types, and no `localStorage` for sensitive JWTs.
+- **Quality**: Unified linting and formatting via **Biome**.
 
 ---
 
-## ✅ Refactor Checklist Verification
+## ✅ Refactor Completion Status
 
-- [x] All file headers updated with correct `@module` descriptors.
- - [x] Dashboard entry controller consolidated in `dashboard.view.js`.
-- [x] `dashboard.activity.js` renamed to `dashboard.popup.js`.
-- [x] Redundant `dashboard.metrics.js` removed (logic merged into `charts.helpers.js`).
-- [x] GraphQL queries moved from `graphql.queries.js` to feature-specific `.api.js` files.
-- [x] Infrastructure files grouped under `infra.*` prefix.
-- [x] Biome linting/formatting checks passed.
-- [x] `index.html` entry point updated.
+- [x] **Vertical Slices**: Features isolated into their own directories.
+- [x] **Decoupling**: Tight coupling between `app.js` and features removed in favor of events.
+- [x] **Pure Logic**: Extracted to `.core.js` files for testability.
+- [x] **SVG Refactor**: Charts moved to specialized sub-modules in `dashboard/`.
+- [x] **Infra Centralization**: Network, Auth, and Result logic moved to `src/infra/`.

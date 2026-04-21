@@ -29,31 +29,24 @@ A vanilla JavaScript web application that displays a user's school progression a
 
 ```text
 ├── src/
-│   ├── features/           # Domain-driven vertical slices
-│   │   ├── dashboard/      # Dashboard feature (flat structure)
-│   │   │   ├── dashboard.api.js
-│   │   │   ├── dashboard.core.js
-│   │   │   ├── dashboard.ui.view.js
-│   │   │   ├── dashboard.ui.popup.js
-│   │   │   └── dashboard.ui.charts.*.js
-│   │   └── collaborations/ # Collaborations feature (flat structure)
-│   │       ├── collaborations.api.js
-│   │       ├── collaborations.core.js
-│   │       ├── collaborations.ui.view.js
-│   │       └── collaborations.ui.popup.js
-│   ├── core/               # Global domain logic (Result pattern)
-│   ├── infra/              # Technical adapters (Auth, GraphQL, UI)
-│   ├── shared/             # Shared UI components
-│   └── app.js              # Application entry and routing
+│   ├── features/           # Domain-driven vertical slices (Screaming Architecture)
+│   │   ├── auth/           # Authentication logic and login view
+│   │   ├── collaborations/ # Collaborations leaderboard and profiles
+│   │   ├── dashboard/      # Main stats, charts, and activity
+│   │   └── shell/          # Navigation and app-wide UI layout
+│   ├── infra/              # Technical adapters (Auth, GraphQL, Result pattern)
+│   ├── shared/             # Shared UI components (popups)
+│   └── app.js              # Event-driven application orchestrator
 ├── css/
-│   ├── theme.css           # Global design tokens
-│   ├── base.css            # Base layouts and glass effects
-│   ├── dashboard.css       # Dash-specific styles
-│   ├── collaborations.css  # Table and profiles
-│   └── graphs.css          # SVG styling
+│   ├── theme.css           # Design tokens (HSL palette, variables)
+│   ├── base.css            # Layout, glassmorphism, and animations
+│   ├── login.css           # Auth-specific styling
+│   ├── dashboard.css       # Stats and charts layout
+│   └── collaborations.css  # Tables and filters
 └── docs/
-    ├── requirements.md     # Original project requirements
-    └── guides/             # Architecture and deployment guides
+    ├── audit.md            # Requirement checklist
+    ├── audit_answers.md    # Detailed guide for audit verification
+    └── guides/             # Architecture and learning materials
 ```
 
 ## 🚀 Getting Started
@@ -70,29 +63,34 @@ Then open `http://localhost:3000` in your browser.
 
 ### Run tests
 ```bash
-npm run test
+# Run all Playwright tests
+npx playwright test
+
+# Run Biome linting/formatting
+npm run lint
 ```
 
 ## 🔄 Data Flows
 
-The application follows a strict unidirectional data flow, ensuring predictability and decoupling logic from the UI:
+The application follows a **Decoupled Event-Driven Architecture**, ensuring feature slices communicate without tight coupling:
 
 1. **Authentication Flow**:
-   - User enters credentials in `app.js` → credentials sent to `infra.auth:login()`.
-   - On success, `infra.auth` stores the JWT in memory and mirrors it to `sessionStorage` for same-tab reload continuity.
-   - Subsequent queries fetch the token natively and inject it into the `Authorization` header via `infra.graphql:graphqlQuery()`.
-   - Logout synchronization uses `BroadcastChannel` with a storage-event fallback signal key.
+   - `auth.ui.view` triggers `infra.auth:login()`.
+   - On success, a global `auth:login` event is dispatched.
+   - Slices (dashboard, collaborations) listen for `auth:login` to initialize their data.
+   - `infra.graphql` handles token injection and automatic logout on 401/403 responses.
 
-2. **Dashboard Initialization Flow**:
-   - `app.js` calls `loadDashboard()` which triggers a parallel fetch (`Promise.all`) across all user metrics inside `dashboard.api`.
-   - Pure logic extraction (`dashboard.core.js`) computes summaries without touching the DOM.
-   - Raw data (transactions, progress, skills) is passed down to **pure renderers** (`charts.*` and DOM update functions).
-   - Side-effects are isolated; data is not mutated after being mapped from the GraphQL layer.
+2. **Dashboard Pipeline**:
+   - `dashboard.ui.view` reacts to `auth:login`.
+   - Parallel fetching via `dashboard.api` retrieves all user metrics.
+   - Pure logic in `dashboard.core` computes summaries (role counts, XP totals).
+   - `dashboard.ui.view.renderers` updates the DOM using native SVG and modern CSS.
+   - **Stale Guard**: A generation-based tracking system prevents race conditions during rapid reloads.
 
-3. **Collaborations Feed Flow**:
-   - Lazy-loaded to improve performance: `collaborations.api` is only invoked when the user opens the "Collaborations" tab.
-   - Paging, filtering, and sorting occur in memory using immutable ES2026 array concepts (`.filter()`, `.toSorted()`) in `collaborations.view`.
-   - `collaborations.core` handles deterministic name/role normalizations purely, without any DOM logic or external dependencies.
+3. **Collaborations Pipeline**:
+   - `collaborations.ui.view` handles lazy-loading stats on tab switch.
+   - Filtering and pagination use **Immutable ES2026 methods** (`.toSorted()`, `.toSpliced()`).
+   - Role and name normalization is handled by `collaborations.core`.
 
 ## 🛜 Deployment to GitHub Pages
 
@@ -103,14 +101,13 @@ Since the application is 100% static and relies on client-side JS and a remote A
 2. In your repository settings, go to **Pages** (under the "Code and automation" sidebar).
 3. Under **Source**, leave it as "Deploy from a branch".
 4. Under **Branch**, select `main` and the `/ (root)` folder, then click **Save**.
-5. *Optimization Note*: Ensure the `.nojekyll` file remains at the repository root to prevent GitHub Pages from ignoring files and folders that start with an underscore (if any).
+5. Ensure the `.nojekyll` file remains at the repository root to prevent GitHub Pages from ignoring files and folders that start with an underscore.
 6. Your application will be live at `https://<your-username>.github.io/<repository-name>/`.
 
 ## 💡 Engineering Highlights
 
-- **Zero Dependencies**: Entirely built on standard browser APIs.
-- **Modern JavaScript**: Use of `Temporal`, immutable array methods, and native set operations where appropriate.
-- **Deterministic UI**: State-to-UI binding ensures consistent rendering without a virtual DOM.
-- **Static-hosting security**: CSP + Trusted Types meta policy, sanitized user-facing errors, and no JWT persistence in localStorage.
-- **Audit Ready**: Comprehensive `docs/` folder mapping every requirement to implementation.
-- **Clean Architecture**: Strict separation of concerns with feature-first module organization and layered decoupling.
+- **Zero Dependencies**: 100% vanilla JS/CSS/SVG.
+- **Screaming Architecture**: Folder structure reflects the product domain.
+- **Modern JavaScript**: Extensive use of `Temporal`, `Object.groupBy()`, `using` declarations, and `CustomEvents`.
+- **Security First**: CSP + Trusted Types, no `localStorage` for JWT, and sanitised error handling.
+- **Clean Architecture**: Domain logic is isolated from technical infrastructure and UI side-effects.
