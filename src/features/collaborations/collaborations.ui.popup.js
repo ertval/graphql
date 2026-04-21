@@ -8,7 +8,9 @@ import {
 	formatLocalDate,
 	getActiveUserDisplayName,
 	getActiveUserLogin,
+	lockBodyScroll,
 	toProjectUrl,
+	unlockBodyScroll,
 } from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
@@ -16,6 +18,7 @@ import {
 	createProjectRoleSection,
 	createProjectStatGrid,
 } from "../../shared/ui/popup.shared.js";
+import { formatXP } from "../dashboard/dashboard.ui.charts.helpers.js";
 import { buildCollaboratorSummary } from "./collaborations.core.js";
 import {
 	createCollaboratorHeader,
@@ -24,6 +27,7 @@ import {
 import { createProjectDetailPanelElements } from "./collaborations.ui.popup.project-panel.js";
 
 let selectedProjectName = "";
+const COLLABORATOR_OVERLAY_LOCK_KEY = "overlay-collaborator-detail";
 
 const buildDisplayNameByLogin = (allCollabs) =>
 	allCollabs.reduce((map, collab) => {
@@ -153,12 +157,21 @@ const renderProjectPanelContent = (
 	activeUserLogin,
 ) => {
 	panelBody.replaceChildren();
+	const activeRole = getActiveUserProjectRole(
+		project.name,
+		allCollabs,
+		collaboratorLogin,
+		activeUserLogin,
+	);
+	const xpLabel = activeRole.includes("Auditor")
+		? "XP Given"
+		: "XP Received";
 
 	const grid = createProjectStatGrid([
 		{ value: String(project.count), label: "Shared Records" },
 		{ value: project.roles.join(", ") || "—", label: "Roles" },
 		{ value: formatLocalDate(project.latestDate), label: "Latest Shared" },
-		{ value: project.path ? "Available" : "—", label: "Project Link" },
+		{ value: formatXP(project.xpAmount ?? 0), label: xpLabel },
 	]);
 	panelBody.append(grid);
 
@@ -177,15 +190,9 @@ const renderProjectPanelContent = (
 
 	panelBody.append(membersTitle, membersList);
 
-	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(
-		getActiveUserProjectRole(
-			project.name,
-			allCollabs,
-			collaboratorLogin,
-			activeUserLogin,
-		),
-		{ titleText: "My Role" },
-	);
+	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(activeRole, {
+		titleText: "My Role",
+	});
 
 	panelBody.append(activeRoleTitle, activeRoleValue);
 
@@ -251,6 +258,7 @@ const openProjectDetail = (
 export const closeCollaboratorDetail = () => {
 	const overlay = $("#student-profile-overlay");
 	overlay?.classList.remove("active");
+	unlockBodyScroll(COLLABORATOR_OVERLAY_LOCK_KEY);
 	const layout = $(".sp-layout");
 	const panel = $(".sp-project-panel");
 	selectedProjectName = "";
@@ -286,7 +294,7 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 
 	// Shared projects list
 	const projectsSection = document.createElement("section");
-	projectsSection.className = "sp-skills";
+	projectsSection.className = "sp-skills sp-projects-section";
 	const projectsTitle = document.createElement("h3");
 	projectsTitle.textContent = "Recent Shared Projects";
 	projectsSection.append(projectsTitle);
@@ -351,5 +359,6 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	layout.append(mainColumn, detailPanel);
 	content.append(layout);
 
+	lockBodyScroll(COLLABORATOR_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
 };

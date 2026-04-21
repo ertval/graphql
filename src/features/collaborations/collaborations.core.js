@@ -139,6 +139,10 @@ export const buildCollaboratorSummary = (collabs, login) => {
 	const projects = Array.from(groupedProjects.values())
 		.map((projectMatches) => {
 			const latest = projectMatches.reduce((a, b) => (a.ts >= b.ts ? a : b));
+			const xpAmount = projectMatches.reduce((maxValue, match) => {
+				const current = Number.isFinite(match.xpAmount) ? match.xpAmount : 0;
+				return Math.max(maxValue, current);
+			}, 0);
 			return {
 				name: latest.project,
 				path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
@@ -146,6 +150,7 @@ export const buildCollaboratorSummary = (collabs, login) => {
 				latestDate: latest.date,
 				latestTs: latest.ts,
 				count: projectMatches.length,
+				xpAmount,
 			};
 		})
 		.toSorted((a, b) => b.latestTs - a.latestTs);
@@ -159,12 +164,13 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		latestTs: primary.ts,
 		latestDate: primary.date,
 		byRole: roleCounts,
-		projects: projects.map(({ name, path, roles, latestDate, count }) => ({
+		projects: projects.map(({ name, path, roles, latestDate, count, xpAmount }) => ({
 			name,
 			path,
 			roles,
 			latestDate,
 			count,
+			xpAmount,
 		})),
 	};
 };
@@ -203,6 +209,12 @@ export const buildCollaboratorSummaries = (collabs) =>
 					const latest = projectMatches.reduce((a, b) =>
 						a.ts >= b.ts ? a : b,
 					);
+					const xpAmount = projectMatches.reduce((maxValue, match) => {
+						const current = Number.isFinite(match.xpAmount)
+							? match.xpAmount
+							: 0;
+						return Math.max(maxValue, current);
+					}, 0);
 					return {
 						name: latest.project,
 						path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
@@ -210,6 +222,7 @@ export const buildCollaboratorSummaries = (collabs) =>
 						latestDate: latest.date,
 						latestTs: latest.ts,
 						count: projectMatches.length,
+						xpAmount,
 					};
 				})
 				.toSorted((a, b) => b.latestTs - a.latestTs);
@@ -223,13 +236,16 @@ export const buildCollaboratorSummaries = (collabs) =>
 				latestTs: primary.ts,
 				latestDate: primary.date,
 				byRole: roleCounts,
-				projects: projects.map(({ name, path, roles, latestDate, count }) => ({
-					name,
-					path,
-					roles,
-					latestDate,
-					count,
-				})),
+				projects: projects.map(
+					({ name, path, roles, latestDate, count, xpAmount }) => ({
+						name,
+						path,
+						roles,
+						latestDate,
+						count,
+						xpAmount,
+					}),
+				),
 			};
 		})
 		.filter(Boolean);

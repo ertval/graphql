@@ -21,6 +21,7 @@ import {
 	isAuthFailureError,
 } from "./dashboard.core.js";
 import {
+	closeProjectDetail,
 	initProjectDetailClose,
 	renderActivity,
 } from "./dashboard.ui.popup.js";
@@ -138,6 +139,7 @@ export const resetDashboard = () => {
 		Partner: [],
 		Auditor: [],
 	};
+	closeProjectDetail();
 	closeRoleProjectsPopup();
 };
 
@@ -250,7 +252,39 @@ export const loadDashboard = async (
 			roleStatsResult.data?.audits ?? [],
 		);
 		const roleStats = roleData.stats;
-		_roleProjectsByRole = roleData.projectsByRole;
+		_roleProjectsByRole = Object.fromEntries(
+			Object.entries(roleData.projectsByRole).map(([role, projects]) => [
+				role,
+				projects.map((project) => {
+					const xpAmount = xpTransactions.reduce((sum, tx) => {
+						if (
+							typeof project.objectId === "number" &&
+							tx.object?.id === project.objectId
+						) {
+							return sum + tx.amount;
+						}
+
+						if (project.path && tx.path && tx.path === project.path) {
+							return sum + tx.amount;
+						}
+
+						if (
+							_normalizeProjectName(tx.object?.name) ===
+							_normalizeProjectName(project.name)
+						) {
+							return sum + tx.amount;
+						}
+
+						return sum;
+					}, 0);
+
+					return {
+						...project,
+						xpAmount,
+					};
+				}),
+			]),
+		);
 		const dashboardUser = { ...user, roleStats };
 		const projectCountByObjectId = rawResults.reduce((map, result) => {
 			const projectKey = String(result.objectId ?? "");

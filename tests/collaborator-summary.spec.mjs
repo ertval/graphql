@@ -18,6 +18,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Partner",
 			date: "2026-01-01T10:00:00.000Z",
 			ts: 100,
+			xpAmount: 42000,
 		},
 		{
 			id: "a2",
@@ -29,6 +30,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Auditor",
 			date: "2026-01-08T10:00:00.000Z",
 			ts: 200,
+			xpAmount: 42000,
 		},
 		{
 			id: "a3",
@@ -40,6 +42,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Captain",
 			date: "2026-01-10T10:00:00.000Z",
 			ts: 300,
+			xpAmount: 76000,
 		},
 		{
 			id: "a4",
@@ -73,6 +76,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 		roles: ["Captain"],
 		latestDate: "2026-01-10T10:00:00.000Z",
 		count: 1,
+		xpAmount: 76000,
 	});
 
 	assert.deepEqual(summary.projects[1], {
@@ -81,6 +85,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 		roles: ["Auditor", "Partner"],
 		latestDate: "2026-01-08T10:00:00.000Z",
 		count: 2,
+		xpAmount: 42000,
 	});
 });
 

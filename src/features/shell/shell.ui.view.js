@@ -4,7 +4,7 @@
  */
 
 import { clearToken, isAuthenticated } from "../../infra/auth.js";
-import { $ } from "../../infra/ui.js";
+import { $, clearBodyScrollLocks } from "../../infra/ui.js";
 
 export const initShell = () => {
 	const loginView = $("#login-view");
@@ -48,6 +48,7 @@ export const initShell = () => {
 	const showLogin = () => {
 		profileView?.classList.remove("active");
 		loginView?.classList.add("active");
+		clearBodyScrollLocks();
 		loginForm?.reset();
 		if (identifierInput) identifierInput.value = "";
 		if (passwordInput) passwordInput.value = "";

@@ -298,6 +298,36 @@ const loginWithMockBackend = async (page, overrides = {}) => {
 	await expect(page.locator("#dashboard")).toHaveClass(/active/);
 };
 
+const getBodyScrollLockState = async (page) =>
+	page.evaluate(() => ({
+		overflow: document.body.style.overflow,
+		position: document.body.style.position,
+		top: document.body.style.top,
+		paddingRight: document.body.style.paddingRight,
+		width: document.body.style.width,
+		overscrollBehavior: document.documentElement.style.overscrollBehavior,
+		documentWidth: document.documentElement.clientWidth,
+	}));
+
+const expectBodyScrollLocked = async (page) => {
+	const lockState = await getBodyScrollLockState(page);
+	const topOffset = Number.parseFloat(lockState.top || "0");
+	expect(lockState.overflow).toBe("hidden");
+	expect(lockState.position).toBe("fixed");
+	expect(lockState.width).toBe("100%");
+	expect(Number.isFinite(topOffset)).toBe(true);
+	expect(topOffset).toBeLessThanOrEqual(0);
+	expect(lockState.overscrollBehavior).toBe("none");
+};
+
+const expectBodyScrollUnlocked = async (page) => {
+	const lockState = await getBodyScrollLockState(page);
+	expect(lockState.overflow).not.toBe("hidden");
+	expect(lockState.position).not.toBe("fixed");
+	expect(lockState.top).toBe("");
+	expect(lockState.overscrollBehavior).toBe("");
+};
+
 test("login form enforces required fields at DOM/runtime level", async ({
 	page,
 }) => {
@@ -376,11 +406,203 @@ test("XP by Project interaction opens project detail modal", async ({
 	await expect(page.locator("#project-detail-content")).toContainText(
 		"Captain",
 	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"XP Received",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"80.0 kB",
+	);
+	await expectBodyScrollLocked(page);
 
 	await page.click("#project-detail-close");
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
 		/active/,
 	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("role projects panel shows project XP tile", async ({ page }) => {
+	await loginWithMockBackend(page);
+
+	await page.click("#role-counter-partner");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+	await page
+		.locator('#role-projects-content [aria-label="View details for Alpha Project"]')
+		.first()
+		.click();
+
+	const detailPanel = page.locator("#role-projects-content .sp-project-body");
+	await expect(detailPanel).toContainText("XP Received");
+	await expect(detailPanel).toContainText("80.0 kB");
+
+	await page.click("#role-projects-close");
+	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("collaborator popup locks body scroll without layout shift and unlocks on all close paths", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1280, height: 720 });
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	const widthBeforeOpen = await page.evaluate(
+		() => document.documentElement.clientWidth,
+	);
+
+	const openPopup = async () => {
+		await page.click('[aria-label="Open collaborator details for Peer One"]');
+		await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+	};
+
+	await openPopup();
+	await expectBodyScrollLocked(page);
+	const lockState = await getBodyScrollLockState(page);
+	expect(Math.abs(lockState.documentWidth - widthBeforeOpen)).toBeLessThanOrEqual(
+		1,
+	);
+	await page.click("#student-profile-close");
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+
+	await openPopup();
+	await page.click("#student-profile-overlay", { position: { x: 10, y: 10 } });
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+
+	await openPopup();
+	await page.keyboard.press("Escape");
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("auth logout/reset flow closes overlays and releases body scroll locks", async ({
+	page,
+}) => {
+	await loginWithMockBackend(page);
+
+	await page.click("#role-counter-partner");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+
+	await page.evaluate(() => {
+		document.dispatchEvent(new CustomEvent("auth:logout"));
+	});
+
+	await expect(page.locator("#login-view")).toHaveClass(/active/);
+	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(/active/);
+	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("collaboration project detail panel shows project XP tile", async ({
+	page,
+}) => {
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click('[aria-label="Open collaborator details for Peer One"]');
+	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#student-profile-content [aria-label="View details for Alpha Project"]',
+		)
+		.first()
+		.click();
+
+	const detailPanel = page.locator(".sp-project-panel .sp-project-body");
+	await expect(detailPanel).toContainText("XP Received");
+	await expect(detailPanel).toContainText("80.0 kB");
+	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
+
+	const desktopPlacement = await page.evaluate(() => {
+		const panel = document.querySelector(
+			"#student-profile-content .sp-project-panel.active",
+		);
+		const projectsTitle = [...document.querySelectorAll(
+			"#student-profile-content h3",
+		)].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsSection = projectsTitle?.closest("section");
+
+		if (!panel || !projectsSection) {
+			return null;
+		}
+
+		const panelRect = panel.getBoundingClientRect();
+		const projectsRect = projectsSection.getBoundingClientRect();
+
+		return {
+			panelLeft: panelRect.left,
+			projectsRight: projectsRect.right,
+		};
+	});
+
+	expect(desktopPlacement).not.toBeNull();
+	expect(desktopPlacement.panelLeft).toBeGreaterThan(
+		desktopPlacement.projectsRight - 24,
+	);
+});
+
+test("collaboration detail panel appears above shared projects list on mobile", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click('[aria-label="Open collaborator details for Peer One"]');
+	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#student-profile-content [aria-label="View details for Alpha Project"]',
+		)
+		.first()
+		.click();
+
+	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
+
+	const panelPlacement = await page.evaluate(() => {
+		const panel = document.querySelector(
+			"#student-profile-content .sp-project-panel.active",
+		);
+		const projectsTitle = [...document.querySelectorAll(
+			"#student-profile-content h3",
+		)].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsSection = projectsTitle?.closest("section");
+
+		if (!panel || !projectsSection) {
+			return null;
+		}
+
+		const panelRect = panel.getBoundingClientRect();
+		const projectsRect = projectsSection.getBoundingClientRect();
+
+		return {
+			panelTop: panelRect.top,
+			projectsTop: projectsRect.top,
+		};
+	});
+
+	expect(panelPlacement).not.toBeNull();
+	expect(panelPlacement.panelTop).toBeLessThan(panelPlacement.projectsTop);
 });
 
 test("dashboard popup resolves role and members for projects missing from recent results", async ({

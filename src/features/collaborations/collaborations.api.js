@@ -6,7 +6,7 @@
 
 import { graphqlQuery } from "../../infra/graphql.js";
 import { mapResult } from "../../infra/result.js";
-import { fetchUserInfo } from "../dashboard/dashboard.api.js";
+import { fetchUserInfo, fetchXPTransactions } from "../dashboard/dashboard.api.js";
 import {
 	filterVerifiedCollaborations,
 	normalizeCollaboratorNamesByLogin,
@@ -142,6 +142,12 @@ const dedupeByLoginProjectRole = (collabs) => {
 	});
 };
 
+const normalizeProjectName = (value) =>
+	typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const normalizeProjectPath = (value) =>
+	typeof value === "string" ? value.trim().toLowerCase() : "";
+
 const mapGroupRecords = (groups, userId) =>
 	(groups ?? []).flatMap((g) => {
 		const prjName = g.group?.object?.name || "Unknown Project";
@@ -232,15 +238,29 @@ const mapCollaborationRecords = (records, userId) => [
 
 /** Fetches and normalizes collaboration records into view-ready objects. */
 export const loadCollaborationsData = async (userId) => {
-	const [collabsResult, userResult] = await Promise.all([
+	const [collabsResult, userResult, xpResult] = await Promise.all([
 		fetchCollaborations(userId),
 		fetchUserInfo(),
+		fetchXPTransactions(userId),
 	]);
 	if (!collabsResult.ok) {
 		return collabsResult;
 	}
 
 	const userCampus = userResult.ok ? (userResult.data?.campus ?? "") : "";
+	const xpTransactions = xpResult.ok ? xpResult.data : [];
+	const xpByPath = xpTransactions.reduce((map, tx) => {
+		const pathKey = normalizeProjectPath(tx.path);
+		if (!pathKey) return map;
+		map.set(pathKey, (map.get(pathKey) ?? 0) + tx.amount);
+		return map;
+	}, new Map());
+	const xpByName = xpTransactions.reduce((map, tx) => {
+		const nameKey = normalizeProjectName(tx.object?.name);
+		if (!nameKey) return map;
+		map.set(nameKey, (map.get(nameKey) ?? 0) + tx.amount);
+		return map;
+	}, new Map());
 	const collabs = mapCollaborationRecords(collabsResult.data, userId);
 	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
 	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);
@@ -248,12 +268,25 @@ export const loadCollaborationsData = async (userId) => {
 		dedupedCollabs,
 		userCampus,
 	);
+	const withProjectXp = verifiedCollabs.map((collab) => {
+		const pathKey = normalizeProjectPath(collab.projectPath);
+		const nameKey = normalizeProjectName(collab.project);
+		const xpAmount =
+			(pathKey ? (xpByPath.get(pathKey) ?? null) : null) ??
+			xpByName.get(nameKey) ??
+			0;
+
+		return {
+			...collab,
+			xpAmount,
+		};
+	});
 	const collabsByLogin = Object.groupBy(
-		verifiedCollabs,
+		withProjectXp,
 		(collab) => collab.login,
 	);
 
-	const withTotalCollabs = verifiedCollabs.map((collab) => ({
+	const withTotalCollabs = withProjectXp.map((collab) => ({
 		...collab,
 		totalCollaborations: collabsByLogin[collab.login].length,
 	}));

@@ -96,11 +96,15 @@ export const fetchXPTransactions = async (userId) => {
         where: {
           userId: { _eq: $userId }
           type: { _eq: "xp" }
-          path: { _nlike: "%piscine%" }
+          _or: [
+            { path: { _is_null: true } }
+            { path: { _nilike: "%piscine-go%" } }
+          ]
         }
-        order_by: { createdAt: asc }
+        order_by: [{ createdAt: asc }, { id: asc }]
       ) {
         id
+        objectId
         amount
         createdAt
         path
@@ -292,7 +296,10 @@ export const fetchUserLevel = async (userId) => {
         where: {
           userId: { _eq: $userId }
           type: { _eq: "level" }
-          path: { _nlike: "%piscine%" }
+          _or: [
+            { path: { _is_null: true } }
+            { path: { _nilike: "%piscine-go%" } }
+          ]
         }
         order_by: { amount: desc }
         limit: 1
