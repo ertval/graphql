@@ -164,14 +164,16 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		latestTs: primary.ts,
 		latestDate: primary.date,
 		byRole: roleCounts,
-		projects: projects.map(({ name, path, roles, latestDate, count, xpAmount }) => ({
-			name,
-			path,
-			roles,
-			latestDate,
-			count,
-			xpAmount,
-		})),
+		projects: projects.map(
+			({ name, path, roles, latestDate, count, xpAmount }) => ({
+				name,
+				path,
+				roles,
+				latestDate,
+				count,
+				xpAmount,
+			}),
+		),
 	};
 };
 

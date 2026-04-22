@@ -50,7 +50,8 @@ const applyBodyScrollLock = () => {
 	BODY_SCROLL_LOCK_STATE.snapshot = snapshot;
 
 	const computedPaddingRight = parsePixelValue(
-		globalThis.getComputedStyle?.(body)?.paddingRight ?? body.style.paddingRight,
+		globalThis.getComputedStyle?.(body)?.paddingRight ??
+			body.style.paddingRight,
 	);
 	const viewportWidth = Number(globalThis.innerWidth ?? 0);
 	const layoutWidth = Number(documentElement?.clientWidth ?? 0);
@@ -158,7 +159,10 @@ export const unlockBodyScroll = (lockKey = DEFAULT_SCROLL_LOCK_KEY) => {
 
 /** Clears all active body-scroll locks. */
 export const clearBodyScrollLocks = () => {
-	if (BODY_SCROLL_LOCK_STATE.keys.size === 0 && !BODY_SCROLL_LOCK_STATE.snapshot) {
+	if (
+		BODY_SCROLL_LOCK_STATE.keys.size === 0 &&
+		!BODY_SCROLL_LOCK_STATE.snapshot
+	) {
 		return;
 	}
 

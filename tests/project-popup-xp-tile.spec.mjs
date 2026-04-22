@@ -21,7 +21,10 @@ test("dashboard project detail stat grid shows formatted XP instead of project-l
 
 test("role project detail panel shows XP tile and auditor-specific wording", () => {
 	assert.match(rolePopupJs, /formatXP\(project\.xpAmount \?\? 0\)/);
-	assert.match(rolePopupJs, /project\.role === "Auditor" \? "XP Given" : "XP Received"/);
+	assert.match(
+		rolePopupJs,
+		/project\.role === "Auditor" \? "XP Given" : "XP Received"/,
+	);
 	assert.doesNotMatch(rolePopupJs, /label:\s*"Project Link"/);
 });
 

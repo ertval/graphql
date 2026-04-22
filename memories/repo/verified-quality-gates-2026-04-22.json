@@ -1,0 +1,12 @@
+{
+  "subject": "Repository quality gates",
+  "fact": "On 2026-04-22, `npm test` passed end-to-end (lint, unit, audit, and Playwright e2e suites).",
+  "citations": [
+    "package.json",
+    "tests/runtime/app.e2e.mjs",
+    "tests/dashboard-audit-role-stats.spec.mjs",
+    "tests/audit/repro_audit_xp_null_path_filter.spec.mjs"
+  ],
+  "reason": "Provides a verified command and expected green state for future implementation and review tasks.",
+  "category": "verification"
+}

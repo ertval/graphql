@@ -163,9 +163,7 @@ const renderProjectPanelContent = (
 		collaboratorLogin,
 		activeUserLogin,
 	);
-	const xpLabel = activeRole.includes("Auditor")
-		? "XP Given"
-		: "XP Received";
+	const xpLabel = activeRole.includes("Auditor") ? "XP Given" : "XP Received";
 
 	const grid = createProjectStatGrid([
 		{ value: String(project.count), label: "Shared Records" },
@@ -190,9 +188,12 @@ const renderProjectPanelContent = (
 
 	panelBody.append(membersTitle, membersList);
 
-	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(activeRole, {
-		titleText: "My Role",
-	});
+	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(
+		activeRole,
+		{
+			titleText: "My Role",
+		},
+	);
 
 	panelBody.append(activeRoleTitle, activeRoleValue);
 

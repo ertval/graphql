@@ -6,7 +6,10 @@
 
 import { graphqlQuery } from "../../infra/graphql.js";
 import { mapResult } from "../../infra/result.js";
-import { fetchUserInfo, fetchXPTransactions } from "../dashboard/dashboard.api.js";
+import {
+	fetchUserInfo,
+	fetchXPTransactions,
+} from "../dashboard/dashboard.api.js";
 import {
 	filterVerifiedCollaborations,
 	normalizeCollaboratorNamesByLogin,

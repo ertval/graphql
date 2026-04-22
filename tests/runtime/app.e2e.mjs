@@ -85,6 +85,8 @@ const mockGraphqlData = {
 			object: { name: "Beta Project", type: "project" },
 		},
 	],
+	roleAudits: [],
+	auditXpTransactions: [],
 	projectTeams: [
 		{
 			group: {
@@ -224,6 +226,17 @@ const installMockAuthAndGraphql = async (page, overrides = {}) => {
 			return;
 		}
 
+		if (query.includes("GetAuditXPTransactions")) {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					data: { transaction: scenarioData.auditXpTransactions },
+				}),
+			});
+			return;
+		}
+
 		if (query.includes("GetProgress")) {
 			await route.fulfill({
 				status: 200,
@@ -256,6 +269,15 @@ const installMockAuthAndGraphql = async (page, overrides = {}) => {
 				status: 200,
 				contentType: "application/json",
 				body: JSON.stringify({ data: { result: scenarioData.results } }),
+			});
+			return;
+		}
+
+		if (query.includes("GetUserRoleStats")) {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({ data: { audit: scenarioData.roleAudits } }),
 			});
 			return;
 		}
@@ -428,7 +450,9 @@ test("role projects panel shows project XP tile", async ({ page }) => {
 	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
 	await expectBodyScrollLocked(page);
 	await page
-		.locator('#role-projects-content [aria-label="View details for Alpha Project"]')
+		.locator(
+			'#role-projects-content [aria-label="View details for Alpha Project"]',
+		)
 		.first()
 		.click();
 
@@ -438,6 +462,102 @@ test("role projects panel shows project XP tile", async ({ page }) => {
 
 	await page.click("#role-projects-close");
 	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("audit details popup lists audited projects with XP gained", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		roleAudits: [
+			{
+				id: 901,
+				createdAt: "2026-02-10T09:00:00.000Z",
+				group: {
+					path: "/zone/audit-alpha",
+					captainLogin: "peer-user",
+					object: { id: 700, name: "Audit Alpha" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+			{
+				id: 902,
+				createdAt: "2026-03-12T11:30:00.000Z",
+				group: {
+					path: "/zone/audit-beta",
+					captainLogin: "peer-user",
+					object: { id: 701, name: "Audit Beta" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+		],
+		auditXpTransactions: [
+			{
+				id: 9501,
+				objectId: 700,
+				amount: 22000,
+				createdAt: "2026-02-10T09:05:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+			{
+				id: 9502,
+				objectId: 701,
+				amount: 18000,
+				createdAt: "2026-03-12T11:35:00.000Z",
+				path: "/zone/audit-beta",
+				object: { id: 701, name: "Audit Beta", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+
+	await page.click("#audit-details-btn");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+
+	const firstProject = page
+		.locator("#audit-details-content .audit-details-item .audit-details-name")
+		.first();
+	await expect(firstProject).toHaveText("Audit Beta");
+	await expect(page.locator("#audit-details-content")).toContainText("22.0 kB");
+	await expect(page.locator("#audit-details-content")).toContainText("18.0 kB");
+
+	await page.click("#audit-details-close");
+	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
 		/active/,
 	);
 	await expectBodyScrollUnlocked(page);
@@ -457,15 +577,17 @@ test("collaborator popup locks body scroll without layout shift and unlocks on a
 
 	const openPopup = async () => {
 		await page.click('[aria-label="Open collaborator details for Peer One"]');
-		await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+		await expect(page.locator("#student-profile-overlay")).toHaveClass(
+			/active/,
+		);
 	};
 
 	await openPopup();
 	await expectBodyScrollLocked(page);
 	const lockState = await getBodyScrollLockState(page);
-	expect(Math.abs(lockState.documentWidth - widthBeforeOpen)).toBeLessThanOrEqual(
-		1,
-	);
+	expect(
+		Math.abs(lockState.documentWidth - widthBeforeOpen),
+	).toBeLessThanOrEqual(1);
 	await page.click("#student-profile-close");
 	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
 		/active/,
@@ -501,7 +623,9 @@ test("auth logout/reset flow closes overlays and releases body scroll locks", as
 	});
 
 	await expect(page.locator("#login-view")).toHaveClass(/active/);
-	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(/active/);
+	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(
+		/active/,
+	);
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
 		/active/,
 	);
@@ -536,9 +660,9 @@ test("collaboration project detail panel shows project XP tile", async ({
 		const panel = document.querySelector(
 			"#student-profile-content .sp-project-panel.active",
 		);
-		const projectsTitle = [...document.querySelectorAll(
-			"#student-profile-content h3",
-		)].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsTitle = [
+			...document.querySelectorAll("#student-profile-content h3"),
+		].find((title) => title.textContent?.trim() === "Recent Shared Projects");
 		const projectsSection = projectsTitle?.closest("section");
 
 		if (!panel || !projectsSection) {
@@ -583,9 +707,9 @@ test("collaboration detail panel appears above shared projects list on mobile", 
 		const panel = document.querySelector(
 			"#student-profile-content .sp-project-panel.active",
 		);
-		const projectsTitle = [...document.querySelectorAll(
-			"#student-profile-content h3",
-		)].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsTitle = [
+			...document.querySelectorAll("#student-profile-content h3"),
+		].find((title) => title.textContent?.trim() === "Recent Shared Projects");
 		const projectsSection = projectsTitle?.closest("section");
 
 		if (!panel || !projectsSection) {

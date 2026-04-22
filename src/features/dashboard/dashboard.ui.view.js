@@ -7,6 +7,7 @@
 import { isAuthenticated } from "../../infra/auth.js";
 import { $ } from "../../infra/ui.js";
 import {
+	fetchAuditXPTransactions,
 	fetchProgress,
 	fetchProjectTeams,
 	fetchResults,
@@ -17,9 +18,14 @@ import {
 	fetchXPTransactions,
 } from "./dashboard.api.js";
 import {
+	computeAuditDetailsProjects,
 	computeDashboardRoleData,
 	isAuthFailureError,
 } from "./dashboard.core.js";
+import {
+	closeAuditDetailsPopup,
+	initAuditDetailsPopup,
+} from "./dashboard.ui.popup.audit.js";
 import {
 	closeProjectDetail,
 	initProjectDetailClose,
@@ -54,6 +60,9 @@ let _roleProjectsByRole = {
 	Partner: [],
 	Auditor: [],
 };
+
+/** @type {Array<{key:string,name:string,path:string,latestDate:string,latestTs:number,auditCount:number,totalXP:number}>} */
+let _auditDetailsProjects = [];
 let dashboardLoadGeneration = 0;
 
 export const invalidateDashboardLoads = () => {
@@ -67,6 +76,7 @@ export const initDashboard = () => {
 		() => _teamsByProject,
 	);
 	initRoleProjectsPopup(() => _roleProjectsByRole);
+	initAuditDetailsPopup(() => _auditDetailsProjects);
 
 	document.addEventListener("auth:login", async () => {
 		const result = await loadDashboard(
@@ -139,6 +149,8 @@ export const resetDashboard = () => {
 		Partner: [],
 		Auditor: [],
 	};
+	_auditDetailsProjects = [];
+	closeAuditDetailsPopup();
 	closeProjectDetail();
 	closeRoleProjectsPopup();
 };
@@ -177,6 +189,7 @@ export const loadDashboard = async (
 		// Fetch all data in parallel for performance
 		const [
 			xpResult,
+			auditXpResult,
 			progressResult,
 			skillsResult,
 			levelResult,
@@ -184,6 +197,7 @@ export const loadDashboard = async (
 			roleStatsResult,
 		] = await Promise.all([
 			fetchXPTransactions(user.id),
+			fetchAuditXPTransactions(user.id),
 			fetchProgress(user.id),
 			fetchSkills(user.id),
 			fetchUserLevel(user.id),
@@ -195,6 +209,7 @@ export const loadDashboard = async (
 
 		const firstError = [
 			xpResult,
+			auditXpResult,
 			progressResult,
 			skillsResult,
 			levelResult,
@@ -286,6 +301,10 @@ export const loadDashboard = async (
 			]),
 		);
 		const dashboardUser = { ...user, roleStats };
+		_auditDetailsProjects = computeAuditDetailsProjects(
+			roleStatsResult.data?.audits ?? [],
+			auditXpResult.data ?? [],
+		);
 		const projectCountByObjectId = rawResults.reduce((map, result) => {
 			const projectKey = String(result.objectId ?? "");
 			if (!projectKey) return map;

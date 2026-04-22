@@ -122,6 +122,42 @@ export const fetchXPTransactions = async (userId) => {
 	);
 };
 
+// ── Audit XP transactions (XP gained by auditing) ────────────────
+
+export const fetchAuditXPTransactions = async (userId) => {
+	const query = `
+    query GetAuditXPTransactions($userId: Int!) {
+      transaction(
+        where: {
+          userId: { _eq: $userId }
+          type: { _eq: "up" }
+          _or: [
+            { path: { _is_null: true } }
+            { path: { _nilike: "%piscine-go%" } }
+          ]
+        }
+        order_by: [{ createdAt: desc }, { id: desc }]
+      ) {
+        id
+        objectId
+        amount
+        createdAt
+        path
+        object {
+				id
+          name
+          type
+        }
+      }
+    }
+  `;
+
+	return mapResult(
+		await graphqlQuery(query, { userId }),
+		(data) => data.transaction ?? [],
+	);
+};
+
 // ── Completed progress records ─────────────────────────────────────
 
 export const fetchProgress = async (userId) => {

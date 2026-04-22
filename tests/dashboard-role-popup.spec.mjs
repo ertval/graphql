@@ -34,8 +34,19 @@ test("role projects overlay exists with dedicated ids", () => {
 	assert.match(indexHtml, /id="role-projects-close"/);
 });
 
+test("audit ratio section includes audit details button and overlay", () => {
+	assert.match(indexHtml, /id="audit-details-btn"/);
+	assert.match(indexHtml, /Audit Details/);
+	assert.match(indexHtml, /id="audit-details-overlay"/);
+	assert.match(indexHtml, /id="audit-details-title"/);
+	assert.match(indexHtml, /id="audit-details-content"/);
+	assert.match(indexHtml, /id="audit-details-close"/);
+});
+
 test("dashboard view initializes role projects popup and role data builder", () => {
 	assert.match(dashboardViewJs, /initRoleProjectsPopup/);
+	assert.match(dashboardViewJs, /initAuditDetailsPopup/);
+	assert.match(dashboardViewJs, /_auditDetailsProjects/);
 	assert.match(dashboardViewJs, /computeDashboardRoleData/);
 	assert.match(dashboardViewJs, /_roleProjectsByRole/);
 });
