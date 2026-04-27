@@ -7,6 +7,7 @@
 import { graphqlQuery } from "../../infra/graphql.js";
 import { mapResult } from "../../infra/result.js";
 import {
+	fetchAuditXPTransactions,
 	fetchUserInfo,
 	fetchXPTransactions,
 } from "../dashboard/dashboard.api.js";
@@ -245,18 +246,24 @@ const mapCollaborationRecords = (records, userId) => [
 
 /** Fetches and normalizes collaboration records into view-ready objects. */
 export const loadCollaborationsData = async (userId) => {
-	const [collabsResult, userResult, xpResult] = await Promise.all([
-		fetchCollaborations(userId),
-		fetchUserInfo(),
-		fetchXPTransactions(userId),
-	]);
+	const [collabsResult, userResult, xpResult, auditXpResult] =
+		await Promise.all([
+			fetchCollaborations(userId),
+			fetchUserInfo(),
+			fetchXPTransactions(userId),
+			fetchAuditXPTransactions(userId),
+		]);
 	if (!collabsResult.ok) {
 		return collabsResult;
 	}
 
 	const userCampus = userResult.ok ? (userResult.data?.campus ?? "") : "";
 	const xpTransactions = xpResult.ok ? xpResult.data : [];
-	const resolveProjectXP = createProjectXPResolver(xpTransactions);
+	const auditXpTransactions = auditXpResult.ok ? auditXpResult.data : [];
+
+	// Combine both regular and audit XP transactions for comprehensive XP resolution
+	const allXpTransactions = [...xpTransactions, ...auditXpTransactions];
+	const resolveProjectXP = createProjectXPResolver(allXpTransactions);
 	const collabs = mapCollaborationRecords(collabsResult.data, userId);
 	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
 	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);

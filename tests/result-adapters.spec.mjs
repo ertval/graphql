@@ -38,12 +38,21 @@ test("dashboard view branches on Result objects without unwrap throw flow", () =
 test("collaborations data and view modules use explicit Result branching", () => {
 	assert.match(
 		collaborationsApiJs,
-		/const \[collabsResult, userResult, xpResult\] = await Promise\.all\(\[\s*\n\s*fetchCollaborations\(userId\),\s*\n\s*fetchUserInfo\(\),\s*\n\s*fetchXPTransactions\(userId\),\s*\n\s*\]\);/,
+		/const \[collabsResult, userResult, xpResult, auditXpResult\]\s*=\s*await Promise\.all\(/,
 	);
+	assert.match(collaborationsApiJs, /fetchAuditXPTransactions\(userId\)/);
 	assert.match(collaborationsApiJs, /if \(!collabsResult\.ok\) \{/);
 	assert.match(
 		collaborationsApiJs,
 		/const xpTransactions = xpResult\.ok \? xpResult\.data : \[];/,
+	);
+	assert.match(
+		collaborationsApiJs,
+		/const auditXpTransactions = auditXpResult\.ok \? auditXpResult\.data : \[];/,
+	);
+	assert.match(
+		collaborationsApiJs,
+		/const allXpTransactions = \[\.\.\.xpTransactions, \.\.\.auditXpTransactions\];/,
 	);
 	assert.match(
 		collaborationsViewJs,
