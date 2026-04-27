@@ -85,6 +85,8 @@ const mockGraphqlData = {
 			object: { name: "Beta Project", type: "project" },
 		},
 	],
+	roleAudits: [],
+	auditXpTransactions: [],
 	projectTeams: [
 		{
 			group: {
@@ -224,6 +226,17 @@ const installMockAuthAndGraphql = async (page, overrides = {}) => {
 			return;
 		}
 
+		if (query.includes("GetAuditXPTransactions")) {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					data: { transaction: scenarioData.auditXpTransactions },
+				}),
+			});
+			return;
+		}
+
 		if (query.includes("GetProgress")) {
 			await route.fulfill({
 				status: 200,
@@ -256,6 +269,15 @@ const installMockAuthAndGraphql = async (page, overrides = {}) => {
 				status: 200,
 				contentType: "application/json",
 				body: JSON.stringify({ data: { result: scenarioData.results } }),
+			});
+			return;
+		}
+
+		if (query.includes("GetUserRoleStats")) {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({ data: { audit: scenarioData.roleAudits } }),
 			});
 			return;
 		}
@@ -296,6 +318,36 @@ const loginWithMockBackend = async (page, overrides = {}) => {
 
 	await expect(page.locator("#profile-view")).toHaveClass(/active/);
 	await expect(page.locator("#dashboard")).toHaveClass(/active/);
+};
+
+const getBodyScrollLockState = async (page) =>
+	page.evaluate(() => ({
+		overflow: document.body.style.overflow,
+		position: document.body.style.position,
+		top: document.body.style.top,
+		paddingRight: document.body.style.paddingRight,
+		width: document.body.style.width,
+		overscrollBehavior: document.documentElement.style.overscrollBehavior,
+		documentWidth: document.documentElement.clientWidth,
+	}));
+
+const expectBodyScrollLocked = async (page) => {
+	const lockState = await getBodyScrollLockState(page);
+	const topOffset = Number.parseFloat(lockState.top || "0");
+	expect(lockState.overflow).toBe("hidden");
+	expect(lockState.position).toBe("fixed");
+	expect(lockState.width).toBe("100%");
+	expect(Number.isFinite(topOffset)).toBe(true);
+	expect(topOffset).toBeLessThanOrEqual(0);
+	expect(lockState.overscrollBehavior).toBe("none");
+};
+
+const expectBodyScrollUnlocked = async (page) => {
+	const lockState = await getBodyScrollLockState(page);
+	expect(lockState.overflow).not.toBe("hidden");
+	expect(lockState.position).not.toBe("fixed");
+	expect(lockState.top).toBe("");
+	expect(lockState.overscrollBehavior).toBe("");
 };
 
 test("login form enforces required fields at DOM/runtime level", async ({
@@ -376,11 +428,439 @@ test("XP by Project interaction opens project detail modal", async ({
 	await expect(page.locator("#project-detail-content")).toContainText(
 		"Captain",
 	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"XP Received",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"80.0 kB",
+	);
+	await expectBodyScrollLocked(page);
 
 	await page.click("#project-detail-close");
 	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
 		/active/,
 	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("role projects panel shows project XP tile", async ({ page }) => {
+	await loginWithMockBackend(page);
+
+	await page.click("#role-counter-partner");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+	await page
+		.locator(
+			'#role-projects-content [aria-label="View details for Alpha Project"]',
+		)
+		.first()
+		.click();
+
+	const detailPanel = page.locator("#role-projects-content .sp-project-body");
+	await expect(detailPanel).toContainText("XP Received");
+	await expect(detailPanel).toContainText("80.0 kB");
+
+	await page.click("#role-projects-close");
+	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("audit details popup lists audited projects with XP gained", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		roleAudits: [
+			{
+				id: 901,
+				createdAt: "2026-02-10T09:00:00.000Z",
+				group: {
+					path: "/zone/audit-alpha",
+					captainLogin: "peer-user",
+					object: { id: 700, name: "Audit Alpha" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+			{
+				id: 902,
+				createdAt: "2026-03-12T11:30:00.000Z",
+				group: {
+					path: "/zone/audit-beta",
+					captainLogin: "peer-user",
+					object: { id: 701, name: "Audit Beta" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+		],
+		auditXpTransactions: [
+			{
+				id: 9501,
+				objectId: 700,
+				amount: 22000,
+				createdAt: "2026-02-10T09:05:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+			{
+				id: 9502,
+				objectId: 701,
+				amount: 18000,
+				createdAt: "2026-03-12T11:35:00.000Z",
+				path: "/zone/audit-beta",
+				object: { id: 701, name: "Audit Beta", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+
+	await page.click("#audit-details-btn");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+
+	const firstProject = page
+		.locator("#audit-details-content .audit-details-item .audit-details-name")
+		.first();
+	await expect(firstProject).toHaveText("Audit Beta");
+	await expect(page.locator("#audit-details-content")).toContainText(
+		"Total XP",
+	);
+	await expect(page.locator("#audit-details-content")).toContainText("22.0 kB");
+	await expect(page.locator("#audit-details-content")).toContainText("18.0 kB");
+
+	await page.click("#audit-details-close");
+	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("auditor role projects use audit XP and match audit details values", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		xpTransactions: [
+			...mockGraphqlData.xpTransactions,
+			{
+				id: 4901,
+				objectId: 700,
+				amount: 99000,
+				createdAt: "2026-03-12T11:35:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+		],
+		roleAudits: [
+			{
+				id: 901,
+				createdAt: "2026-02-10T09:00:00.000Z",
+				group: {
+					path: "/zone/audit-alpha",
+					captainLogin: "peer-user",
+					object: { id: 700, name: "Audit Alpha" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+		],
+		auditXpTransactions: [
+			{
+				id: 9501,
+				objectId: 700,
+				amount: 22000,
+				createdAt: "2026-02-10T09:05:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+
+	await page.click("#audit-details-btn");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#audit-details-content [aria-label="View details for Audit Alpha"]',
+		)
+		.click();
+	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"XP Given",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"22.0 kB",
+	);
+	await page.click("#project-detail-close");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#audit-details-content [aria-label="View details for Audit Alpha"]',
+		)
+		.click();
+	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
+	await page.click("#project-detail-close");
+	await page.click("#audit-details-close");
+	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
+		/active/,
+	);
+
+	await page.click("#role-counter-auditor");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#role-projects-content [aria-label="View details for Audit Alpha"]',
+		)
+		.first()
+		.click();
+
+	const detailPanel = page.locator("#role-projects-content .sp-project-body");
+	await expect(detailPanel).toContainText("XP Given");
+	await expect(detailPanel).toContainText("22.0 kB");
+	await expect(detailPanel).not.toContainText("99.0 kB");
+});
+
+test("dashboard recent projects renders progress fallback when results are empty", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		results: [],
+		progress: [
+			{
+				id: 501,
+				grade: 1,
+				createdAt: "2026-01-10T10:00:00.000Z",
+				updatedAt: "2026-01-10T10:00:00.000Z",
+				path: "/zone/project-alpha",
+				object: { id: 1, name: "Alpha Project", type: "project" },
+			},
+			{
+				id: 502,
+				grade: 1,
+				createdAt: "2026-01-20T10:00:00.000Z",
+				updatedAt: "2026-01-20T10:00:00.000Z",
+				path: "/zone/project-beta",
+				object: { id: 2, name: "Beta Project", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+	const recentProjects = page.locator("#activity-list .activity-item");
+	await expect(recentProjects.first()).toBeVisible();
+	await expect(page.locator("#activity-list")).toContainText("Alpha Project");
+});
+
+test("collaborator popup locks body scroll without layout shift and unlocks on all close paths", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1280, height: 720 });
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	const widthBeforeOpen = await page.evaluate(
+		() => document.documentElement.clientWidth,
+	);
+
+	const openPopup = async () => {
+		await page.click('[aria-label="Open collaborator details for Peer One"]');
+		await expect(page.locator("#student-profile-overlay")).toHaveClass(
+			/active/,
+		);
+	};
+
+	await openPopup();
+	await expectBodyScrollLocked(page);
+	const lockState = await getBodyScrollLockState(page);
+	expect(
+		Math.abs(lockState.documentWidth - widthBeforeOpen),
+	).toBeLessThanOrEqual(1);
+	await page.click("#student-profile-close");
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+
+	await openPopup();
+	await page.click("#student-profile-overlay", { position: { x: 10, y: 10 } });
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+
+	await openPopup();
+	await page.keyboard.press("Escape");
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("auth logout/reset flow closes overlays and releases body scroll locks", async ({
+	page,
+}) => {
+	await loginWithMockBackend(page);
+
+	await page.click("#role-counter-partner");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await expectBodyScrollLocked(page);
+
+	await page.evaluate(() => {
+		document.dispatchEvent(new CustomEvent("auth:logout"));
+	});
+
+	await expect(page.locator("#login-view")).toHaveClass(/active/);
+	await expect(page.locator("#role-projects-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expect(page.locator("#project-detail-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expect(page.locator("#student-profile-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expectBodyScrollUnlocked(page);
+});
+
+test("collaboration project detail panel shows project XP tile", async ({
+	page,
+}) => {
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click('[aria-label="Open collaborator details for Peer One"]');
+	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#student-profile-content [aria-label="View details for Alpha Project"]',
+		)
+		.first()
+		.click();
+
+	const detailPanel = page.locator(".sp-project-panel .sp-project-body");
+	await expect(detailPanel).toContainText("XP Received");
+	await expect(detailPanel).toContainText("80.0 kB");
+	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
+
+	const desktopPlacement = await page.evaluate(() => {
+		const panel = document.querySelector(
+			"#student-profile-content .sp-project-panel.active",
+		);
+		const projectsTitle = [
+			...document.querySelectorAll("#student-profile-content h3"),
+		].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsSection = projectsTitle?.closest("section");
+
+		if (!panel || !projectsSection) {
+			return null;
+		}
+
+		const panelRect = panel.getBoundingClientRect();
+		const projectsRect = projectsSection.getBoundingClientRect();
+
+		return {
+			panelLeft: panelRect.left,
+			projectsRight: projectsRect.right,
+		};
+	});
+
+	expect(desktopPlacement).not.toBeNull();
+	expect(desktopPlacement.panelLeft).toBeGreaterThan(
+		desktopPlacement.projectsRight - 24,
+	);
+});
+
+test("collaboration detail panel appears above shared projects list on mobile", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await loginWithMockBackend(page);
+	await page.click("#tab-collaborations");
+	await expect(page.locator("#collabs-tbody tr").first()).toBeVisible();
+
+	await page.click('[aria-label="Open collaborator details for Peer One"]');
+	await expect(page.locator("#student-profile-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#student-profile-content [aria-label="View details for Alpha Project"]',
+		)
+		.first()
+		.click();
+
+	await expect(page.locator(".sp-project-panel")).toHaveClass(/active/);
+
+	const panelPlacement = await page.evaluate(() => {
+		const panel = document.querySelector(
+			"#student-profile-content .sp-project-panel.active",
+		);
+		const projectsTitle = [
+			...document.querySelectorAll("#student-profile-content h3"),
+		].find((title) => title.textContent?.trim() === "Recent Shared Projects");
+		const projectsSection = projectsTitle?.closest("section");
+
+		if (!panel || !projectsSection) {
+			return null;
+		}
+
+		const panelRect = panel.getBoundingClientRect();
+		const projectsRect = projectsSection.getBoundingClientRect();
+
+		return {
+			panelTop: panelRect.top,
+			projectsTop: projectsRect.top,
+		};
+	});
+
+	expect(panelPlacement).not.toBeNull();
+	expect(panelPlacement.panelTop).toBeLessThan(panelPlacement.projectsTop);
 });
 
 test("dashboard popup resolves role and members for projects missing from recent results", async ({

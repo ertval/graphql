@@ -9,7 +9,9 @@ import {
 	formatShortLocalDate,
 	getActiveUserDisplayName,
 	getActiveUserLogin,
+	lockBodyScroll,
 	toProjectUrl,
+	unlockBodyScroll,
 } from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
@@ -17,10 +19,13 @@ import {
 	createProjectRoleSection,
 	createProjectStatGrid,
 } from "../../shared/ui/popup.shared.js";
+import { formatXP } from "./dashboard.ui.charts.helpers.js";
 import { renderDashboardActivity } from "./dashboard.ui.popup.activity.js";
 
 const normalizeProjectName = (name) =>
 	typeof name === "string" ? name.trim().toLowerCase() : "";
+
+const PROJECT_DETAIL_OVERLAY_LOCK_KEY = "overlay-project-detail";
 
 // ── Activity list rendering ────────────────────────────────────────
 
@@ -45,7 +50,7 @@ export const renderActivity = (results, xpTransactions) => {
  * @param {{grade:number, createdAt:string, path?:string, objectId:number, object:{name:string,type:string}}} result
  * @param {Map<string,number>} xpByName
  */
-const openProjectDetail = (result, _xpByName) => {
+const openProjectDetail = (result, xpByName) => {
 	const overlay = $("#project-detail-overlay");
 	const content = $("#project-detail-content");
 	const title = $("#pd-title");
@@ -57,6 +62,11 @@ const openProjectDetail = (result, _xpByName) => {
 	const activeUserDisplayName = result.activeUserDisplayName ?? "";
 	const teamMembers = (result.teamMembers ?? []).filter(Boolean);
 	const myRole = result.myRole ?? "Partner";
+	const xpAmount =
+		typeof result.projectXP === "number"
+			? result.projectXP
+			: (xpByName.get(name) ?? 0);
+	const xpLabel = myRole.includes("Auditor") ? "XP Given" : "XP Received";
 
 	const dateStr = formatLongLocalDate(result.createdAt, "—");
 
@@ -75,7 +85,7 @@ const openProjectDetail = (result, _xpByName) => {
 			},
 			{ value: projectRoles.join(", ") || "—", label: "Roles" },
 			{ value: dateStr, label: "Latest Shared" },
-			{ value: result.path ? "Available" : "—", label: "Project Link" },
+			{ value: formatXP(xpAmount), label: xpLabel },
 		],
 		{ gridClassName: "sp-project-grid" },
 	);
@@ -114,7 +124,50 @@ const openProjectDetail = (result, _xpByName) => {
 		content.append(...pathNodes);
 	}
 
+	lockBodyScroll(PROJECT_DETAIL_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
+	document.dispatchEvent(new CustomEvent("project-detail:open"));
+};
+
+export const closeProjectDetail = () => {
+	const overlay = $("#project-detail-overlay");
+	overlay?.classList.remove("active");
+	unlockBodyScroll(PROJECT_DETAIL_OVERLAY_LOCK_KEY);
+	document.dispatchEvent(new CustomEvent("project-detail:close"));
+};
+
+/**
+ * Opens the project detail overlay using a project summary record.
+ * @param {{name?:string, path?:string, latestDate?:string, auditCount?:number, totalXP?:number, teamMembers?:Array<{login?:string,displayName?:string}>, captainLogin?:string}} project
+ */
+export const openProjectDetailFromSummary = (project) => {
+	if (!project) return;
+
+	const name = project.name ?? "Unknown Project";
+	const xpAmount = Number(project.totalXP ?? 0);
+	const activeUserLogin = getActiveUserLogin();
+	const activeUserDisplayName = getActiveUserDisplayName();
+	const fallbackCreatedAt = Temporal.Now.instant().toString();
+
+	const detailResult = {
+		object: {
+			name,
+			type: "project",
+		},
+		grade: xpAmount > 0 ? 1 : 0,
+		createdAt: project.latestDate ?? fallbackCreatedAt,
+		path: project.path ?? "",
+		teamMembers: project.teamMembers ?? [],
+		teamCaptainLogin: project.captainLogin ?? "",
+		myRole: "Auditor",
+		projectRoles: ["Auditor"],
+		sharedRecordsCount: Number(project.auditCount ?? 1),
+		projectXP: xpAmount,
+		activeUserLogin,
+		activeUserDisplayName,
+	};
+
+	openProjectDetail(detailResult, new Map([[name, xpAmount]]));
 };
 
 // ── Project detail overlay close + bar chart integration ───────────
@@ -133,14 +186,12 @@ export const initProjectDetailClose = (
 ) => {
 	const overlay = $("#project-detail-overlay");
 	const closeBtn = $("#project-detail-close");
-	closeBtn?.addEventListener("click", () =>
-		overlay?.classList.remove("active"),
-	);
+	closeBtn?.addEventListener("click", closeProjectDetail);
 	overlay?.addEventListener("click", (e) => {
-		if (e.target === overlay) overlay.classList.remove("active");
+		if (e.target === overlay) closeProjectDetail();
 	});
 	document.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") overlay?.classList.remove("active");
+		if (e.key === "Escape") closeProjectDetail();
 	});
 
 	// Connect Project Bar Chart clicks to the Project Detail Overlay
@@ -232,6 +283,7 @@ export const initProjectDetailClose = (
 			projectRoles: resultRecord?.projectRoles ?? [resolvedMyRole],
 			sharedRecordsCount:
 				resultRecord?.sharedRecordsCount ?? (sharedRecordsCount || 1),
+			projectXP: xpAmount,
 			activeUserLogin,
 			activeUserDisplayName,
 		};

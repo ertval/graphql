@@ -6,7 +6,12 @@
 
 import { graphqlQuery } from "../../infra/graphql.js";
 import { mapResult } from "../../infra/result.js";
-import { fetchUserInfo } from "../dashboard/dashboard.api.js";
+import {
+	fetchAuditXPTransactions,
+	fetchUserInfo,
+	fetchXPTransactions,
+} from "../dashboard/dashboard.api.js";
+import { createProjectXPResolver } from "../dashboard/dashboard.core.js";
 import {
 	filterVerifiedCollaborations,
 	normalizeCollaboratorNamesByLogin,
@@ -23,7 +28,7 @@ export const fetchCollaborations = async (userId) => {
         group {
 					path
 					captainLogin
-          object { name }
+				  object { id name }
           members {
             userId
             user { login firstName lastName campus }
@@ -37,7 +42,7 @@ export const fetchCollaborations = async (userId) => {
 				group {
 					path
 					captainLogin
-					object { name }
+					object { id name }
 					members {
 						user {
 							login
@@ -55,7 +60,7 @@ export const fetchCollaborations = async (userId) => {
 				group {
 					path
 					captainLogin
-					object { name }
+					object { id name }
 					members {
 						user {
 							login
@@ -135,12 +140,18 @@ const canonicalizeIdentityByLogin = (collabs) => {
 const dedupeByLoginProjectRole = (collabs) => {
 	const seen = new Set();
 	return collabs.filter((collab) => {
-		const key = `${collab.login}|${collab.project}|${collab.role}`;
+		const projectObjectId =
+			typeof collab.projectObjectId === "number" ? collab.projectObjectId : "";
+		const projectPath = normalizeProjectPath(collab.projectPath);
+		const key = `${collab.login}|${projectObjectId}|${projectPath}|${collab.project}|${collab.role}`;
 		if (seen.has(key)) return false;
 		seen.add(key);
 		return true;
 	});
 };
+
+const normalizeProjectPath = (value) =>
+	typeof value === "string" ? value.trim().toLowerCase() : "";
 
 const mapGroupRecords = (groups, userId) =>
 	(groups ?? []).flatMap((g) => {
@@ -158,6 +169,7 @@ const mapGroupRecords = (groups, userId) =>
 					lastName: member.user.lastName,
 					campus: member.user.campus,
 					project: prjName,
+					projectObjectId: g.group?.object?.id ?? null,
 					projectPath,
 					role: isCaptain ? "Captain" : "Partner",
 					relationType: "group_member",
@@ -190,6 +202,7 @@ const mapAuditGivenRecords = (auditsGiven) =>
 				lastName: captainMember?.user?.lastName ?? "",
 				campus: captainMember?.user?.campus ?? "",
 				project: a.group?.object?.name || "Unknown",
+				projectObjectId: a.group?.object?.id ?? null,
 				projectPath: a.group?.path ?? "",
 				role: "Captain",
 				relationType: "audit_given",
@@ -213,6 +226,7 @@ const mapAuditReceivedRecords = (auditsReceived) =>
 				lastName: a.auditor.lastName,
 				campus: a.auditor.campus,
 				project: a.group?.object?.name || "Unknown",
+				projectObjectId: a.group?.object?.id ?? null,
 				projectPath: a.group?.path ?? "",
 				role: "Auditor",
 				relationType: "audit_received",
@@ -232,15 +246,24 @@ const mapCollaborationRecords = (records, userId) => [
 
 /** Fetches and normalizes collaboration records into view-ready objects. */
 export const loadCollaborationsData = async (userId) => {
-	const [collabsResult, userResult] = await Promise.all([
-		fetchCollaborations(userId),
-		fetchUserInfo(),
-	]);
+	const [collabsResult, userResult, xpResult, auditXpResult] =
+		await Promise.all([
+			fetchCollaborations(userId),
+			fetchUserInfo(),
+			fetchXPTransactions(userId),
+			fetchAuditXPTransactions(userId),
+		]);
 	if (!collabsResult.ok) {
 		return collabsResult;
 	}
 
 	const userCampus = userResult.ok ? (userResult.data?.campus ?? "") : "";
+	const xpTransactions = xpResult.ok ? xpResult.data : [];
+	const auditXpTransactions = auditXpResult.ok ? auditXpResult.data : [];
+
+	// Combine both regular and audit XP transactions for comprehensive XP resolution
+	const allXpTransactions = [...xpTransactions, ...auditXpTransactions];
+	const resolveProjectXP = createProjectXPResolver(allXpTransactions);
 	const collabs = mapCollaborationRecords(collabsResult.data, userId);
 	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
 	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);
@@ -248,12 +271,27 @@ export const loadCollaborationsData = async (userId) => {
 		dedupedCollabs,
 		userCampus,
 	);
+	const withProjectXp = verifiedCollabs.map((collab) => {
+		const xpAmount = resolveProjectXP({
+			objectId:
+				typeof collab.projectObjectId === "number"
+					? collab.projectObjectId
+					: null,
+			path: collab.projectPath,
+			name: collab.project,
+		});
+
+		return {
+			...collab,
+			xpAmount,
+		};
+	});
 	const collabsByLogin = Object.groupBy(
-		verifiedCollabs,
+		withProjectXp,
 		(collab) => collab.login,
 	);
 
-	const withTotalCollabs = verifiedCollabs.map((collab) => ({
+	const withTotalCollabs = withProjectXp.map((collab) => ({
 		...collab,
 		totalCollaborations: collabsByLogin[collab.login].length,
 	}));

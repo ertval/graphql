@@ -7,7 +7,7 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const indexHtml = read("index.html");
-const appJs = read("src/app.js");
+const authUiJs = read("src/features/auth/auth.ui.view.js");
 
 // Graph code is now split across multiple files — concat for assertions
 const graphsHelpersJs = read(
@@ -59,6 +59,6 @@ test("XP by Project graph uses dynamic layout computation", () => {
 });
 
 test("logout flow exists and clears auth token", () => {
-	assert.match(appJs, /logoutBtn\?\.addEventListener\("click"/);
-	assert.match(appJs, /clearToken\(\)/);
+	assert.match(authUiJs, /logoutBtn\?\.addEventListener\("click"/);
+	assert.match(authUiJs, /clearToken\(\)/);
 });

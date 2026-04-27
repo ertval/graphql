@@ -975,6 +975,7 @@
 	}
 	.sp-main-column,
 	.sp-layout.sp-layout-expanded .sp-main-column {
+		display: contents;
 		transform: translateX(0);
 	}
 	.sp-project-panel {
@@ -982,6 +983,11 @@
 		top: 0;
 		max-height: none;
 		overflow-y: visible;
+		order: 1;
+		margin-bottom: var(--space-lg);
+	}
+	.sp-projects-section {
+		order: 2;
 	}
 }
 

@@ -4,8 +4,10 @@
  * @module dashboard.view
  */
 
+import { isAuthenticated } from "../../infra/auth.js";
 import { $ } from "../../infra/ui.js";
 import {
+	fetchAuditXPTransactions,
 	fetchProgress,
 	fetchProjectTeams,
 	fetchResults,
@@ -14,13 +16,22 @@ import {
 	fetchUserLevel,
 	fetchUserRoleStats,
 	fetchXPTransactions,
+	getActiveEventId,
 } from "./dashboard.api.js";
 import {
+	computeAuditDetailsProjects,
 	computeDashboardRoleData,
+	createProjectXPResolver,
 	isAuthFailureError,
 } from "./dashboard.core.js";
 import {
+	closeAuditDetailsPopup,
+	initAuditDetailsPopup,
+} from "./dashboard.ui.popup.audit.js";
+import {
+	closeProjectDetail,
 	initProjectDetailClose,
+	openProjectDetailFromSummary,
 	renderActivity,
 } from "./dashboard.ui.popup.js";
 import {
@@ -52,6 +63,9 @@ let _roleProjectsByRole = {
 	Partner: [],
 	Auditor: [],
 };
+
+/** @type {Array<{key:string,objectId:number|null,name:string,path:string,latestDate:string,latestTs:number,auditCount:number,totalXP:number,teamMembers:Array<{login:string,displayName:string}>,captainLogin:string}>} */
+let _auditDetailsProjects = [];
 let dashboardLoadGeneration = 0;
 
 export const invalidateDashboardLoads = () => {
@@ -65,6 +79,29 @@ export const initDashboard = () => {
 		() => _teamsByProject,
 	);
 	initRoleProjectsPopup(() => _roleProjectsByRole);
+	initAuditDetailsPopup(
+		() => _auditDetailsProjects,
+		(project) => openProjectDetailFromSummary(project),
+	);
+
+	document.addEventListener("auth:login", async () => {
+		const result = await loadDashboard(
+			() => document.dispatchEvent(new CustomEvent("auth:logout")),
+			isAuthenticated,
+		);
+		if (result?.ok) {
+			document.dispatchEvent(
+				new CustomEvent("dashboard:loaded", {
+					detail: { userId: result.data.userId },
+				}),
+			);
+		}
+	});
+
+	document.addEventListener("auth:logout", () => {
+		invalidateDashboardLoads();
+		resetDashboard();
+	});
 };
 
 // ── Dashboard Data Loading ─────────────────────────────────────────
@@ -118,6 +155,9 @@ export const resetDashboard = () => {
 		Partner: [],
 		Auditor: [],
 	};
+	_auditDetailsProjects = [];
+	closeAuditDetailsPopup();
+	closeProjectDetail();
 	closeRoleProjectsPopup();
 };
 
@@ -129,8 +169,6 @@ export const loadDashboard = async (
 	const loadGeneration = ++dashboardLoadGeneration;
 	const shouldLogout = (error) =>
 		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
-	const _normalizeProjectName = (name) =>
-		typeof name === "string" ? name.trim().toLowerCase() : "";
 	const staleResult = () => {
 		if (loadGeneration !== dashboardLoadGeneration) {
 			return { ok: false, error: new Error("Stale dashboard load cancelled.") };
@@ -140,6 +178,7 @@ export const loadDashboard = async (
 
 	try {
 		const userResult = await fetchUserInfo();
+		const eventId = getActiveEventId();
 		const staleAfterUser = staleResult();
 		if (staleAfterUser) return staleAfterUser;
 		if (!userResult.ok) {
@@ -155,24 +194,27 @@ export const loadDashboard = async (
 		// Fetch all data in parallel for performance
 		const [
 			xpResult,
+			auditXpResult,
 			progressResult,
 			skillsResult,
 			levelResult,
 			resultsResult,
 			roleStatsResult,
 		] = await Promise.all([
-			fetchXPTransactions(user.id),
-			fetchProgress(user.id),
+			fetchXPTransactions(user.id, eventId),
+			fetchAuditXPTransactions(user.id, eventId),
+			fetchProgress(user.id, eventId),
 			fetchSkills(user.id),
-			fetchUserLevel(user.id),
-			fetchResults(user.id),
-			fetchUserRoleStats(user.id),
+			fetchUserLevel(user.id, eventId),
+			fetchResults(user.id, eventId),
+			fetchUserRoleStats(user.id, eventId),
 		]);
 		const staleAfterParallel = staleResult();
 		if (staleAfterParallel) return staleAfterParallel;
 
 		const firstError = [
 			xpResult,
+			auditXpResult,
 			progressResult,
 			skillsResult,
 			levelResult,
@@ -211,6 +253,7 @@ export const loadDashboard = async (
 		const projectTeamsResult = await fetchProjectTeams(
 			user.id,
 			projectObjectIds,
+			eventId,
 		);
 		const staleAfterTeams = staleResult();
 		if (staleAfterTeams) return staleAfterTeams;
@@ -230,16 +273,66 @@ export const loadDashboard = async (
 			roleStatsResult.data?.audits ?? [],
 		);
 		const roleStats = roleData.stats;
-		_roleProjectsByRole = roleData.projectsByRole;
-		const dashboardUser = { ...user, roleStats };
-		const projectCountByObjectId = rawResults.reduce((map, result) => {
-			const projectKey = String(result.objectId ?? "");
-			if (!projectKey) return map;
-			map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
-			return map;
-		}, new Map());
+		const resolveProjectXP = createProjectXPResolver(xpTransactions);
+		const resolveAuditProjectXP = createProjectXPResolver(
+			auditXpResult.data ?? [],
+		);
+		_roleProjectsByRole = Object.fromEntries(
+			Object.entries(roleData.projectsByRole).map(([role, projects]) => [
+				role,
+				projects.map((project) => {
+					const xpResolver =
+						role === "Auditor" ? resolveAuditProjectXP : resolveProjectXP;
+					const xpAmount = xpResolver({
+						objectId: project.objectId,
+						path: project.path,
+						name: project.name,
+					});
 
-		const results = rawResults.map((result) => {
+					return {
+						...project,
+						xpAmount,
+					};
+				}),
+			]),
+		);
+		const dashboardUser = { ...user, roleStats };
+		_auditDetailsProjects = computeAuditDetailsProjects(
+			roleStatsResult.data?.audits ?? [],
+			auditXpResult.data ?? [],
+		);
+		const activitySourceResults = rawResults.length
+			? rawResults
+			: completedProjects.map((project) => ({
+					id: project.id,
+					objectId:
+						typeof project.object?.id === "number" ? project.object.id : null,
+					grade: Number(project.grade ?? 0),
+					type: "project",
+					createdAt: project.updatedAt ?? project.createdAt ?? "",
+					user: {
+						id: user.id,
+						login: user.login,
+					},
+					object: {
+						id: project.object?.id,
+						name: project.object?.name,
+						type: project.object?.type,
+					},
+					path: project.path ?? "",
+				}));
+
+		const projectCountByObjectId = activitySourceResults.reduce(
+			(map, result) => {
+				const projectKey = String(result.objectId ?? "");
+				if (!projectKey) return map;
+				map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
+				return map;
+			},
+			new Map(),
+		);
+
+		const results = activitySourceResults.map((result) => {
 			const projectKey = String(result.objectId ?? "");
 			const teamInfo = teamsByProject.get(projectKey) ?? {
 				members: [],

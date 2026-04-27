@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { computeDashboardRoleData } from "../src/features/dashboard/dashboard.core.js";
+import {
+	computeAuditDetailsProjects,
+	computeDashboardRoleData,
+	createProjectXPResolver,
+} from "../src/features/dashboard/dashboard.core.js";
 
 const createProject = (id, name = `Project ${id}`) => ({
 	object: { id, name, type: "project" },
@@ -102,4 +106,141 @@ test("auditor role count deduplicates repeated audits of the same project", () =
 	);
 	assert.equal(countByProject.get("Graph Explorer"), 2);
 	assert.equal(countByProject.get("Go Reloaded"), 1);
+});
+
+test("audit details projects aggregate xp by object id and sort by latest audit date", () => {
+	const audits = [
+		{
+			createdAt: "2026-03-03T10:00:00Z",
+			objectId: 301,
+			projectName: "Go Reloaded",
+			projectPath: "/athens/div-01/go-reloaded",
+		},
+		{
+			createdAt: "2026-03-09T10:00:00Z",
+			objectId: 300,
+			projectName: "Graph Explorer",
+			projectPath: "/athens/div-01/graph-explorer",
+		},
+		{
+			createdAt: "2026-03-07T10:00:00Z",
+			objectId: 300,
+			projectName: "Graph Explorer",
+			projectPath: "/athens/div-01/graph-explorer",
+		},
+	];
+
+	const auditXpTransactions = [
+		{
+			objectId: 300,
+			amount: 12000,
+			path: "/athens/div-01/graph-explorer",
+			object: { id: 300, name: "Graph Explorer" },
+		},
+		{
+			objectId: 300,
+			amount: 8000,
+			path: "/athens/div-01/graph-explorer",
+			object: { id: 300, name: "Graph Explorer" },
+		},
+		{
+			objectId: 301,
+			amount: 5000,
+			path: "/athens/div-01/go-reloaded",
+			object: { id: 301, name: "Go Reloaded" },
+		},
+	];
+
+	const details = computeAuditDetailsProjects(audits, auditXpTransactions);
+
+	assert.equal(details.length, 2);
+	assert.equal(details[0].name, "Graph Explorer");
+	assert.equal(details[0].auditCount, 2);
+	assert.equal(details[0].totalXP, 20000);
+	assert.equal(details[1].name, "Go Reloaded");
+	assert.equal(details[1].totalXP, 5000);
+});
+
+test("audit details projects fall back to path/name xp matching when object id is missing", () => {
+	const audits = [
+		{
+			createdAt: "2026-03-11T10:00:00Z",
+			projectName: "Net Cat",
+			projectPath: "/athens/div-01/net-cat",
+		},
+		{
+			createdAt: "2026-03-12T10:00:00Z",
+			projectName: "Ascii Art",
+			projectPath: "",
+		},
+	];
+
+	const auditXpTransactions = [
+		{
+			amount: 11000,
+			path: "/athens/div-01/net-cat",
+			object: { name: "Net Cat" },
+		},
+		{
+			amount: 6100,
+			path: "/athens/div-01/ascii-art",
+			object: { name: "Ascii Art" },
+		},
+	];
+
+	const details = computeAuditDetailsProjects(audits, auditXpTransactions);
+
+	const byName = new Map(details.map((item) => [item.name, item.totalXP]));
+	assert.equal(byName.get("Net Cat"), 11000);
+	assert.equal(byName.get("Ascii Art"), 6100);
+});
+
+test("project xp resolver prioritizes object id over path/name", () => {
+	const resolveXP = createProjectXPResolver([
+		{
+			objectId: 500,
+			path: "/athens/div-01/shared-name",
+			amount: 1000,
+			object: { id: 500, name: "Shared Name" },
+		},
+		{
+			objectId: 999,
+			path: "/athens/div-01/shared-name",
+			amount: 2000,
+			object: { id: 999, name: "Shared Name" },
+		},
+	]);
+
+	assert.equal(
+		resolveXP({
+			objectId: 500,
+			path: "/athens/div-01/shared-name",
+			name: "Shared Name",
+		}),
+		1000,
+	);
+});
+
+test("project xp resolver normalizes path and name fallbacks", () => {
+	const resolveXP = createProjectXPResolver([
+		{
+			amount: 3300,
+			path: "/ATHENS/DIV-01/path-normalized",
+			object: { name: "Case Match" },
+		},
+		{
+			amount: 2200,
+			path: "",
+			object: { name: "Name Only" },
+		},
+	]);
+
+	assert.equal(
+		resolveXP({
+			path: " /athens/div-01/path-normalized ",
+			name: "ignored",
+		}),
+		3300,
+	);
+	assert.equal(resolveXP({ name: " name only " }), 2200);
 });

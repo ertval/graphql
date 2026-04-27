@@ -7,6 +7,7 @@ const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
 const appJs = read("src/app.js");
+const authUiJs = read("src/features/auth/auth.ui.view.js");
 const collaborationsJs = read(
 	"src/features/collaborations/collaborations.ui.view.js",
 );
@@ -68,7 +69,7 @@ test("collaborator project member list only auto-adds active user for shared tea
 test("dashboard project teams are hydrated by object id for all visible project names", () => {
 	assert.match(
 		dashboardApiJs,
-		/query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!\)/,
+		/query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!, \$eventId: Int!\)/,
 	);
 	assert.match(dashboardApiJs, /group_user\(/);
 	assert.match(dashboardApiJs, /userId:\s*\{\s*_eq:\s*\$userId\s*\}/);
@@ -101,7 +102,7 @@ test("dashboard project teams are hydrated by object id for all visible project 
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
 	assert.match(collaborationsPopupJs, /sp-layout-expanded/);
-	assert.match(collaborationsPopupJs, /selectedProjectName/);
+	assert.match(collaborationsPopupJs, /selectedProjectKey|selectedProjectName/);
 	assert.match(collaborationsPopupJs, /classList\.remove\("active"\)/);
 });
 
@@ -148,7 +149,7 @@ test("collaborator project detail renders My Role section for active user", () =
 test("dashboard team hydration uses group_user mapping and stable object id keys", () => {
 	assert.match(
 		dashboardApiJs,
-		/query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!\)[\s\S]*group_user\(/,
+		/query GetProjectTeams\(\$userId: Int!, \$projectObjectIds: \[Int!\]!, \$eventId: Int!\)[\s\S]*group_user\(/,
 	);
 	assert.match(dashboardApiJs, /userId:\s*\{\s*_eq:\s*\$userId\s*\}/);
 	assert.match(dashboardApiJs, /id:\s*\{\s*_in:\s*\$projectObjectIds\s*\}/);
@@ -156,7 +157,7 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 		dashboardApiJs,
 		/const projectObjectId = group\.object\?\.id;[\s\S]*const key = String\(projectObjectId\);/,
 	);
-	assert.match(dashboardViewJs, /const _?normalizeProjectName = \(name\) =>/);
+	assert.match(dashboardViewJs, /createProjectXPResolver/);
 	assert.match(
 		dashboardViewJs,
 		/const teamInfo = teamsByProject\.get\(projectKey\) \?\? \{[\s\S]*teamMembers: teamInfo\.members,[\s\S]*teamCaptainLogin: teamInfo\.captainLogin,/,
@@ -178,9 +179,9 @@ test("dashboard team hydration uses group_user mapping and stable object id keys
 });
 
 test("app synchronizes logout via BroadcastChannel with storage fallback", () => {
-	assert.match(appJs, /BroadcastChannel/);
-	assert.match(appJs, /AUTH_SYNC_KEY/);
-	assert.match(appJs, /event\.key === AUTH_SYNC_KEY/);
+	assert.match(authUiJs, /BroadcastChannel/);
+	assert.match(authUiJs, /AUTH_SYNC_KEY/);
+	assert.match(authUiJs, /event\.key === AUTH_SYNC_KEY/);
 });
 
 test("api clears token on 401 and 403 GraphQL responses", () => {

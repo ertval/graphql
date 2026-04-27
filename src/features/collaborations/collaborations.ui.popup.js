@@ -8,7 +8,9 @@ import {
 	formatLocalDate,
 	getActiveUserDisplayName,
 	getActiveUserLogin,
+	lockBodyScroll,
 	toProjectUrl,
+	unlockBodyScroll,
 } from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
@@ -16,6 +18,7 @@ import {
 	createProjectRoleSection,
 	createProjectStatGrid,
 } from "../../shared/ui/popup.shared.js";
+import { formatXP } from "../dashboard/dashboard.ui.charts.helpers.js";
 import { buildCollaboratorSummary } from "./collaborations.core.js";
 import {
 	createCollaboratorHeader,
@@ -23,7 +26,22 @@ import {
 } from "./collaborations.ui.popup.profile.js";
 import { createProjectDetailPanelElements } from "./collaborations.ui.popup.project-panel.js";
 
-let selectedProjectName = "";
+let selectedProjectKey = "";
+const COLLABORATOR_OVERLAY_LOCK_KEY = "overlay-collaborator-detail";
+
+const toProjectIdentityKey = (project = {}) => {
+	if (typeof project.objectId === "number") {
+		return `id:${project.objectId}`;
+	}
+
+	if (typeof project.path === "string" && project.path.trim()) {
+		return `path:${project.path.trim().toLowerCase()}`;
+	}
+
+	return `name:${String(project.name ?? "")
+		.trim()
+		.toLowerCase()}`;
+};
 
 const buildDisplayNameByLogin = (allCollabs) =>
 	allCollabs.reduce((map, collab) => {
@@ -36,7 +54,7 @@ const buildDisplayNameByLogin = (allCollabs) =>
 	}, new Map());
 
 const getProjectMembers = (
-	projectName,
+	project,
 	allCollabs,
 	collaboratorLogin,
 	projectRoles,
@@ -56,10 +74,17 @@ const getProjectMembers = (
 		}
 	}
 
-	const projectRecords = allCollabs.filter(
-		(collab) =>
-			collab.login === collaboratorLogin && collab.project === projectName,
-	);
+	const projectKey = toProjectIdentityKey(project);
+	const projectRecords = allCollabs.filter((collab) => {
+		if (collab.login !== collaboratorLogin) return false;
+		return (
+			toProjectIdentityKey({
+				objectId: collab.projectObjectId,
+				path: collab.projectPath,
+				name: collab.project,
+			}) === projectKey
+		);
+	});
 
 	const hasSharedTeamMembership = projectRecords.some(
 		(record) =>
@@ -93,17 +118,24 @@ const getProjectMembers = (
 };
 
 const getActiveUserProjectRole = (
-	projectName,
+	project,
 	allCollabs,
 	collaboratorLogin,
 	activeUserLogin,
 ) => {
 	if (!activeUserLogin) return "Partner";
 
-	const projectRecords = allCollabs.filter(
-		(collab) =>
-			collab.login === collaboratorLogin && collab.project === projectName,
-	);
+	const projectKey = toProjectIdentityKey(project);
+	const projectRecords = allCollabs.filter((collab) => {
+		if (collab.login !== collaboratorLogin) return false;
+		return (
+			toProjectIdentityKey({
+				objectId: collab.projectObjectId,
+				path: collab.projectPath,
+				name: collab.project,
+			}) === projectKey
+		);
+	});
 
 	const activeRoles = projectRecords.reduce((roles, record) => {
 		if (record.relationType === "audit_given") {
@@ -153,17 +185,24 @@ const renderProjectPanelContent = (
 	activeUserLogin,
 ) => {
 	panelBody.replaceChildren();
+	const activeRole = getActiveUserProjectRole(
+		project,
+		allCollabs,
+		collaboratorLogin,
+		activeUserLogin,
+	);
+	const xpLabel = activeRole.includes("Auditor") ? "XP Given" : "XP Received";
 
 	const grid = createProjectStatGrid([
 		{ value: String(project.count), label: "Shared Records" },
 		{ value: project.roles.join(", ") || "—", label: "Roles" },
 		{ value: formatLocalDate(project.latestDate), label: "Latest Shared" },
-		{ value: project.path ? "Available" : "—", label: "Project Link" },
+		{ value: formatXP(project.xpAmount ?? 0), label: xpLabel },
 	]);
 	panelBody.append(grid);
 
 	const members = getProjectMembers(
-		project.name,
+		project,
 		allCollabs,
 		collaboratorLogin,
 		project.roles,
@@ -178,13 +217,10 @@ const renderProjectPanelContent = (
 	panelBody.append(membersTitle, membersList);
 
 	const [activeRoleTitle, activeRoleValue] = createProjectRoleSection(
-		getActiveUserProjectRole(
-			project.name,
-			allCollabs,
-			collaboratorLogin,
-			activeUserLogin,
-		),
-		{ titleText: "My Role" },
+		activeRole,
+		{
+			titleText: "My Role",
+		},
 	);
 
 	panelBody.append(activeRoleTitle, activeRoleValue);
@@ -207,17 +243,15 @@ const openProjectDetail = (
 	const isPanelAlreadyExpanded =
 		panel.classList.contains("active") &&
 		layout.classList.contains("sp-layout-expanded");
+	const projectKey = toProjectIdentityKey(project);
 
-	if (
-		selectedProjectName === project.name &&
-		panel.classList.contains("active")
-	) {
-		selectedProjectName = "";
+	if (selectedProjectKey === projectKey && panel.classList.contains("active")) {
+		selectedProjectKey = "";
 		resetProjectPanel(refs);
 		return;
 	}
 
-	selectedProjectName = project.name;
+	selectedProjectKey = projectKey;
 
 	panelTitle.textContent = project.name;
 	if (isPanelAlreadyExpanded) {
@@ -251,9 +285,10 @@ const openProjectDetail = (
 export const closeCollaboratorDetail = () => {
 	const overlay = $("#student-profile-overlay");
 	overlay?.classList.remove("active");
+	unlockBodyScroll(COLLABORATOR_OVERLAY_LOCK_KEY);
 	const layout = $(".sp-layout");
 	const panel = $(".sp-project-panel");
-	selectedProjectName = "";
+	selectedProjectKey = "";
 	const panelBody = $(".sp-project-body");
 	if (layout && panel && panelBody) {
 		resetProjectPanel({ panel, panelBody, layout });
@@ -264,7 +299,7 @@ export const closeCollaboratorDetail = () => {
 export const openCollaboratorDetail = (login, allCollabs) => {
 	const summary = buildCollaboratorSummary(allCollabs, login);
 	if (!summary) return;
-	selectedProjectName = "";
+	selectedProjectKey = "";
 
 	const overlay = $("#student-profile-overlay");
 	const content = $("#student-profile-content");
@@ -286,7 +321,7 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 
 	// Shared projects list
 	const projectsSection = document.createElement("section");
-	projectsSection.className = "sp-skills";
+	projectsSection.className = "sp-skills sp-projects-section";
 	const projectsTitle = document.createElement("h3");
 	projectsTitle.textContent = "Recent Shared Projects";
 	projectsSection.append(projectsTitle);
@@ -351,5 +386,6 @@ export const openCollaboratorDetail = (login, allCollabs) => {
 	layout.append(mainColumn, detailPanel);
 	content.append(layout);
 
+	lockBodyScroll(COLLABORATOR_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
 };

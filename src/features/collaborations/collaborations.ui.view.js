@@ -5,6 +5,7 @@
  * @module collaborations.view
  */
 
+import { decodeToken } from "../../infra/auth.js";
 import { $, formatLocalDate } from "../../infra/ui.js";
 import { loadCollaborationsData } from "./collaborations.api.js";
 import { buildCollaboratorSummaries } from "./collaborations.core.js";
@@ -20,6 +21,9 @@ import { renderCollabsTableBody } from "./collaborations.ui.view.table.js";
 /** @type {Array<{id: string, login: string, firstName: string, lastName: string, campus: string, project: string, role: string, date: string, ts: number}>} */
 export let allCollabs = [];
 let uniqueCollabs = [];
+
+let collabsViewStatus = "idle";
+let collabsViewLoadGeneration = 0;
 
 export const setAllCollabsData = (data) => {
 	allCollabs = data;
@@ -238,6 +242,27 @@ export const initCollaborationsView = async (userId) => {
 	}
 };
 
+/**
+ * Lazy loads collaborations data. Prevents concurrent duplicate loads.
+ * @param {number} userId
+ */
+export const loadCollaborationsLazy = async (userId) => {
+	if (collabsViewStatus !== "idle") return;
+	if (!Number.isInteger(userId) || userId <= 0) return;
+
+	collabsViewStatus = "loading";
+	const loadGeneration = ++collabsViewLoadGeneration;
+	try {
+		const result = await initCollaborationsView(userId);
+		if (loadGeneration !== collabsViewLoadGeneration) return;
+		collabsViewStatus = result?.ok ? "ready" : "idle";
+	} catch {
+		if (loadGeneration === collabsViewLoadGeneration) {
+			collabsViewStatus = "idle";
+		}
+	}
+};
+
 // ── Public API ─────────────────────────────────────────────────────
 
 /** Resets all collaborations state for logout / view teardown. */
@@ -249,9 +274,35 @@ export const resetCollabsState = () => {
 	filterText = "";
 	filterRole = "";
 	currentPage = 1;
+	collabsViewStatus = "idle";
+	collabsViewLoadGeneration += 1;
 	const tbody = $("#collabs-tbody");
 	if (tbody) tbody.replaceChildren();
 	const pagination = $("#collabs-pagination");
 	if (pagination) pagination.replaceChildren();
 	closeCollaboratorDetail();
+};
+
+export const initCollaborations = () => {
+	let activeUserId = null;
+
+	document.addEventListener("dashboard:loaded", (e) => {
+		activeUserId = e.detail.userId;
+	});
+
+	document.addEventListener("shell:tab", (e) => {
+		if (e.detail.tab === "collabs") {
+			const decoded = decodeToken();
+			const userId =
+				typeof activeUserId === "number" && Number.isInteger(activeUserId)
+					? activeUserId
+					: Number(decoded?.sub);
+			void loadCollaborationsLazy(userId);
+		}
+	});
+
+	document.addEventListener("auth:logout", () => {
+		resetCollabsState();
+		activeUserId = null;
+	});
 };

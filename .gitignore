@@ -19,7 +19,7 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
-*~
+memories/
 
 # Package manager
 node_modules/

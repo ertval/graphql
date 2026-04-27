@@ -7,7 +7,9 @@ import {
 	$,
 	formatLocalDate,
 	getActiveUserLogin,
+	lockBodyScroll,
 	toProjectUrl,
+	unlockBodyScroll,
 } from "../../infra/ui.js";
 import {
 	createProjectMembersSection,
@@ -16,8 +18,10 @@ import {
 	createProjectStatGrid,
 } from "../../shared/ui/popup.shared.js";
 import { createProjectDetailPanelElements } from "../collaborations/collaborations.ui.popup.project-panel.js";
+import { formatXP } from "./dashboard.ui.charts.helpers.js";
 
 const ROLE_ORDER = ["Captain", "Partner", "Auditor"];
+const ROLE_PROJECTS_OVERLAY_LOCK_KEY = "overlay-role-projects";
 let selectedProjectKey = "";
 let getRoleProjectsByRole = () => ({ Captain: [], Partner: [], Auditor: [] });
 let eventsBound = false;
@@ -35,12 +39,13 @@ const resetProjectPanel = (refs) => {
 
 const renderProjectPanelContent = (project, panelBody, activeUserLogin) => {
 	panelBody.replaceChildren();
+	const xpLabel = project.role === "Auditor" ? "XP Given" : "XP Received";
 
 	const grid = createProjectStatGrid([
 		{ value: String(project.count ?? 1), label: "Records" },
 		{ value: project.roles?.join(", ") ?? project.role ?? "—", label: "Role" },
 		{ value: formatLocalDate(project.latestDate), label: "Latest Activity" },
-		{ value: project.path ? "Available" : "—", label: "Project Link" },
+		{ value: formatXP(project.xpAmount ?? 0), label: xpLabel },
 	]);
 	panelBody.append(grid);
 
@@ -107,6 +112,7 @@ const openProjectDetail = (project, refs, activeUserLogin) => {
 export const closeRoleProjectsPopup = () => {
 	const overlay = $("#role-projects-overlay");
 	overlay?.classList.remove("active");
+	unlockBodyScroll(ROLE_PROJECTS_OVERLAY_LOCK_KEY);
 
 	const layout = $("#role-projects-content .sp-layout");
 	const panel = $("#role-projects-content .sp-project-panel");
@@ -199,6 +205,7 @@ const openRoleProjectsPopup = (role) => {
 	layout.append(mainColumn, detailPanel);
 	content.append(layout);
 	resetProjectPanel(detailRefs);
+	lockBodyScroll(ROLE_PROJECTS_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
 };
 

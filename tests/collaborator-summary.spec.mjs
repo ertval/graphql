@@ -18,6 +18,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Partner",
 			date: "2026-01-01T10:00:00.000Z",
 			ts: 100,
+			xpAmount: 42000,
 		},
 		{
 			id: "a2",
@@ -29,6 +30,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Auditor",
 			date: "2026-01-08T10:00:00.000Z",
 			ts: 200,
+			xpAmount: 42000,
 		},
 		{
 			id: "a3",
@@ -40,6 +42,7 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 			role: "Captain",
 			date: "2026-01-10T10:00:00.000Z",
 			ts: 300,
+			xpAmount: 76000,
 		},
 		{
 			id: "a4",
@@ -68,19 +71,25 @@ test("buildCollaboratorSummary aggregates projects, roles and counts for a login
 	]);
 
 	assert.deepEqual(summary.projects[0], {
+		key: "name:graph explorer",
 		name: "Graph Explorer",
+		objectId: null,
 		path: "",
 		roles: ["Captain"],
 		latestDate: "2026-01-10T10:00:00.000Z",
 		count: 1,
+		xpAmount: 76000,
 	});
 
 	assert.deepEqual(summary.projects[1], {
+		key: "name:libft",
 		name: "Libft",
+		objectId: null,
 		path: "",
 		roles: ["Auditor", "Partner"],
 		latestDate: "2026-01-08T10:00:00.000Z",
 		count: 2,
+		xpAmount: 42000,
 	});
 });
 
@@ -143,4 +152,45 @@ test("filterVerifiedCollaborations keeps only verified same-campus teammates", (
 		filtered.map((record) => record.id),
 		["keep-partner"],
 	);
+});
+
+test("buildCollaboratorSummary keeps duplicate project names distinct by path with stable XP", () => {
+	const records = [
+		{
+			id: "x1",
+			login: "jdoe",
+			firstName: "John",
+			lastName: "Doe",
+			campus: "Athens",
+			project: "NetPractice",
+			projectPath: "/athens/div-01/netpractice",
+			role: "Partner",
+			date: "2026-02-01T10:00:00.000Z",
+			ts: 100,
+			xpAmount: 32000,
+		},
+		{
+			id: "x2",
+			login: "jdoe",
+			firstName: "John",
+			lastName: "Doe",
+			campus: "Athens",
+			project: "NetPractice",
+			projectPath: "/athens/div-02/netpractice",
+			role: "Auditor",
+			date: "2026-03-01T10:00:00.000Z",
+			ts: 200,
+			xpAmount: 14000,
+		},
+	];
+
+	const summary = buildCollaboratorSummary(records, "jdoe");
+
+	assert.ok(summary);
+	assert.equal(summary.projects.length, 2);
+	const byPath = new Map(
+		summary.projects.map((project) => [project.path, project]),
+	);
+	assert.equal(byPath.get("/athens/div-01/netpractice")?.xpAmount, 32000);
+	assert.equal(byPath.get("/athens/div-02/netpractice")?.xpAmount, 14000);
 });

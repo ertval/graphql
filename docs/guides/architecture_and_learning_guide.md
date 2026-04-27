@@ -1,6 +1,6 @@
 # Architecture & Learning Guide — GraphQL Profile
 
-Welcome to the GraphQL Profile project! This guide explains the core concepts used in this application and how the codebase is structured.
+Welcome to the GraphQL Profile project! This guide explains the core concepts, modern JavaScript patterns, and the "Screaming Vertical Slice" architecture used in this application.
 
 ---
 
@@ -10,7 +10,7 @@ Welcome to the GraphQL Profile project! This guide explains the core concepts us
 An API (Application Programming Interface) is like a waiter in a restaurant. You (the browser) look at the menu and tell the waiter what you want. The waiter (API) goes to the kitchen (server/database), retrieves your order, and returns it to you.
 
 ### What is GraphQL?
-A traditional REST API returns a fixed "dish" — e.g., a full user object with 50 fields even if you only need 3. **GraphQL** lets you specify exactly which fields you want:
+Unlike traditional REST APIs that return a fixed "dish", **GraphQL** lets you specify exactly which fields you want. This prevents "over-fetching" (getting data you don't need) and "under-fetching" (having to make multiple calls).
 
 ```graphql
 # Normal query — only 2 fields
@@ -23,153 +23,100 @@ query GetXP($userId: Int!) {
   }
 }
 
-# Nested query — traverse relationships
-{ result { grade object { name type } } }
+# Nested query — traverse relationships (User -> Transaction -> Object)
+{ transaction { amount object { name type } } }
 ```
-
-This project demonstrates all three query types. See `src/features/dashboard/dashboard.api.js` for concrete implementations.
 
 ### JWT Authentication
-When you log in, the server verifies credentials and returns a **JWT (JSON Web Token)** — a cryptographically signed ticket. Every subsequent GraphQL request includes this token in the `Authorization: Bearer <token>` header. If the token expires or is tampered with, the server rejects the request.
-
-The token is session-scoped in memory with `sessionStorage` fallback in `src/infra/auth.js`. `isAuthenticated()` validates token expiry before allowing API calls.
-
-### SVG Graphics
-All four charts are drawn using the browser's native **SVG (Scalable Vector Graphics)** API:
-```js
-const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-```
-There is **no canvas, no external chart library**. Coordinates are calculated in JavaScript from the raw data, then translated into SVG attributes (`d`, `cx`, `cy`, `r`, etc.).
-
-### Why `npx serve`?
-Browsers block:
-1. **CORS requests** from `file://` origins — the GraphQL API rejects them.
-2. **ES module imports** over `file://` — the browser refuses to load `import` statements.
-3. **SPA routing** — a server redirects 404s back to `index.html`.
-
-A simple `npx serve .` gives the app a proper `http://localhost:3000` origin.
+When you log in, the server returns a **JWT (JSON Web Token)**. We store this in-memory for security, with a `sessionStorage` fallback for page reloads.
+- **Security Hint**: We avoid `localStorage` to mitigate persistent XSS risks.
+- **Implementation**: See `src/infra/auth.js`.
 
 ---
 
-## 2. Module Architecture
+## 2. Screaming Vertical Slice Architecture
 
-┌──────────────────────────────────────────────────────────────┐
-│                         Browser                              │
-│                                                              │
-│  index.html  ──links──►  css/ (7 files)                      │
-│       │                                                      │
-│       └──module──► src/app.js                                │
-│                         │                                    │
-│                         ├──► src/features/dashboard/         │
-│                         ├──► src/features/collaborations/    │
-│                         ├──► src/shared/                     │
-│                         └──► src/infra/                      │
-└──────────────────────────────────────────────────────────────┘
+Our directory structure "screams" its purpose. Instead of grouping by technical type (components, services), we group by **Feature**.
 
-| File Group | Responsibility |
-|---|---|
-| `dashboard.*.js` | Tab routing, dashboard load pipeline, project detail overlays (`.popup`), pure transform logic (`.core`), and GraphQL queries (`.api`). |
-| `collaborations.*.js` | Collaborations domain normalisation (`.core`), API fetching (`.api`), DOM orchestration and filtering (`.view`), and profile overlays (`.popup`). |
-| `shared/` | Shared UI components and SVG charts. |
-| `infra/` | Auth token management, HTTP/GraphQL transport wrapper, and the Result logic pattern. |
-
-### CSS Module Split
-
-| File | Content |
-|---|---|
-| `css/theme.css` | CSS custom properties — palette, spacing, radii, typography, transitions |
-| `css/base.css` | Reset, body, `.glass` utility, `.tab-panel` layout, keyframe animations |
-| `css/login.css` | Login card, form inputs, background orb animations |
-| `css/nav.css` | Navigation bar, brand, tab switcher, logout button |
-| `css/dashboard.css` | Dashboard cards (user, XP, audit), graph groups, skills, activity, project detail overlay |
-| `css/graphs.css` | SVG containers, axis lines, line/bar/donut/pie element classes, tooltips |
-| `css/collaborations.css` | Collaborations controls, table, role badges, pagination, collaborator profile overlay |
-
----
-
-## 3. Key Design Patterns
-
-### Tab Switching (no router library)
-```js
-const switchTab = (tab) => {
-  dashboardPanel.classList.toggle('active', tab === 'dashboard');
-  collabsPanel.classList.toggle('active', tab === 'collabs');
-};
+```text
+├── src/
+│   ├── features/
+│   │   ├── auth/           # Identity and Login
+│   │   ├── dashboard/      # User Stats and SVG Analytics
+│   │   ├── collaborations/ # Peer Leaderboard and Profiles
+│   │   └── shell/          # Navigation and App Layout
+│   ├── infra/              # Technical adapters (Auth, GraphQL, UI helpers)
+│   ├── shared/             # Reusable UI components (Popups)
+│   └── app.js              # Decoupled Event Orchestrator
 ```
-`.tab-panel { display: none }` / `#dashboard.tab-panel.active { display: grid }` in CSS.  
-The students panel gets `display: block` via `.tab-panel.active`, while the dashboard uses a more specific selector to get its 3-column grid.
 
-### Lazy Loading (students)
+### The Decoupled Event Flow
+Features do not call each other directly. They communicate via **Native CustomEvents**. This allows us to add or remove features without breaking the app.
+
 ```js
-tabStudents.addEventListener('click', () => {
-  if (!studentsPanel.dataset.loaded) {
-    studentsPanel.dataset.loaded = '1';
-    initStudentsView();          // fetch happens ONLY on first click
-  }
+// src/app.js - Orchestration
+if (isAuthenticated()) {
+  document.dispatchEvent(new CustomEvent("auth:login"));
+}
+
+// src/features/dashboard/dashboard.ui.view.js - Reaction
+document.addEventListener("auth:login", async () => {
+  await loadDashboard();
 });
 ```
 
-### Parallel Fetching
-```js
-const [xpTransactions, progress, skills, level, results] =
-  await Promise.all([fetchXPTransactions(id), fetchProgress(id), ...]);
-```
-All five queries fire simultaneously, reducing total wait time to the slowest single response.
+---
 
-### Immutable Array Operations (ES2026)
+## 3. Critical Engineering & Edge Cases
+
+### 🛡️ Security: XSS & Injection Prevention
+- **Trusted Types**: We use a meta policy to ensure all DOM injections are sanitized.
+- **CSP**: A strict Content Security Policy prevents unauthorized scripts and styles.
+- **Sanitization**: We use `textContent` by default and `replaceChildren()` for clearing elements, avoiding `innerHTML` sinks.
+
+### ⚡ Performance: Parallel Fetching & Lazy Loading
+- **Parallelism**: In `dashboard.api.js`, we use `Promise.all` to fire all 6+ GraphQL queries simultaneously. This cuts load time significantly.
+- **Lazy Loading**: The Collaborations feature is only initialized when the user clicks the tab, saving bandwidth and processing power for the initial login.
+
+### 🏁 Pitfall Avoidance: The "Stale Load" Guard
+In async applications, a slow request might return after the user has already logged out or triggered a new load. We use a **Generation Counter** to ignore "stale" results.
+
 ```js
-// toSorted — never mutates the original array
-const topSkills = [...skillMap.entries()].toSorted(([, a], [, b]) => b - a);
+// src/features/dashboard/dashboard.ui.view.js
+let dashboardLoadGeneration = 0;
+
+export const loadDashboard = async () => {
+  const loadId = ++dashboardLoadGeneration;
+  const data = await fetchEverything();
+  
+  // Guard: if loadId is old, don't update the UI
+  if (loadId !== dashboardLoadGeneration) return; 
+  render(data);
+};
 ```
 
-### Temporal API (no legacy Date)
-```js
-const zdt = Temporal.Instant.from(createdAt)
-  .toZonedDateTimeISO(Temporal.Now.timeZoneId());
-return zdt.toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric' });
-```
+### 📅 Modern APIs: Temporal & Immutable Arrays
+- **No `Date`**: We exclusively use the **Temporal API** for robust time handling without the "timezone hell" of legacy JS.
+- **No Mutation**: We use `.toSorted()` and `.toSpliced()` (ES2026) to ensure our data remains predictable and side-effect free.
 
 ---
 
-## 4. What Part Could Be Written in Go? 🐹
+## 4. Data Flow & Usability
 
-Currently 100% client-side. If you introduced a Go backend:
+### The "Result" Pattern
+Instead of `try/catch` everywhere, we use a `Result` object: `{ ok: true, data } | { ok: false, error }`.
+- This makes error handling explicit and type-safe.
+- **Hint**: See `src/infra/result.js`.
 
-### Stays in JavaScript (Frontend)
-- DOM manipulation and SVG drawing (`src/charts.*.js`)
-- User interaction (click events, hover effects, tab routing)
-- Styling (all CSS)
-
-### Moves to Go (Backend)
-- **GraphQL proxy** — Go fetches from Zone01 API, adds auth server-side (safer than browser token ownership)
-- **Session management** — Go issues an `HttpOnly` cookie instead of exposing the JWT to JS (XSS protection)
-- **Static file server** — `http.FileServer` replaces `npx serve`
-- **Data caching** — Go caches expensive aggregation queries (large transaction histories)
-
-```
-Currently: Browser → Zone01 GraphQL API
-With Go:   Browser → Your Go Server → Zone01 GraphQL API
-```
+### SVG Drawing Workflow
+1. **Fetch**: Get raw data from GraphQL.
+2. **Transform**: Compute coordinates in a pure function (`core.js`).
+3. **Render**: Use `document.createElementNS` to create SVG elements.
+4. **Style**: Use CSS variables (in `graphs.css`) to handle colors and animations, keeping the JS focused on logic.
 
 ---
 
-## 5. Coding Standards (AGENTS.md — ES2026)
+## 5. Deployment & Scalability
+The app is designed to be **Static-Host Ready**. Because it's vanilla JS with no build step required (though we use Biome for quality), it can be served from any simple folder.
 
-| Rule | Implemented |
-|---|---|
-| `var` forbidden | ✅ — `const`/`let` only |
-| CommonJS forbidden | ✅ — ES modules (`import`/`export`) only |
-| `Temporal` API | ✅ — zero `Date` objects |
-| Immutable arrays | ✅ — `.toSorted()`, spread instead of `.sort()` |
-| `Object.groupBy()` | ✅ — used in `src/charts.bar.js` for project XP aggregation |
-| `async/await` | ✅ — no `.then()` chains |
-| Biome linting | ✅ — no `!important`, sorted imports, no unused vars |
-
-## 6. Dependency Boundaries
-
-1. app may compose view/api/core/infra modules and wire adapters.
-2. view modules should not import infra auth/transport directly.
-3. api modules should not import view/DOM modules.
-4. core modules remain pure and side-effect free.
-5. infra modules expose reusable adapters and stay feature-agnostic.
+**Scalability**: To add a "Profile Edit" feature, you would simply create `src/features/profile-edit/`, add its CSS, and listen for `auth:login`. No existing feature code would need to change.

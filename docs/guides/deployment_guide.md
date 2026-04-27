@@ -174,24 +174,38 @@ Provide the live URL from GitHub Pages, Netlify, or Vercel. The reviewer visits 
 
 ```text
 index.html
+favicon.ico
 src/
    app.js
-   collaborations.api.js
-   collaborations.core.js
-   collaborations.popup.js
-   collaborations.view.js
-   dashboard.api.js
-   dashboard.core.js
-   dashboard.popup.js
-   dashboard.view.js
-   charts.bar.js
-   charts.donut.js
-   charts.helpers.js
-   charts.line.js
-   charts.pie.js
-   infra.auth.js
-   infra.graphql.js
-   infra.result.js
+   features/
+      auth/
+         auth.core.js
+         auth.ui.view.js
+      collaborations/
+         collaborations.api.js
+         collaborations.core.js
+         collaborations.ui.view.js
+         collaborations.ui.popup.js
+         ...
+      dashboard/
+         dashboard.api.js
+         dashboard.core.js
+         dashboard.ui.view.js
+         dashboard.ui.view.renderers.js
+         dashboard.ui.charts.*.js
+         ...
+      shell/
+         shell.ui.view.js
+   infra/
+      auth.js
+      errors.js
+      graphql.js
+      network.js
+      result.js
+      ui.js
+   shared/
+      ui/
+         popup.shared.js
 css/
    theme.css
    base.css

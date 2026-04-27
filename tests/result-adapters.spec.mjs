@@ -6,7 +6,7 @@ import test from "node:test";
 const root = process.cwd();
 const read = (relPath) => fs.readFileSync(path.join(root, relPath), "utf8");
 
-const appJs = read("src/app.js");
+const authUiJs = read("src/features/auth/auth.ui.view.js");
 const collaborationsApiJs = read(
 	"src/features/collaborations/collaborations.api.js",
 );
@@ -18,12 +18,12 @@ const infraResultJs = read("src/infra/result.js");
 
 test("app login adapter handles Result object contract", () => {
 	assert.match(
-		appJs,
+		authUiJs,
 		/const loginResult = await login\(identifier, password\);/,
 	);
-	assert.match(appJs, /if \(!loginResult\.ok\) \{/);
+	assert.match(authUiJs, /if \(!loginResult\.ok\) \{/);
 	assert.match(
-		appJs,
+		authUiJs,
 		/toPublicErrorMessage\(\s*\n\s*loginResult\.error,\s*\n\s*"auth",?\s*\n\s*\)/,
 	);
 });
@@ -38,9 +38,22 @@ test("dashboard view branches on Result objects without unwrap throw flow", () =
 test("collaborations data and view modules use explicit Result branching", () => {
 	assert.match(
 		collaborationsApiJs,
-		/const \[collabsResult, userResult\] = await Promise\.all\(\[\s*\n\s*fetchCollaborations\(userId\),\s*\n\s*fetchUserInfo\(\),\s*\n\s*\]\);/,
+		/const \[collabsResult, userResult, xpResult, auditXpResult\]\s*=\s*await Promise\.all\(/,
 	);
+	assert.match(collaborationsApiJs, /fetchAuditXPTransactions\(userId\)/);
 	assert.match(collaborationsApiJs, /if \(!collabsResult\.ok\) \{/);
+	assert.match(
+		collaborationsApiJs,
+		/const xpTransactions = xpResult\.ok \? xpResult\.data : \[];/,
+	);
+	assert.match(
+		collaborationsApiJs,
+		/const auditXpTransactions = auditXpResult\.ok \? auditXpResult\.data : \[];/,
+	);
+	assert.match(
+		collaborationsApiJs,
+		/const allXpTransactions = \[\.\.\.xpTransactions, \.\.\.auditXpTransactions\];/,
+	);
 	assert.match(
 		collaborationsViewJs,
 		/const collabsResult = await loadCollaborationsData\(userId\);/,
