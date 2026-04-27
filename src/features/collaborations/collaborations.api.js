@@ -10,6 +10,7 @@ import {
 	fetchUserInfo,
 	fetchXPTransactions,
 } from "../dashboard/dashboard.api.js";
+import { createProjectXPResolver } from "../dashboard/dashboard.core.js";
 import {
 	filterVerifiedCollaborations,
 	normalizeCollaboratorNamesByLogin,
@@ -26,7 +27,7 @@ export const fetchCollaborations = async (userId) => {
         group {
 					path
 					captainLogin
-          object { name }
+				  object { id name }
           members {
             userId
             user { login firstName lastName campus }
@@ -40,7 +41,7 @@ export const fetchCollaborations = async (userId) => {
 				group {
 					path
 					captainLogin
-					object { name }
+					object { id name }
 					members {
 						user {
 							login
@@ -58,7 +59,7 @@ export const fetchCollaborations = async (userId) => {
 				group {
 					path
 					captainLogin
-					object { name }
+					object { id name }
 					members {
 						user {
 							login
@@ -138,15 +139,15 @@ const canonicalizeIdentityByLogin = (collabs) => {
 const dedupeByLoginProjectRole = (collabs) => {
 	const seen = new Set();
 	return collabs.filter((collab) => {
-		const key = `${collab.login}|${collab.project}|${collab.role}`;
+		const projectObjectId =
+			typeof collab.projectObjectId === "number" ? collab.projectObjectId : "";
+		const projectPath = normalizeProjectPath(collab.projectPath);
+		const key = `${collab.login}|${projectObjectId}|${projectPath}|${collab.project}|${collab.role}`;
 		if (seen.has(key)) return false;
 		seen.add(key);
 		return true;
 	});
 };
-
-const normalizeProjectName = (value) =>
-	typeof value === "string" ? value.trim().toLowerCase() : "";
 
 const normalizeProjectPath = (value) =>
 	typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -167,6 +168,7 @@ const mapGroupRecords = (groups, userId) =>
 					lastName: member.user.lastName,
 					campus: member.user.campus,
 					project: prjName,
+					projectObjectId: g.group?.object?.id ?? null,
 					projectPath,
 					role: isCaptain ? "Captain" : "Partner",
 					relationType: "group_member",
@@ -199,6 +201,7 @@ const mapAuditGivenRecords = (auditsGiven) =>
 				lastName: captainMember?.user?.lastName ?? "",
 				campus: captainMember?.user?.campus ?? "",
 				project: a.group?.object?.name || "Unknown",
+				projectObjectId: a.group?.object?.id ?? null,
 				projectPath: a.group?.path ?? "",
 				role: "Captain",
 				relationType: "audit_given",
@@ -222,6 +225,7 @@ const mapAuditReceivedRecords = (auditsReceived) =>
 				lastName: a.auditor.lastName,
 				campus: a.auditor.campus,
 				project: a.group?.object?.name || "Unknown",
+				projectObjectId: a.group?.object?.id ?? null,
 				projectPath: a.group?.path ?? "",
 				role: "Auditor",
 				relationType: "audit_received",
@@ -252,18 +256,7 @@ export const loadCollaborationsData = async (userId) => {
 
 	const userCampus = userResult.ok ? (userResult.data?.campus ?? "") : "";
 	const xpTransactions = xpResult.ok ? xpResult.data : [];
-	const xpByPath = xpTransactions.reduce((map, tx) => {
-		const pathKey = normalizeProjectPath(tx.path);
-		if (!pathKey) return map;
-		map.set(pathKey, (map.get(pathKey) ?? 0) + tx.amount);
-		return map;
-	}, new Map());
-	const xpByName = xpTransactions.reduce((map, tx) => {
-		const nameKey = normalizeProjectName(tx.object?.name);
-		if (!nameKey) return map;
-		map.set(nameKey, (map.get(nameKey) ?? 0) + tx.amount);
-		return map;
-	}, new Map());
+	const resolveProjectXP = createProjectXPResolver(xpTransactions);
 	const collabs = mapCollaborationRecords(collabsResult.data, userId);
 	const canonicalizedCollabs = canonicalizeIdentityByLogin(collabs);
 	const dedupedCollabs = dedupeByLoginProjectRole(canonicalizedCollabs);
@@ -272,12 +265,14 @@ export const loadCollaborationsData = async (userId) => {
 		userCampus,
 	);
 	const withProjectXp = verifiedCollabs.map((collab) => {
-		const pathKey = normalizeProjectPath(collab.projectPath);
-		const nameKey = normalizeProjectName(collab.project);
-		const xpAmount =
-			(pathKey ? (xpByPath.get(pathKey) ?? null) : null) ??
-			xpByName.get(nameKey) ??
-			0;
+		const xpAmount = resolveProjectXP({
+			objectId:
+				typeof collab.projectObjectId === "number"
+					? collab.projectObjectId
+					: null,
+			path: collab.projectPath,
+			name: collab.project,
+		});
 
 		return {
 			...collab,

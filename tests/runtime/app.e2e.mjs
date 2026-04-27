@@ -630,9 +630,7 @@ test("auditor role projects use audit XP and match audit details values", async 
 		)
 		.click();
 	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
-	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
-		/active/,
-	);
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
 	await expect(page.locator("#project-detail-content")).toContainText(
 		"XP Given",
 	);
@@ -640,6 +638,18 @@ test("auditor role projects use audit XP and match audit details values", async 
 		"22.0 kB",
 	);
 	await page.click("#project-detail-close");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#audit-details-content [aria-label="View details for Audit Alpha"]',
+		)
+		.click();
+	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
+	await page.click("#project-detail-close");
+	await page.click("#audit-details-close");
+	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
+		/active/,
+	);
 
 	await page.click("#role-counter-auditor");
 	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
@@ -654,6 +664,37 @@ test("auditor role projects use audit XP and match audit details values", async 
 	await expect(detailPanel).toContainText("XP Given");
 	await expect(detailPanel).toContainText("22.0 kB");
 	await expect(detailPanel).not.toContainText("99.0 kB");
+});
+
+test("dashboard recent projects renders progress fallback when results are empty", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		results: [],
+		progress: [
+			{
+				id: 501,
+				grade: 1,
+				createdAt: "2026-01-10T10:00:00.000Z",
+				updatedAt: "2026-01-10T10:00:00.000Z",
+				path: "/zone/project-alpha",
+				object: { id: 1, name: "Alpha Project", type: "project" },
+			},
+			{
+				id: 502,
+				grade: 1,
+				createdAt: "2026-01-20T10:00:00.000Z",
+				updatedAt: "2026-01-20T10:00:00.000Z",
+				path: "/zone/project-beta",
+				object: { id: 2, name: "Beta Project", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+	const recentProjects = page.locator("#activity-list .activity-item");
+	await expect(recentProjects.first()).toBeVisible();
+	await expect(page.locator("#activity-list")).toContainText("Alpha Project");
 });
 
 test("collaborator popup locks body scroll without layout shift and unlocks on all close paths", async ({

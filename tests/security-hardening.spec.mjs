@@ -102,7 +102,7 @@ test("dashboard project teams are hydrated by object id for all visible project 
 
 test("collaborator detail toggles extended project panel when same project is clicked", () => {
 	assert.match(collaborationsPopupJs, /sp-layout-expanded/);
-	assert.match(collaborationsPopupJs, /selectedProjectName/);
+	assert.match(collaborationsPopupJs, /selectedProjectKey|selectedProjectName/);
 	assert.match(collaborationsPopupJs, /classList\.remove\("active"\)/);
 });
 

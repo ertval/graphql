@@ -26,8 +26,22 @@ import {
 } from "./collaborations.ui.popup.profile.js";
 import { createProjectDetailPanelElements } from "./collaborations.ui.popup.project-panel.js";
 
-let selectedProjectName = "";
+let selectedProjectKey = "";
 const COLLABORATOR_OVERLAY_LOCK_KEY = "overlay-collaborator-detail";
+
+const toProjectIdentityKey = (project = {}) => {
+	if (typeof project.objectId === "number") {
+		return `id:${project.objectId}`;
+	}
+
+	if (typeof project.path === "string" && project.path.trim()) {
+		return `path:${project.path.trim().toLowerCase()}`;
+	}
+
+	return `name:${String(project.name ?? "")
+		.trim()
+		.toLowerCase()}`;
+};
 
 const buildDisplayNameByLogin = (allCollabs) =>
 	allCollabs.reduce((map, collab) => {
@@ -40,7 +54,7 @@ const buildDisplayNameByLogin = (allCollabs) =>
 	}, new Map());
 
 const getProjectMembers = (
-	projectName,
+	project,
 	allCollabs,
 	collaboratorLogin,
 	projectRoles,
@@ -60,10 +74,17 @@ const getProjectMembers = (
 		}
 	}
 
-	const projectRecords = allCollabs.filter(
-		(collab) =>
-			collab.login === collaboratorLogin && collab.project === projectName,
-	);
+	const projectKey = toProjectIdentityKey(project);
+	const projectRecords = allCollabs.filter((collab) => {
+		if (collab.login !== collaboratorLogin) return false;
+		return (
+			toProjectIdentityKey({
+				objectId: collab.projectObjectId,
+				path: collab.projectPath,
+				name: collab.project,
+			}) === projectKey
+		);
+	});
 
 	const hasSharedTeamMembership = projectRecords.some(
 		(record) =>
@@ -97,17 +118,24 @@ const getProjectMembers = (
 };
 
 const getActiveUserProjectRole = (
-	projectName,
+	project,
 	allCollabs,
 	collaboratorLogin,
 	activeUserLogin,
 ) => {
 	if (!activeUserLogin) return "Partner";
 
-	const projectRecords = allCollabs.filter(
-		(collab) =>
-			collab.login === collaboratorLogin && collab.project === projectName,
-	);
+	const projectKey = toProjectIdentityKey(project);
+	const projectRecords = allCollabs.filter((collab) => {
+		if (collab.login !== collaboratorLogin) return false;
+		return (
+			toProjectIdentityKey({
+				objectId: collab.projectObjectId,
+				path: collab.projectPath,
+				name: collab.project,
+			}) === projectKey
+		);
+	});
 
 	const activeRoles = projectRecords.reduce((roles, record) => {
 		if (record.relationType === "audit_given") {
@@ -158,7 +186,7 @@ const renderProjectPanelContent = (
 ) => {
 	panelBody.replaceChildren();
 	const activeRole = getActiveUserProjectRole(
-		project.name,
+		project,
 		allCollabs,
 		collaboratorLogin,
 		activeUserLogin,
@@ -174,7 +202,7 @@ const renderProjectPanelContent = (
 	panelBody.append(grid);
 
 	const members = getProjectMembers(
-		project.name,
+		project,
 		allCollabs,
 		collaboratorLogin,
 		project.roles,
@@ -215,17 +243,15 @@ const openProjectDetail = (
 	const isPanelAlreadyExpanded =
 		panel.classList.contains("active") &&
 		layout.classList.contains("sp-layout-expanded");
+	const projectKey = toProjectIdentityKey(project);
 
-	if (
-		selectedProjectName === project.name &&
-		panel.classList.contains("active")
-	) {
-		selectedProjectName = "";
+	if (selectedProjectKey === projectKey && panel.classList.contains("active")) {
+		selectedProjectKey = "";
 		resetProjectPanel(refs);
 		return;
 	}
 
-	selectedProjectName = project.name;
+	selectedProjectKey = projectKey;
 
 	panelTitle.textContent = project.name;
 	if (isPanelAlreadyExpanded) {
@@ -262,7 +288,7 @@ export const closeCollaboratorDetail = () => {
 	unlockBodyScroll(COLLABORATOR_OVERLAY_LOCK_KEY);
 	const layout = $(".sp-layout");
 	const panel = $(".sp-project-panel");
-	selectedProjectName = "";
+	selectedProjectKey = "";
 	const panelBody = $(".sp-project-body");
 	if (layout && panel && panelBody) {
 		resetProjectPanel({ panel, panelBody, layout });
@@ -273,7 +299,7 @@ export const closeCollaboratorDetail = () => {
 export const openCollaboratorDetail = (login, allCollabs) => {
 	const summary = buildCollaboratorSummary(allCollabs, login);
 	if (!summary) return;
-	selectedProjectName = "";
+	selectedProjectKey = "";
 
 	const overlay = $("#student-profile-overlay");
 	const content = $("#student-profile-content");

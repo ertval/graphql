@@ -218,6 +218,6 @@ test.describe("E2E Audit Workflow", () => {
 		);
 
 		// Using arguments (e.g., where: { ... })
-		expect(combinedQueries).toMatch(/\(where:\s*\{/);
+		expect(combinedQueries).toMatch(/\(\s*where:\s*\{/);
 	});
 });

@@ -17,6 +17,12 @@ let getAuditDetailsProjects = () => [];
 let openProjectDetails = () => {};
 let eventsBound = false;
 
+const setAuditOverlayInteraction = (enabled) => {
+	const overlay = $("#audit-details-overlay");
+	if (!overlay) return;
+	overlay.style.pointerEvents = enabled ? "" : "none";
+};
+
 const renderAuditDetailsContent = (items) => {
 	const content = $("#audit-details-content");
 	if (!content) return;
@@ -44,7 +50,7 @@ const renderAuditDetailsContent = (items) => {
 		);
 
 		const open = () => {
-			closeAuditDetailsPopup();
+			setAuditOverlayInteraction(false);
 			openProjectDetails(item);
 		};
 		row.addEventListener("click", open);
@@ -94,6 +100,7 @@ const openAuditDetailsPopup = () => {
 
 	title.textContent = "Audit Details";
 	renderAuditDetailsContent(getAuditDetailsProjects());
+	setAuditOverlayInteraction(true);
 	lockBodyScroll(AUDIT_DETAILS_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
 };
@@ -101,6 +108,7 @@ const openAuditDetailsPopup = () => {
 export const closeAuditDetailsPopup = () => {
 	const overlay = $("#audit-details-overlay");
 	overlay?.classList.remove("active");
+	setAuditOverlayInteraction(true);
 	unlockBodyScroll(AUDIT_DETAILS_OVERLAY_LOCK_KEY);
 };
 
@@ -134,6 +142,12 @@ export const initAuditDetailsPopup = (
 	document.addEventListener("keydown", (event) => {
 		if (event.key === "Escape" && overlay?.classList.contains("active")) {
 			closeAuditDetailsPopup();
+		}
+	});
+
+	document.addEventListener("project-detail:close", () => {
+		if (overlay?.classList.contains("active")) {
+			setAuditOverlayInteraction(true);
 		}
 	});
 };

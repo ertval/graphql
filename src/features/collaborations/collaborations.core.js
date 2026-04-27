@@ -45,6 +45,20 @@ const toReadableName = (value) => {
 
 const VERIFIED_ROLES = new Set(["Partner", "Captain", "Auditor"]);
 
+const toProjectIdentityKey = (project = {}) => {
+	if (typeof project.projectObjectId === "number") {
+		return `id:${project.projectObjectId}`;
+	}
+
+	if (hasText(project.projectPath)) {
+		return `path:${project.projectPath.trim().toLowerCase()}`;
+	}
+
+	return `name:${String(project.project ?? "")
+		.trim()
+		.toLowerCase()}`;
+};
+
 /** @param {string} campus @returns {boolean} */
 const hasCampus = (campus) => hasText(campus) && campus !== "—";
 
@@ -135,7 +149,7 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		.toSorted((a, b) => a.role.localeCompare(b.role));
 
 	// Aggregate project details including roles per project
-	const groupedProjects = Map.groupBy(matches, (m) => m.project);
+	const groupedProjects = Map.groupBy(matches, (m) => toProjectIdentityKey(m));
 	const projects = Array.from(groupedProjects.values())
 		.map((projectMatches) => {
 			const latest = projectMatches.reduce((a, b) => (a.ts >= b.ts ? a : b));
@@ -144,7 +158,12 @@ export const buildCollaboratorSummary = (collabs, login) => {
 				return Math.max(maxValue, current);
 			}, 0);
 			return {
+				key: toProjectIdentityKey(latest),
 				name: latest.project,
+				objectId:
+					typeof latest.projectObjectId === "number"
+						? latest.projectObjectId
+						: null,
 				path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
 				roles: [...new Set(projectMatches.map((m) => m.role))].toSorted(),
 				latestDate: latest.date,
@@ -165,8 +184,10 @@ export const buildCollaboratorSummary = (collabs, login) => {
 		latestDate: primary.date,
 		byRole: roleCounts,
 		projects: projects.map(
-			({ name, path, roles, latestDate, count, xpAmount }) => ({
+			({ key, name, objectId, path, roles, latestDate, count, xpAmount }) => ({
+				key,
 				name,
+				objectId,
 				path,
 				roles,
 				latestDate,
@@ -205,7 +226,9 @@ export const buildCollaboratorSummaries = (collabs) =>
 				.map(([role, items]) => ({ role, count: items.length }))
 				.toSorted((a, b) => a.role.localeCompare(b.role));
 
-			const groupedProjects = Map.groupBy(sortedMatches, (m) => m.project);
+			const groupedProjects = Map.groupBy(sortedMatches, (m) =>
+				toProjectIdentityKey(m),
+			);
 			const projects = Array.from(groupedProjects.values())
 				.map((projectMatches) => {
 					const latest = projectMatches.reduce((a, b) =>
@@ -218,7 +241,12 @@ export const buildCollaboratorSummaries = (collabs) =>
 						return Math.max(maxValue, current);
 					}, 0);
 					return {
+						key: toProjectIdentityKey(latest),
 						name: latest.project,
+						objectId:
+							typeof latest.projectObjectId === "number"
+								? latest.projectObjectId
+								: null,
 						path: projectMatches.find((m) => m.projectPath)?.projectPath ?? "",
 						roles: [...new Set(projectMatches.map((m) => m.role))].toSorted(),
 						latestDate: latest.date,
@@ -239,8 +267,19 @@ export const buildCollaboratorSummaries = (collabs) =>
 				latestDate: primary.date,
 				byRole: roleCounts,
 				projects: projects.map(
-					({ name, path, roles, latestDate, count, xpAmount }) => ({
+					({
+						key,
 						name,
+						objectId,
+						path,
+						roles,
+						latestDate,
+						count,
+						xpAmount,
+					}) => ({
+						key,
+						name,
+						objectId,
 						path,
 						roles,
 						latestDate,

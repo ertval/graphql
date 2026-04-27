@@ -126,12 +126,14 @@ const openProjectDetail = (result, xpByName) => {
 
 	lockBodyScroll(PROJECT_DETAIL_OVERLAY_LOCK_KEY);
 	overlay.classList.add("active");
+	document.dispatchEvent(new CustomEvent("project-detail:open"));
 };
 
 export const closeProjectDetail = () => {
 	const overlay = $("#project-detail-overlay");
 	overlay?.classList.remove("active");
 	unlockBodyScroll(PROJECT_DETAIL_OVERLAY_LOCK_KEY);
+	document.dispatchEvent(new CustomEvent("project-detail:close"));
 };
 
 /**

@@ -301,14 +301,38 @@ export const loadDashboard = async (
 			roleStatsResult.data?.audits ?? [],
 			auditXpResult.data ?? [],
 		);
-		const projectCountByObjectId = rawResults.reduce((map, result) => {
-			const projectKey = String(result.objectId ?? "");
-			if (!projectKey) return map;
-			map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
-			return map;
-		}, new Map());
+		const activitySourceResults = rawResults.length
+			? rawResults
+			: completedProjects.map((project) => ({
+					id: project.id,
+					objectId:
+						typeof project.object?.id === "number" ? project.object.id : null,
+					grade: Number(project.grade ?? 0),
+					type: "project",
+					createdAt: project.updatedAt ?? project.createdAt ?? "",
+					user: {
+						id: user.id,
+						login: user.login,
+					},
+					object: {
+						id: project.object?.id,
+						name: project.object?.name,
+						type: project.object?.type,
+					},
+					path: project.path ?? "",
+				}));
 
-		const results = rawResults.map((result) => {
+		const projectCountByObjectId = activitySourceResults.reduce(
+			(map, result) => {
+				const projectKey = String(result.objectId ?? "");
+				if (!projectKey) return map;
+				map.set(projectKey, (map.get(projectKey) ?? 0) + 1);
+				return map;
+			},
+			new Map(),
+		);
+
+		const results = activitySourceResults.map((result) => {
 			const projectKey = String(result.objectId ?? "");
 			const teamInfo = teamsByProject.get(projectKey) ?? {
 				members: [],
