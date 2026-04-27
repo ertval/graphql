@@ -44,8 +44,8 @@
 	padding: 0.95rem 0.75rem;
 	min-height: 84px;
 	border-radius: var(--radius-md);
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: var(--bg-item);
+	border: 1px solid var(--border-subtle);
 	color: inherit;
 	font: inherit;
 	cursor: pointer;
@@ -126,9 +126,9 @@
 	min-width: 0;
 	text-align: center;
 	padding: var(--space-md);
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--bg-item-soft);
 	border-radius: var(--radius-md);
-	border: 1px solid rgba(255, 255, 255, 0.04);
+	border: 1px solid var(--border-subtle);
 }
 
 .stat-value {
@@ -200,7 +200,7 @@
 
 .audit-bar-track {
 	height: 10px;
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--bg-track);
 	border-radius: var(--radius-full);
 	overflow: hidden;
 }
@@ -231,8 +231,8 @@
 	justify-content: center;
 	padding: 0.55rem 1rem;
 	border-radius: var(--radius-sm);
-	border: 1px solid rgba(14, 165, 233, 0.3);
-	background: rgba(14, 165, 233, 0.1);
+	border: 1px solid var(--glass-border);
+	background: var(--bg-accent-faint);
 	color: var(--accent-start);
 	font-family: var(--font-family);
 	font-size: var(--font-sm);
@@ -282,12 +282,12 @@
 	letter-spacing: 0.1em;
 	color: var(--accent-start);
 	padding-bottom: var(--space-xs);
-	border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+	border-bottom: 1px solid var(--glass-border);
 }
 
 .graph-panel {
-	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(255, 255, 255, 0.04);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-md);
 	padding: var(--space-lg);
 }
@@ -376,7 +376,7 @@
 .skill-bar-track {
 	flex: 1;
 	height: 8px;
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--bg-track);
 	border-radius: var(--radius-full);
 	overflow: hidden;
 }
@@ -418,16 +418,16 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: var(--space-md);
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--bg-item-soft);
 	border-radius: var(--radius-sm);
-	border: 1px solid rgba(255, 255, 255, 0.03);
+	border: 1px solid var(--border-subtle);
 	transition: background var(--transition-fast);
 	cursor: pointer;
 }
 
 .activity-item:hover {
-	background: rgba(14, 165, 233, 0.07);
-	border-color: rgba(14, 165, 233, 0.12);
+	background: var(--bg-accent-faint);
+	border-color: var(--border-accent-light);
 }
 
 .activity-name {
@@ -463,22 +463,22 @@
 }
 
 .badge-pass {
-	background: rgba(16, 185, 129, 0.1);
+	background: var(--bg-success-faint);
 	color: var(--success);
-	border: 1px solid rgba(16, 185, 129, 0.2);
+	border: 1px solid var(--border-success-faint);
 }
 
 .badge-fail {
-	background: rgba(251, 113, 133, 0.1);
+	background: var(--bg-danger-faint);
 	color: var(--danger);
-	border: 1px solid rgba(251, 113, 133, 0.2);
+	border: 1px solid var(--border-danger-faint);
 }
 
 /* ── Project Detail Overlay ── */
 .project-detail-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(0, 0, 0, 0.65);
+	background: var(--bg-overlay);
 	backdrop-filter: blur(8px);
 	z-index: 510;
 	display: none;
@@ -521,8 +521,8 @@
 	justify-content: center;
 	width: 36px;
 	height: 36px;
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: 50%;
 	color: var(--text-secondary);
 	cursor: pointer;
@@ -530,8 +530,8 @@
 }
 
 .modal-close-btn:hover {
-	background: rgba(251, 113, 133, 0.15);
-	border-color: rgba(251, 113, 133, 0.3);
+	background: var(--bg-danger-faint);
+	border-color: var(--border-danger-light);
 	color: var(--danger);
 }
 
@@ -549,8 +549,8 @@
 .pd-stat {
 	text-align: center;
 	padding: var(--space-md);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-md);
 }
 
@@ -558,10 +558,20 @@
 	font-size: var(--font-xl);
 }
 
+.project-item {
+	display: flex;
+	align-items: center;
+	padding: var(--space-md);
+	background: var(--bg-item);
+	border-radius: var(--radius-sm);
+	transition: all var(--transition-fast);
+	cursor: pointer;
+}
+
 .pd-path {
 	margin-top: var(--space-md);
 	padding: var(--space-md);
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--bg-item-soft);
 	border-radius: var(--radius-sm);
 	font-size: var(--font-xs);
 	color: var(--text-muted);
@@ -590,8 +600,8 @@
 	gap: var(--space-md);
 	padding: var(--space-md);
 	border-radius: var(--radius-md);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.06);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	cursor: pointer;
 	transition:
 		background var(--transition-fast),
@@ -634,8 +644,8 @@
 .audit-details-xp {
 	padding: 0.35rem 0.7rem;
 	border-radius: var(--radius-full);
-	background: rgba(14, 165, 233, 0.12);
-	border: 1px solid rgba(14, 165, 233, 0.28);
+	background: var(--bg-accent-faint);
+	border: 1px solid var(--glass-border);
 	color: var(--accent-start);
 	font-size: var(--font-xs);
 	font-weight: 700;

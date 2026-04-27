@@ -68,7 +68,7 @@
 .nav-tabs {
 	display: flex;
 	gap: var(--space-xs);
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--bg-tabs);
 	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-sm);
 	padding: 3px;
@@ -93,7 +93,7 @@
 
 .nav-tab:hover {
 	color: var(--text-primary);
-	background: rgba(255, 255, 255, 0.06);
+	background: var(--bg-tab-hover);
 }
 
 .nav-tab.active {
@@ -121,4 +121,53 @@
 		padding: 0.38rem 0.7rem;
 		font-size: 0.78rem;
 	}
+}
+
+/* ── Theme Toggle ── */
+.btn-theme-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: var(--bg-tabs);
+	border: 1px solid var(--glass-border);
+	border-radius: var(--radius-sm);
+	color: var(--text-secondary);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+}
+
+.btn-theme-toggle:hover {
+	background: var(--bg-tab-hover);
+	color: var(--text-primary);
+	transform: translateY(-1px);
+}
+
+.btn-theme-toggle .icon-sun,
+.btn-theme-toggle .icon-moon {
+	position: absolute;
+	transition:
+		transform var(--transition-base),
+		opacity var(--transition-base);
+}
+
+/* Toggle Logic in CSS */
+:root[data-theme="light"] .icon-sun {
+	opacity: 0;
+	transform: rotate(90deg) scale(0);
+}
+:root[data-theme="light"] .icon-moon {
+	opacity: 1;
+	transform: rotate(0) scale(1);
+}
+
+:root:not([data-theme="light"]) .icon-sun {
+	opacity: 1;
+	transform: rotate(0) scale(1);
+}
+:root:not([data-theme="light"]) .icon-moon {
+	opacity: 0;
+	transform: rotate(-90deg) scale(0);
 }

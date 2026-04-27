@@ -67,8 +67,8 @@
 .students-search {
 	width: 220px;
 	padding: 0.5rem 0.75rem 0.5rem 2.1rem;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: var(--bg-input);
+	border: 1px solid var(--border-input);
 	border-radius: var(--radius-sm);
 	color: var(--text-primary);
 	font-family: var(--font-family);
@@ -93,8 +93,8 @@
 	min-width: 140px;
 	height: 42px;
 	padding: 0.55rem 2.35rem 0.55rem 0.9rem;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: var(--bg-input);
+	border: 1px solid var(--border-input);
 	border-radius: var(--radius-sm);
 	color: var(--text-primary);
 	font-family: var(--font-family);
@@ -130,8 +130,8 @@
 	align-items: center;
 	gap: var(--space-xs);
 	padding: 0.5rem 0.9rem;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: var(--bg-input);
+	border: 1px solid var(--border-input);
 	border-radius: var(--radius-sm);
 	color: var(--text-secondary);
 	font-family: var(--font-family);
@@ -181,7 +181,7 @@
 }
 
 .students-table thead tr {
-	background: rgba(255, 255, 255, 0.03);
+	background: var(--bg-item-soft);
 	border-bottom: 1px solid var(--glass-border);
 }
 
@@ -213,7 +213,7 @@
 }
 
 .students-table tbody tr {
-	border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+	border-bottom: 1px solid var(--border-subtle);
 	transition: background var(--transition-fast);
 }
 
@@ -226,7 +226,7 @@
 }
 
 .student-row:hover {
-	background: rgba(14, 165, 233, 0.06);
+	background: var(--bg-accent-faint);
 }
 
 .student-row:focus-visible {
@@ -275,7 +275,7 @@
 	font-size: var(--font-xs);
 	font-weight: 700;
 	color: var(--text-muted);
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--bg-tabs);
 }
 
 .rank-top {
@@ -339,7 +339,7 @@
 }
 
 .collab-row-action:hover {
-	background: rgba(14, 165, 233, 0.07);
+	background: var(--bg-accent-faint);
 }
 
 .collab-row-action:focus-visible {
@@ -372,7 +372,7 @@
 .campus-tag {
 	display: inline-block;
 	padding: 0.2rem 0.5rem;
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--bg-item-soft);
 	border-radius: var(--radius-full);
 	font-size: var(--font-xs);
 	color: var(--text-secondary);
@@ -382,7 +382,7 @@
 	display: inline-block;
 	padding: 4px 8px;
 	border-radius: 12px;
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--bg-track);
 }
 
 .collab-tag-wrap,
@@ -393,18 +393,18 @@
 }
 
 .collab-project-tag {
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--bg-item-soft);
 }
 
 .collab-project-tag-overflow {
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--bg-item-soft);
 }
 
 .level-badge {
 	display: inline-block;
 	padding: 0.2rem 0.6rem;
-	background: rgba(14, 165, 233, 0.1);
-	border: 1px solid rgba(14, 165, 233, 0.2);
+	background: var(--bg-accent-faint);
+	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-full);
 	font-size: var(--font-xs);
 	font-weight: 700;
@@ -430,9 +430,9 @@
 }
 
 .level-badge.role-member {
-	background: rgba(255, 255, 255, 0.1);
+	background: var(--bg-item-soft);
 	color: var(--text-secondary);
-	border-color: rgba(255, 255, 255, 0.15);
+	border-color: var(--border-subtle);
 }
 
 .collab-date-cell {
@@ -449,15 +449,15 @@
 }
 
 .ratio-good {
-	background: rgba(16, 185, 129, 0.1);
+	background: var(--bg-success-faint);
 	color: var(--success);
-	border: 1px solid rgba(16, 185, 129, 0.2);
+	border: 1px solid var(--border-success-faint);
 }
 
 .ratio-low {
-	background: rgba(251, 113, 133, 0.1);
+	background: var(--bg-danger-faint);
 	color: var(--danger);
-	border: 1px solid rgba(251, 113, 133, 0.2);
+	border: 1px solid var(--border-danger-faint);
 }
 
 .students-empty {
@@ -479,8 +479,8 @@
 	min-width: 36px;
 	height: 36px;
 	padding: 0 var(--space-sm);
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-sm);
 	color: var(--text-secondary);
 	font-family: var(--font-family);
@@ -493,7 +493,7 @@
 }
 
 .page-btn:hover:not(:disabled) {
-	background: rgba(255, 255, 255, 0.08);
+	background: var(--bg-tab-hover);
 	color: var(--text-primary);
 }
 
@@ -520,7 +520,7 @@
 .student-profile-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(0, 0, 0, 0.72);
+	background: var(--bg-overlay);
 	backdrop-filter: blur(8px);
 	z-index: 500;
 	display: none;
@@ -555,7 +555,7 @@
 	padding: var(--space-lg) var(--space-xl);
 	position: sticky;
 	top: 0;
-	background: rgba(8, 22, 45, 0.97);
+	background: var(--bg-tooltip);
 	backdrop-filter: blur(16px);
 	z-index: 10;
 	border-bottom: 1px solid var(--glass-border);
@@ -610,8 +610,8 @@
 	transition:
 		opacity 520ms cubic-bezier(0.4, 0, 0.2, 1),
 		transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
-	background: rgba(10, 27, 53, 0.65);
-	border: 1px solid rgba(14, 165, 233, 0.2);
+	background: var(--bg-item);
+	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-md);
 	padding: var(--space-lg);
 	position: sticky;
@@ -653,8 +653,8 @@
 .sp-project-stat {
 	text-align: center;
 	padding: var(--space-md);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-sm);
 }
 
@@ -692,8 +692,8 @@
 	padding: 4px 8px;
 	font-size: var(--font-xs);
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.09);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	color: var(--text-secondary);
 }
 
@@ -712,14 +712,14 @@
 	font-size: var(--font-sm);
 	font-weight: 600;
 	color: var(--accent-start);
-	background: rgba(14, 165, 233, 0.08);
-	border: 1px solid rgba(14, 165, 233, 0.24);
+	background: var(--bg-accent-faint);
+	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-sm);
 }
 
 .sp-project-path {
 	padding: var(--space-sm);
-	background: rgba(255, 255, 255, 0.03);
+	background: var(--bg-item-soft);
 	border-radius: var(--radius-sm);
 	font-size: var(--font-xs);
 	font-family: monospace;
@@ -796,8 +796,8 @@
 .sp-stat {
 	text-align: center;
 	padding: var(--space-lg);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-md);
 }
 
@@ -821,8 +821,8 @@
 .collab-role-item {
 	padding: var(--space-sm) var(--space-md);
 	border-radius: var(--radius-sm);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.06);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	font-size: var(--font-sm);
 	color: var(--text-secondary);
 }
@@ -842,8 +842,8 @@
 }
 
 .sp-graph-panel {
-	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(255, 255, 255, 0.04);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-md);
 	padding: var(--space-lg);
 }
@@ -896,8 +896,8 @@
 	gap: 0.2rem;
 	padding: var(--space-md);
 	border-radius: var(--radius-md);
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: var(--bg-item-soft);
+	border: 1px solid var(--border-subtle);
 	text-decoration: none;
 	cursor: pointer;
 	text-align: left;

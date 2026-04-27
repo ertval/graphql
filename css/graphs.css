@@ -25,12 +25,12 @@
 
 /* ── Axis & Grid ── */
 .graph-axis-line {
-	stroke: rgba(255, 255, 255, 0.1);
+	stroke: var(--graph-axis);
 	stroke-width: 1;
 }
 
 .graph-grid-line {
-	stroke: rgba(255, 255, 255, 0.04);
+	stroke: var(--graph-grid);
 	stroke-width: 1;
 }
 
@@ -127,7 +127,7 @@
 /* ── Tooltips ── */
 .graph-tooltip {
 	position: absolute;
-	background: rgba(8, 22, 45, 0.96);
+	background: var(--bg-tooltip);
 	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-sm);
 	padding: 0.5rem 0.75rem;
@@ -136,7 +136,7 @@
 	pointer-events: none;
 	z-index: 200;
 	white-space: nowrap;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	box-shadow: 0 4px 16px var(--glass-shadow);
 	opacity: 0;
 	transform: translateY(4px);
 	transition:
