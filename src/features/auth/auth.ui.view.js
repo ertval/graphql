@@ -26,6 +26,32 @@ export const initAuth = () => {
 	const identifierInput = $("#identifier");
 	const passwordInput = $("#password");
 	const logoutBtn = $("#logout-btn");
+	const passwordToggle = $("#password-toggle");
+
+	passwordToggle?.addEventListener("click", () => {
+		const isPassword = passwordInput?.type === "password";
+		if (passwordInput) {
+			passwordInput.type = isPassword ? "text" : "password";
+		}
+
+		// Update icons
+		const eyeIcon = passwordToggle.querySelector(".icon-eye");
+		const eyeOffIcon = passwordToggle.querySelector(".icon-eye-off");
+
+		if (eyeIcon && eyeOffIcon) {
+			eyeIcon.hidden = isPassword;
+			eyeOffIcon.hidden = !isPassword;
+		}
+
+		passwordToggle.setAttribute(
+			"aria-label",
+			isPassword ? "Hide password" : "Show password",
+		);
+
+		// Trigger animation
+		passwordToggle.classList.add("toggling");
+		setTimeout(() => passwordToggle.classList.remove("toggling"), 300);
+	});
 
 	const performLogout = (broadcast = true) => {
 		clearToken();

@@ -51,7 +51,18 @@ export const initShell = () => {
 		clearBodyScrollLocks();
 		loginForm?.reset();
 		if (identifierInput) identifierInput.value = "";
-		if (passwordInput) passwordInput.value = "";
+		if (passwordInput) {
+			passwordInput.value = "";
+			passwordInput.type = "password";
+		}
+		const passwordToggle = $("#password-toggle");
+		const eyeIcon = passwordToggle?.querySelector(".icon-eye");
+		const eyeOffIcon = passwordToggle?.querySelector(".icon-eye-off");
+		if (eyeIcon) eyeIcon.hidden = true;
+		if (eyeOffIcon) eyeOffIcon.hidden = false;
+		if (passwordToggle)
+			passwordToggle.setAttribute("aria-label", "Show password");
+
 		if (loginError) loginError.textContent = "";
 		switchTab("dashboard");
 	};
