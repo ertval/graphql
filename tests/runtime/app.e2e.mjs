@@ -553,6 +553,9 @@ test("audit details popup lists audited projects with XP gained", async ({
 		.locator("#audit-details-content .audit-details-item .audit-details-name")
 		.first();
 	await expect(firstProject).toHaveText("Audit Beta");
+	await expect(page.locator("#audit-details-content")).toContainText(
+		"Total XP",
+	);
 	await expect(page.locator("#audit-details-content")).toContainText("22.0 kB");
 	await expect(page.locator("#audit-details-content")).toContainText("18.0 kB");
 
@@ -561,6 +564,96 @@ test("audit details popup lists audited projects with XP gained", async ({
 		/active/,
 	);
 	await expectBodyScrollUnlocked(page);
+});
+
+test("auditor role projects use audit XP and match audit details values", async ({
+	page,
+}) => {
+	const scenarioOverrides = {
+		xpTransactions: [
+			...mockGraphqlData.xpTransactions,
+			{
+				id: 4901,
+				objectId: 700,
+				amount: 99000,
+				createdAt: "2026-03-12T11:35:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+		],
+		roleAudits: [
+			{
+				id: 901,
+				createdAt: "2026-02-10T09:00:00.000Z",
+				group: {
+					path: "/zone/audit-alpha",
+					captainLogin: "peer-user",
+					object: { id: 700, name: "Audit Alpha" },
+					members: [
+						{
+							user: {
+								login: "peer-user",
+								firstName: "Peer",
+								lastName: "One",
+							},
+						},
+						{
+							user: {
+								login: "runtime-user",
+								firstName: "Runtime",
+								lastName: "Tester",
+							},
+						},
+					],
+				},
+			},
+		],
+		auditXpTransactions: [
+			{
+				id: 9501,
+				objectId: 700,
+				amount: 22000,
+				createdAt: "2026-02-10T09:05:00.000Z",
+				path: "/zone/audit-alpha",
+				object: { id: 700, name: "Audit Alpha", type: "project" },
+			},
+		],
+	};
+
+	await loginWithMockBackend(page, scenarioOverrides);
+
+	await page.click("#audit-details-btn");
+	await expect(page.locator("#audit-details-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#audit-details-content [aria-label="View details for Audit Alpha"]',
+		)
+		.click();
+	await expect(page.locator("#project-detail-overlay")).toHaveClass(/active/);
+	await expect(page.locator("#audit-details-overlay")).not.toHaveClass(
+		/active/,
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"XP Given",
+	);
+	await expect(page.locator("#project-detail-content")).toContainText(
+		"22.0 kB",
+	);
+	await page.click("#project-detail-close");
+
+	await page.click("#role-counter-auditor");
+	await expect(page.locator("#role-projects-overlay")).toHaveClass(/active/);
+	await page
+		.locator(
+			'#role-projects-content [aria-label="View details for Audit Alpha"]',
+		)
+		.first()
+		.click();
+
+	const detailPanel = page.locator("#role-projects-content .sp-project-body");
+	await expect(detailPanel).toContainText("XP Given");
+	await expect(detailPanel).toContainText("22.0 kB");
+	await expect(detailPanel).not.toContainText("99.0 kB");
 });
 
 test("collaborator popup locks body scroll without layout shift and unlocks on all close paths", async ({

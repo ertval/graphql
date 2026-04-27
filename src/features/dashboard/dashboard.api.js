@@ -7,6 +7,22 @@
 import { graphqlQuery } from "../../infra/graphql.js";
 import { mapResult } from "../../infra/result.js";
 
+const DEFAULT_EVENT_ID = 200;
+
+const toFiniteInteger = (value) => {
+	const parsed = Number.parseInt(String(value ?? ""), 10);
+	return Number.isFinite(parsed) ? parsed : null;
+};
+
+export const getActiveEventId = () => {
+	const search = globalThis.location?.search;
+	if (typeof search !== "string" || !search) return DEFAULT_EVENT_ID;
+
+	const params = new URLSearchParams(search);
+	const parsedEventId = toFiniteInteger(params.get("event"));
+	return parsedEventId ?? DEFAULT_EVENT_ID;
+};
+
 // ── User profile ───────────────────────────────────────────────────
 
 export const fetchUserInfo = async () => {
@@ -30,10 +46,19 @@ export const fetchUserInfo = async () => {
 
 // ── User role counters (captain / partner / auditor) ──────────────
 
-export const fetchUserRoleStats = async (userId) => {
+export const fetchUserRoleStats = async (
+	userId,
+	eventId = getActiveEventId(),
+) => {
 	const query = `
-    query GetUserRoleStats($userId: Int!) {
-      audit(where: { auditorId: { _eq: $userId }, grade: { _is_null: false } }) {
+    query GetUserRoleStats($userId: Int!, $eventId: Int!) {
+      audit(
+        where: {
+          auditorId: { _eq: $userId }
+          grade: { _is_null: false }
+          group: { eventId: { _eq: $eventId } }
+        }
+      ) {
         id
         createdAt
         group {
@@ -55,7 +80,7 @@ export const fetchUserRoleStats = async (userId) => {
     }
   `;
 
-	return mapResult(await graphqlQuery(query, { userId }), (data) => {
+	return mapResult(await graphqlQuery(query, { userId, eventId }), (data) => {
 		const audits = (data.audit ?? []).map((audit) => {
 			const members = (audit.group?.members ?? [])
 				.map((member) => member.user)
@@ -89,12 +114,16 @@ export const fetchUserRoleStats = async (userId) => {
 
 // ── XP transactions (excludes piscine) ─────────────────────────────
 
-export const fetchXPTransactions = async (userId) => {
+export const fetchXPTransactions = async (
+	userId,
+	eventId = getActiveEventId(),
+) => {
 	const query = `
-    query GetXPTransactions($userId: Int!) {
+    query GetXPTransactions($userId: Int!, $eventId: Int!) {
       transaction(
         where: {
           userId: { _eq: $userId }
+          eventId: { _eq: $eventId }
           type: { _eq: "xp" }
           _or: [
             { path: { _is_null: true } }
@@ -117,19 +146,23 @@ export const fetchXPTransactions = async (userId) => {
     }
   `;
 	return mapResult(
-		await graphqlQuery(query, { userId }),
+		await graphqlQuery(query, { userId, eventId }),
 		(data) => data.transaction ?? [],
 	);
 };
 
 // ── Audit XP transactions (XP gained by auditing) ────────────────
 
-export const fetchAuditXPTransactions = async (userId) => {
+export const fetchAuditXPTransactions = async (
+	userId,
+	eventId = getActiveEventId(),
+) => {
 	const query = `
-    query GetAuditXPTransactions($userId: Int!) {
+    query GetAuditXPTransactions($userId: Int!, $eventId: Int!) {
       transaction(
         where: {
           userId: { _eq: $userId }
+          eventId: { _eq: $eventId }
           type: { _eq: "up" }
           _or: [
             { path: { _is_null: true } }
@@ -153,19 +186,20 @@ export const fetchAuditXPTransactions = async (userId) => {
   `;
 
 	return mapResult(
-		await graphqlQuery(query, { userId }),
+		await graphqlQuery(query, { userId, eventId }),
 		(data) => data.transaction ?? [],
 	);
 };
 
 // ── Completed progress records ─────────────────────────────────────
 
-export const fetchProgress = async (userId) => {
+export const fetchProgress = async (userId, eventId = getActiveEventId()) => {
 	const query = `
-    query GetProgress($userId: Int!) {
+    query GetProgress($userId: Int!, $eventId: Int!) {
       progress(
         where: {
           userId: { _eq: $userId }
+          eventId: { _eq: $eventId }
           isDone: { _eq: true }
         }
         order_by: { updatedAt: desc }
@@ -184,7 +218,7 @@ export const fetchProgress = async (userId) => {
     }
   `;
 	return mapResult(
-		await graphqlQuery(query, { userId }),
+		await graphqlQuery(query, { userId, eventId }),
 		(data) => data.progress ?? [],
 	);
 };
@@ -214,11 +248,14 @@ export const fetchSkills = async (userId) => {
 
 // ── Project results ────────────────────────────────────────────────
 
-export const fetchResults = async (userId) => {
+export const fetchResults = async (userId, eventId = getActiveEventId()) => {
 	const query = `
-    query GetResults($userId: Int!) {
+    query GetResults($userId: Int!, $eventId: Int!) {
       result(
-        where: { userId: { _eq: $userId } }
+        where: {
+          userId: { _eq: $userId }
+          eventId: { _eq: $eventId }
+        }
         order_by: { createdAt: desc }
         limit: 30
       ) {
@@ -239,24 +276,31 @@ export const fetchResults = async (userId) => {
     }
   `;
 	return mapResult(
-		await graphqlQuery(query, { userId }),
+		await graphqlQuery(query, { userId, eventId }),
 		(data) => data.result ?? [],
 	);
 };
 
 // ── Project teams for member lists ───────────────────────────────
 
-export const fetchProjectTeams = async (userId, projectObjectIds) => {
+export const fetchProjectTeams = async (
+	userId,
+	projectObjectIds,
+	eventId = getActiveEventId(),
+) => {
 	if (!projectObjectIds.length) {
 		return { ok: true, data: new Map() };
 	}
 
 	const query = `
-    query GetProjectTeams($userId: Int!, $projectObjectIds: [Int!]!) {
+    query GetProjectTeams($userId: Int!, $projectObjectIds: [Int!]!, $eventId: Int!) {
       group_user(
         where: {
           userId: { _eq: $userId }
-          group: { object: { id: { _in: $projectObjectIds } } }
+          group: {
+            eventId: { _eq: $eventId }
+            object: { id: { _in: $projectObjectIds } }
+          }
         }
       ) {
         group {
@@ -278,7 +322,7 @@ export const fetchProjectTeams = async (userId, projectObjectIds) => {
   `;
 
 	return mapResult(
-		await graphqlQuery(query, { userId, projectObjectIds }),
+		await graphqlQuery(query, { userId, projectObjectIds, eventId }),
 		(data) => {
 			const groups = (data.group_user ?? [])
 				.map((entry) => entry.group)
@@ -325,12 +369,13 @@ export const fetchProjectTeams = async (userId, projectObjectIds) => {
 
 // ── Current level ──────────────────────────────────────────────────
 
-export const fetchUserLevel = async (userId) => {
+export const fetchUserLevel = async (userId, eventId = getActiveEventId()) => {
 	const query = `
-    query GetLevel($userId: Int!) {
+    query GetLevel($userId: Int!, $eventId: Int!) {
       transaction(
         where: {
           userId: { _eq: $userId }
+          eventId: { _eq: $eventId }
           type: { _eq: "level" }
           _or: [
             { path: { _is_null: true } }
@@ -345,7 +390,7 @@ export const fetchUserLevel = async (userId) => {
     }
   `;
 	return mapResult(
-		await graphqlQuery(query, { userId }),
+		await graphqlQuery(query, { userId, eventId }),
 		(data) => data.transaction?.[0]?.amount ?? 0,
 	);
 };

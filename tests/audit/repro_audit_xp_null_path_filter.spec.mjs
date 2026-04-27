@@ -15,6 +15,12 @@ test("xp query keeps records with null path while excluding piscine-go", () => {
 		"XP query should include null path rows and exclude piscine-go rows case-insensitively",
 	);
 
+	assert.match(
+		dashboardApi,
+		/eventId:\s*\{\s*_eq:\s*\$eventId\s*\}/,
+		"XP and audit XP queries should be scoped to the active eventId.",
+	);
+
 	assert.doesNotMatch(
 		dashboardApi,
 		/path:\s*\{\s*_nlike:\s*"%piscine-go%"\s*\}/,

@@ -134,6 +134,40 @@ export const closeProjectDetail = () => {
 	unlockBodyScroll(PROJECT_DETAIL_OVERLAY_LOCK_KEY);
 };
 
+/**
+ * Opens the project detail overlay using a project summary record.
+ * @param {{name?:string, path?:string, latestDate?:string, auditCount?:number, totalXP?:number, teamMembers?:Array<{login?:string,displayName?:string}>, captainLogin?:string}} project
+ */
+export const openProjectDetailFromSummary = (project) => {
+	if (!project) return;
+
+	const name = project.name ?? "Unknown Project";
+	const xpAmount = Number(project.totalXP ?? 0);
+	const activeUserLogin = getActiveUserLogin();
+	const activeUserDisplayName = getActiveUserDisplayName();
+	const fallbackCreatedAt = Temporal.Now.instant().toString();
+
+	const detailResult = {
+		object: {
+			name,
+			type: "project",
+		},
+		grade: xpAmount > 0 ? 1 : 0,
+		createdAt: project.latestDate ?? fallbackCreatedAt,
+		path: project.path ?? "",
+		teamMembers: project.teamMembers ?? [],
+		teamCaptainLogin: project.captainLogin ?? "",
+		myRole: "Auditor",
+		projectRoles: ["Auditor"],
+		sharedRecordsCount: Number(project.auditCount ?? 1),
+		projectXP: xpAmount,
+		activeUserLogin,
+		activeUserDisplayName,
+	};
+
+	openProjectDetail(detailResult, new Map([[name, xpAmount]]));
+};
+
 // ── Project detail overlay close + bar chart integration ───────────
 
 /**

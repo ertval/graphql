@@ -69,19 +69,13 @@ const toProjectKey = (objectId, name) =>
 		: `name:${name.toLowerCase()}`;
 
 /**
- * Builds a deduplicated list of audited projects with XP gained per project.
- * XP is matched by stable priority: objectId, then path, then name.
- * @param {Array<{createdAt?:string, objectId?:number|null, projectName?:string, projectPath?:string}>} auditorAudits
- * @param {Array<{amount?:number, objectId?:number|null, path?:string, object?:{id?:number, name?:string}}>} auditXpTransactions
- * @returns {Array<{key:string, name:string, path:string, latestDate:string, latestTs:number, auditCount:number, totalXP:number}>}
+ * Builds a deterministic XP resolver with stable key priority:
+ * objectId -> normalized path -> normalized name.
+ * @param {Array<{amount?:number, objectId?:number|null, path?:string, object?:{id?:number, name?:string}}>} transactions
+ * @returns {(project:{objectId?:number|null, path?:string, name?:string}) => number}
  */
-export const computeAuditDetailsProjects = (
-	auditorAudits,
-	auditXpTransactions,
-) => {
-	if (!auditorAudits.length) return [];
-
-	const xpByObjectId = auditXpTransactions.reduce((map, tx) => {
+export const createProjectXPResolver = (transactions = []) => {
+	const xpByObjectId = transactions.reduce((map, tx) => {
 		const resolvedObjectId =
 			typeof tx.objectId === "number"
 				? tx.objectId
@@ -90,28 +84,68 @@ export const computeAuditDetailsProjects = (
 					: null;
 		if (typeof resolvedObjectId !== "number") return map;
 
-		const amount = Number.isFinite(tx.amount) ? tx.amount : 0;
+		const amount = Number(tx.amount);
+		if (!Number.isFinite(amount)) return map;
 		map.set(resolvedObjectId, (map.get(resolvedObjectId) ?? 0) + amount);
 		return map;
 	}, new Map());
 
-	const xpByPath = auditXpTransactions.reduce((map, tx) => {
+	const xpByPath = transactions.reduce((map, tx) => {
 		const pathKey = toPathKey(tx.path);
 		if (!pathKey) return map;
 
-		const amount = Number.isFinite(tx.amount) ? tx.amount : 0;
+		const amount = Number(tx.amount);
+		if (!Number.isFinite(amount)) return map;
 		map.set(pathKey, (map.get(pathKey) ?? 0) + amount);
 		return map;
 	}, new Map());
 
-	const xpByName = auditXpTransactions.reduce((map, tx) => {
+	const xpByName = transactions.reduce((map, tx) => {
 		const nameKey = toNameKey(tx.object?.name);
 		if (!nameKey) return map;
 
-		const amount = Number.isFinite(tx.amount) ? tx.amount : 0;
+		const amount = Number(tx.amount);
+		if (!Number.isFinite(amount)) return map;
 		map.set(nameKey, (map.get(nameKey) ?? 0) + amount);
 		return map;
 	}, new Map());
+
+	return (project) => {
+		const projectObjectId =
+			typeof project?.objectId === "number" ? project.objectId : null;
+		const pathKey = toPathKey(project?.path);
+		const nameKey = toNameKey(project?.name);
+
+		if (
+			typeof projectObjectId === "number" &&
+			xpByObjectId.has(projectObjectId)
+		) {
+			return xpByObjectId.get(projectObjectId) ?? 0;
+		}
+		if (pathKey && xpByPath.has(pathKey)) {
+			return xpByPath.get(pathKey) ?? 0;
+		}
+		if (nameKey && xpByName.has(nameKey)) {
+			return xpByName.get(nameKey) ?? 0;
+		}
+		return 0;
+	};
+};
+
+/**
+ * Builds a deduplicated list of audited projects with XP gained per project.
+ * XP is matched by stable priority: objectId, then path, then name.
+ * @param {Array<{createdAt?:string, objectId?:number|null, projectName?:string, projectPath?:string}>} auditorAudits
+ * @param {Array<{amount?:number, objectId?:number|null, path?:string, object?:{id?:number, name?:string}}>} auditXpTransactions
+ * @returns {Array<{key:string, objectId:number|null, name:string, path:string, latestDate:string, latestTs:number, auditCount:number, totalXP:number, teamMembers:Array<{login:string,displayName:string}>, captainLogin:string}>}
+ */
+export const computeAuditDetailsProjects = (
+	auditorAudits,
+	auditXpTransactions,
+) => {
+	if (!auditorAudits.length) return [];
+
+	const resolveAuditProjectXP = createProjectXPResolver(auditXpTransactions);
 
 	const groupedAudits = Map.groupBy(
 		auditorAudits.filter((audit) => hasText(audit.projectName)),
@@ -136,24 +170,25 @@ export const computeAuditDetailsProjects = (
 
 			const objectId =
 				typeof latest.objectId === "number" ? latest.objectId : null;
-			const pathKey = toPathKey(latest.projectPath);
-			const nameKey = toNameKey(latest.projectName ?? "Unknown Project");
-
-			const totalXP =
-				typeof objectId === "number" && xpByObjectId.has(objectId)
-					? (xpByObjectId.get(objectId) ?? 0)
-					: pathKey && xpByPath.has(pathKey)
-						? (xpByPath.get(pathKey) ?? 0)
-						: (xpByName.get(nameKey) ?? 0);
+			const projectName = latest.projectName ?? "Unknown Project";
+			const projectPath = latest.projectPath ?? "";
+			const totalXP = resolveAuditProjectXP({
+				objectId,
+				path: projectPath,
+				name: projectName,
+			});
 
 			return {
 				key,
-				name: latest.projectName ?? "Unknown Project",
-				path: latest.projectPath ?? "",
+				objectId,
+				name: projectName,
+				path: projectPath,
 				latestDate: latest.createdAt ?? "",
 				latestTs: toEpochMsSafe(latest.createdAt),
 				auditCount: audits.length,
 				totalXP,
+				teamMembers: latest.teamMembers ?? [],
+				captainLogin: latest.captainLogin ?? "",
 			};
 		})
 		.toSorted((a, b) => {

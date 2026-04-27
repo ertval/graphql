@@ -21,11 +21,13 @@ test("normal query is present", () => {
 
 test("query with arguments is present", () => {
 	assert.ok(
-		hasBlock(/query\s+GetXPTransactions\(\$userId:\s*Int!/),
+		hasBlock(
+			/query\s+GetXPTransactions\(\$userId:\s*Int!,\s*\$eventId:\s*Int!\)/,
+		),
 		"Missing parameterized query with variables",
 	);
 	assert.ok(
-		hasBlock(/graphqlQuery\(query,\s*\{\s*userId\s*\}\)/),
+		hasBlock(/graphqlQuery\(query,\s*\{\s*userId,\s*eventId\s*\}\)/),
 		"Missing variables usage in GraphQL call",
 	);
 });

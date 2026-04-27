@@ -4,6 +4,7 @@ import test from "node:test";
 import {
 	computeAuditDetailsProjects,
 	computeDashboardRoleData,
+	createProjectXPResolver,
 } from "../src/features/dashboard/dashboard.core.js";
 
 const createProject = (id, name = `Project ${id}`) => ({
@@ -192,4 +193,54 @@ test("audit details projects fall back to path/name xp matching when object id i
 	const byName = new Map(details.map((item) => [item.name, item.totalXP]));
 	assert.equal(byName.get("Net Cat"), 11000);
 	assert.equal(byName.get("Ascii Art"), 6100);
+});
+
+test("project xp resolver prioritizes object id over path/name", () => {
+	const resolveXP = createProjectXPResolver([
+		{
+			objectId: 500,
+			path: "/athens/div-01/shared-name",
+			amount: 1000,
+			object: { id: 500, name: "Shared Name" },
+		},
+		{
+			objectId: 999,
+			path: "/athens/div-01/shared-name",
+			amount: 2000,
+			object: { id: 999, name: "Shared Name" },
+		},
+	]);
+
+	assert.equal(
+		resolveXP({
+			objectId: 500,
+			path: "/athens/div-01/shared-name",
+			name: "Shared Name",
+		}),
+		1000,
+	);
+});
+
+test("project xp resolver normalizes path and name fallbacks", () => {
+	const resolveXP = createProjectXPResolver([
+		{
+			amount: 3300,
+			path: "/ATHENS/DIV-01/path-normalized",
+			object: { name: "Case Match" },
+		},
+		{
+			amount: 2200,
+			path: "",
+			object: { name: "Name Only" },
+		},
+	]);
+
+	assert.equal(
+		resolveXP({
+			path: " /athens/div-01/path-normalized ",
+			name: "ignored",
+		}),
+		3300,
+	);
+	assert.equal(resolveXP({ name: " name only " }), 2200);
 });

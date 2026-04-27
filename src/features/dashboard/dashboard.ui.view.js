@@ -16,10 +16,12 @@ import {
 	fetchUserLevel,
 	fetchUserRoleStats,
 	fetchXPTransactions,
+	getActiveEventId,
 } from "./dashboard.api.js";
 import {
 	computeAuditDetailsProjects,
 	computeDashboardRoleData,
+	createProjectXPResolver,
 	isAuthFailureError,
 } from "./dashboard.core.js";
 import {
@@ -29,6 +31,7 @@ import {
 import {
 	closeProjectDetail,
 	initProjectDetailClose,
+	openProjectDetailFromSummary,
 	renderActivity,
 } from "./dashboard.ui.popup.js";
 import {
@@ -61,7 +64,7 @@ let _roleProjectsByRole = {
 	Auditor: [],
 };
 
-/** @type {Array<{key:string,name:string,path:string,latestDate:string,latestTs:number,auditCount:number,totalXP:number}>} */
+/** @type {Array<{key:string,objectId:number|null,name:string,path:string,latestDate:string,latestTs:number,auditCount:number,totalXP:number,teamMembers:Array<{login:string,displayName:string}>,captainLogin:string}>} */
 let _auditDetailsProjects = [];
 let dashboardLoadGeneration = 0;
 
@@ -76,7 +79,10 @@ export const initDashboard = () => {
 		() => _teamsByProject,
 	);
 	initRoleProjectsPopup(() => _roleProjectsByRole);
-	initAuditDetailsPopup(() => _auditDetailsProjects);
+	initAuditDetailsPopup(
+		() => _auditDetailsProjects,
+		(project) => openProjectDetailFromSummary(project),
+	);
 
 	document.addEventListener("auth:login", async () => {
 		const result = await loadDashboard(
@@ -163,8 +169,6 @@ export const loadDashboard = async (
 	const loadGeneration = ++dashboardLoadGeneration;
 	const shouldLogout = (error) =>
 		(error instanceof Error && isAuthFailureError(error)) || !isSessionValid();
-	const _normalizeProjectName = (name) =>
-		typeof name === "string" ? name.trim().toLowerCase() : "";
 	const staleResult = () => {
 		if (loadGeneration !== dashboardLoadGeneration) {
 			return { ok: false, error: new Error("Stale dashboard load cancelled.") };
@@ -174,6 +178,7 @@ export const loadDashboard = async (
 
 	try {
 		const userResult = await fetchUserInfo();
+		const eventId = getActiveEventId();
 		const staleAfterUser = staleResult();
 		if (staleAfterUser) return staleAfterUser;
 		if (!userResult.ok) {
@@ -196,13 +201,13 @@ export const loadDashboard = async (
 			resultsResult,
 			roleStatsResult,
 		] = await Promise.all([
-			fetchXPTransactions(user.id),
-			fetchAuditXPTransactions(user.id),
-			fetchProgress(user.id),
+			fetchXPTransactions(user.id, eventId),
+			fetchAuditXPTransactions(user.id, eventId),
+			fetchProgress(user.id, eventId),
 			fetchSkills(user.id),
-			fetchUserLevel(user.id),
-			fetchResults(user.id),
-			fetchUserRoleStats(user.id),
+			fetchUserLevel(user.id, eventId),
+			fetchResults(user.id, eventId),
+			fetchUserRoleStats(user.id, eventId),
 		]);
 		const staleAfterParallel = staleResult();
 		if (staleAfterParallel) return staleAfterParallel;
@@ -248,6 +253,7 @@ export const loadDashboard = async (
 		const projectTeamsResult = await fetchProjectTeams(
 			user.id,
 			projectObjectIds,
+			eventId,
 		);
 		const staleAfterTeams = staleResult();
 		if (staleAfterTeams) return staleAfterTeams;
@@ -267,31 +273,21 @@ export const loadDashboard = async (
 			roleStatsResult.data?.audits ?? [],
 		);
 		const roleStats = roleData.stats;
+		const resolveProjectXP = createProjectXPResolver(xpTransactions);
+		const resolveAuditProjectXP = createProjectXPResolver(
+			auditXpResult.data ?? [],
+		);
 		_roleProjectsByRole = Object.fromEntries(
 			Object.entries(roleData.projectsByRole).map(([role, projects]) => [
 				role,
 				projects.map((project) => {
-					const xpAmount = xpTransactions.reduce((sum, tx) => {
-						if (
-							typeof project.objectId === "number" &&
-							tx.object?.id === project.objectId
-						) {
-							return sum + tx.amount;
-						}
-
-						if (project.path && tx.path && tx.path === project.path) {
-							return sum + tx.amount;
-						}
-
-						if (
-							_normalizeProjectName(tx.object?.name) ===
-							_normalizeProjectName(project.name)
-						) {
-							return sum + tx.amount;
-						}
-
-						return sum;
-					}, 0);
+					const xpResolver =
+						role === "Auditor" ? resolveAuditProjectXP : resolveProjectXP;
+					const xpAmount = xpResolver({
+						objectId: project.objectId,
+						path: project.path,
+						name: project.name,
+					});
 
 					return {
 						...project,

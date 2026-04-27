@@ -14,6 +14,7 @@ import { formatXP } from "./dashboard.ui.charts.helpers.js";
 const AUDIT_DETAILS_OVERLAY_LOCK_KEY = "overlay-audit-details";
 
 let getAuditDetailsProjects = () => [];
+let openProjectDetails = () => {};
 let eventsBound = false;
 
 const renderAuditDetailsContent = (items) => {
@@ -35,6 +36,23 @@ const renderAuditDetailsContent = (items) => {
 	for (const item of items) {
 		const row = document.createElement("article");
 		row.className = "audit-details-item";
+		row.setAttribute("role", "button");
+		row.setAttribute("tabindex", "0");
+		row.setAttribute(
+			"aria-label",
+			`View details for ${item.name ?? "project"}`,
+		);
+
+		const open = () => {
+			closeAuditDetailsPopup();
+			openProjectDetails(item);
+		};
+		row.addEventListener("click", open);
+		row.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") return;
+			event.preventDefault();
+			open();
+		});
 
 		const info = document.createElement("div");
 		info.className = "audit-details-info";
@@ -60,7 +78,7 @@ const renderAuditDetailsContent = (items) => {
 
 		const xp = document.createElement("div");
 		xp.className = "audit-details-xp";
-		xp.textContent = formatXP(item.totalXP ?? 0);
+		xp.textContent = `Total XP ${formatXP(item.totalXP ?? 0)}`;
 
 		row.append(info, xp);
 		list.append(row);
@@ -86,8 +104,12 @@ export const closeAuditDetailsPopup = () => {
 	unlockBodyScroll(AUDIT_DETAILS_OVERLAY_LOCK_KEY);
 };
 
-export const initAuditDetailsPopup = (auditDetailsGetter) => {
+export const initAuditDetailsPopup = (
+	auditDetailsGetter,
+	onProjectOpen = () => {},
+) => {
 	getAuditDetailsProjects = auditDetailsGetter;
+	openProjectDetails = onProjectOpen;
 	if (eventsBound) return;
 	eventsBound = true;
 
