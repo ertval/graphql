@@ -58,8 +58,8 @@ export const initShell = () => {
 		const passwordToggle = $("#password-toggle");
 		const eyeIcon = passwordToggle?.querySelector(".icon-eye");
 		const eyeOffIcon = passwordToggle?.querySelector(".icon-eye-off");
-		if (eyeIcon) eyeIcon.hidden = true;
-		if (eyeOffIcon) eyeOffIcon.hidden = false;
+		if (eyeIcon) eyeIcon.classList.add("hidden-icon");
+		if (eyeOffIcon) eyeOffIcon.classList.remove("hidden-icon");
 		if (passwordToggle)
 			passwordToggle.setAttribute("aria-label", "Show password");
 

@@ -38,9 +38,11 @@ export const initAuth = () => {
 		const eyeIcon = passwordToggle.querySelector(".icon-eye");
 		const eyeOffIcon = passwordToggle.querySelector(".icon-eye-off");
 
+		const nowVisible = passwordInput?.type === "text";
+
 		if (eyeIcon && eyeOffIcon) {
-			eyeIcon.hidden = isPassword;
-			eyeOffIcon.hidden = !isPassword;
+			eyeIcon.classList.toggle("hidden-icon", !nowVisible);
+			eyeOffIcon.classList.toggle("hidden-icon", nowVisible);
 		}
 
 		passwordToggle.setAttribute(
