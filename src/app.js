@@ -7,6 +7,7 @@
 import { initAuth } from "./features/auth/auth.ui.view.js";
 import { initCollaborations } from "./features/collaborations/collaborations.ui.view.js";
 import { initDashboard } from "./features/dashboard/dashboard.ui.view.js";
+import { initTheme } from "./features/shell/shell.theme.js";
 import { initShell } from "./features/shell/shell.ui.view.js";
 import { clearToken, getToken, isAuthenticated } from "./infra/auth.js";
 import { configureGraphqlAuth } from "./infra/graphql.js";
@@ -22,6 +23,7 @@ const init = async () => {
 	initAuth();
 	initDashboard();
 	initCollaborations();
+	await initTheme();
 
 	// 2. Initial Route Check
 	if (isAuthenticated()) {

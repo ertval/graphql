@@ -46,7 +46,7 @@ body {
 }
 
 .glass-nav {
-	background: rgba(6, 11, 20, 0.88);
+	background: var(--bg-nav);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
 	border-bottom: 1px solid var(--glass-border);
@@ -89,8 +89,8 @@ body {
 	text-align: center;
 	color: var(--text-muted);
 	font-size: var(--font-xs);
-	border-top: 1px solid rgba(255, 255, 255, 0.06);
-	background: rgba(6, 11, 20, 0.55);
+	border-top: 1px solid var(--border-subtle);
+	background: var(--bg-footer);
 	backdrop-filter: blur(8px);
 	-webkit-backdrop-filter: blur(8px);
 }
@@ -127,11 +127,14 @@ body {
 
 /* --- Loading Skeleton --- */
 .skeleton {
-	background: linear-gradient(
-		90deg,
-		rgba(255, 255, 255, 0.03) 25%,
-		rgba(255, 255, 255, 0.06) 50%,
-		rgba(255, 255, 255, 0.03) 75%
+	background: var(
+		--shimmer-bg,
+		linear-gradient(
+			90deg,
+			rgba(255, 255, 255, 0.03) 25%,
+			rgba(255, 255, 255, 0.06) 50%,
+			rgba(255, 255, 255, 0.03) 75%
+		)
 	);
 	background-size: 200% 100%;
 	animation: shimmer 1.5s ease-in-out infinite;
