@@ -12,7 +12,8 @@ A vanilla JavaScript web application that displays a user's school progression a
 - **Collaborations Leaderboard** — Browse all school partners/captains/auditors with live search, role filters, and paginated results.
 - **Collaborator Profile Overlay** — Click any collaborator to see their detailed stats and recent shared projects.
 - **Project Detail** — Interactive project-level drill-down for deep inspection of results.
-- **Glassmorphism UI** — Premium dark mode design with micro-animations and smooth transitions.
+- **Theme Management** — Persistent Dark/Light mode support with system preference detection.
+- **Glassmorphism UI** — Premium design with micro-animations, smooth transitions, and a responsive layout.
 
 ## 🛠️ Technology Stack
 
@@ -21,7 +22,7 @@ A vanilla JavaScript web application that displays a user's school progression a
 | Language | Vanilla JavaScript (ES2026 Modules) |
 | Architecture | Feature-First (Screaming Architecture), Clean Architecture |
 | Charts | Native SVG (zero external libs) |
-| APIs | `Temporal` API, `Object.groupBy()`, Immutable Array methods (`.toSorted()`) |
+| APIs | `Temporal` API, `Object.groupBy()`, `Promise.try()`, Immutable Arrays (`.toSorted()`) |
 | Patterns | Result Pattern (ok/fail), Data Decoupling (Domain/Adapters) |
 | Linting | Biome (Unified Fast Lint/Format) |
 
@@ -33,20 +34,22 @@ A vanilla JavaScript web application that displays a user's school progression a
 │   │   ├── auth/           # Authentication logic and login view
 │   │   ├── collaborations/ # Collaborations leaderboard and profiles
 │   │   ├── dashboard/      # Main stats, charts, and activity
-│   │   └── shell/          # Navigation and app-wide UI layout
-│   ├── infra/              # Technical adapters (Auth, GraphQL, Result pattern)
+│   │   └── shell/          # Navigation, theme management, and app-wide UI layout
+│   ├── infra/              # Technical adapters (Auth, GraphQL, UI helpers, Result pattern)
 │   ├── shared/             # Shared UI components (popups)
 │   └── app.js              # Event-driven application orchestrator
 ├── css/
 │   ├── theme.css           # Design tokens (HSL palette, variables)
 │   ├── base.css            # Layout, glassmorphism, and animations
 │   ├── login.css           # Auth-specific styling
-│   ├── dashboard.css       # Stats and charts layout
+│   ├── nav.css             # Top navigation and tab styling
+│   ├── dashboard.css       # Stats and activity layout
+│   ├── graphs.css          # SVG chart specific styling
 │   └── collaborations.css  # Tables and filters
 └── docs/
     ├── audit.md            # Requirement checklist
     ├── audit_answers.md    # Detailed guide for audit verification
-    └── guides/             # Architecture and learning materials
+    └── guides/             # Architecture, Security, and Learning materials
 ```
 
 ## 🚀 Getting Started
@@ -89,7 +92,7 @@ The application follows a **Decoupled Event-Driven Architecture**, ensuring feat
 
 3. **Collaborations Pipeline**:
    - `collaborations.ui.view` handles lazy-loading stats on tab switch.
-   - Filtering and pagination use **Immutable ES2026 methods** (`.toSorted()`, `.toSpliced()`).
+   - Filtering and sorting use **Immutable ES2026 methods** (`.toSorted()`).
    - Role and name normalization is handled by `collaborations.core`.
 
 ## 🛜 Deployment to GitHub Pages
@@ -108,6 +111,7 @@ Since the application is 100% static and relies on client-side JS and a remote A
 
 - **Zero Dependencies**: 100% vanilla JS/CSS/SVG.
 - **Screaming Architecture**: Folder structure reflects the product domain.
-- **Modern JavaScript**: Extensive use of `Temporal`, `Object.groupBy()`, `using` declarations, and `CustomEvents`.
+- **Modern JavaScript**: Extensive use of `Temporal`, `Object.groupBy()`, `Promise.try()`, `Symbol.dispose` cleanup patterns, and `CustomEvents`.
 - **Security First**: CSP + Trusted Types, no `localStorage` for JWT, and sanitised error handling.
 - **Clean Architecture**: Domain logic is isolated from technical infrastructure and UI side-effects.
+

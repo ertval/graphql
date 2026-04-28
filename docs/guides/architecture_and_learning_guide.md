@@ -44,7 +44,7 @@ Our directory structure "screams" its purpose. Instead of grouping by technical 
 │   │   ├── auth/           # Identity and Login
 │   │   ├── dashboard/      # User Stats and SVG Analytics
 │   │   ├── collaborations/ # Peer Leaderboard and Profiles
-│   │   └── shell/          # Navigation and App Layout
+│   │   └── shell/          # Navigation, Theme, and App Layout
 │   ├── infra/              # Technical adapters (Auth, GraphQL, UI helpers)
 │   ├── shared/             # Reusable UI components (Popups)
 │   └── app.js              # Decoupled Event Orchestrator
@@ -95,9 +95,11 @@ export const loadDashboard = async () => {
 };
 ```
 
-### 📅 Modern APIs: Temporal & Immutable Arrays
+### 📅 Modern APIs: Temporal, Immutable Arrays & Promise.try
 - **No `Date`**: We exclusively use the **Temporal API** for robust time handling without the "timezone hell" of legacy JS.
-- **No Mutation**: We use `.toSorted()` and `.toSpliced()` (ES2026) to ensure our data remains predictable and side-effect free.
+- **No Mutation**: We use `.toSorted()` (ES2026) to ensure our data remains predictable and side-effect free.
+- **Unified Flow**: We use `Promise.try()` to wrap synchronous logic that might throw, ensuring a consistent async error flow.
+- **Cleanup Patterns**: We use `Symbol.dispose` with `finally` blocks for deterministic resource cleanup (e.g., clearing network timeouts).
 
 ---
 
@@ -120,3 +122,9 @@ Instead of `try/catch` everywhere, we use a `Result` object: `{ ok: true, data }
 The app is designed to be **Static-Host Ready**. Because it's vanilla JS with no build step required (though we use Biome for quality), it can be served from any simple folder.
 
 **Scalability**: To add a "Profile Edit" feature, you would simply create `src/features/profile-edit/`, add its CSS, and listen for `auth:login`. No existing feature code would need to change.
+
+### 🎨 Theme Management
+The app supports a persistent **Dark/Light mode**. This is handled by `src/features/shell/shell.theme.js`, which:
+1. Checks `localStorage` for a saved preference.
+2. Falls back to the `prefers-color-scheme` media query.
+3. Updates the `data-theme` attribute on the `<html>` element, which CSS variables use to swap the palette instantly.

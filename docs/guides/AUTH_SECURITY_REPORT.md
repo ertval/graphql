@@ -1,6 +1,6 @@
 # Authentication & Sensitive Data Security Report
 
-Date: 2026-04-20
+Date: 2026-04-28
 
 ## Summary
 
@@ -31,6 +31,10 @@ This report documents the security implementation of the GraphQL Profile applica
 - **Transport Security**:
   - `infra.graphql` automatically clears the token and triggers logout if the API returns 401 or 403.
   - **Code**: `src/infra/graphql.js:graphqlQuery()`
+
+- **UI Hardening**:
+  - All sensitive input fields (password) use `autocomplete` attributes correctly.
+  - Form submission uses `e.preventDefault()` and provides visual feedback (loaders) to prevent duplicate submissions.
 
 ## Security Controls
 

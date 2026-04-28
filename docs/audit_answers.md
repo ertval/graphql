@@ -10,15 +10,16 @@ This document provide detailed answers and code references for every question in
 > **Q: Try to log in with invalid credentials. Is an appropriate error shown?**
 - **Answer**: Yes. The `src/features/auth/auth.ui.view.js` listens for the login form submission. It calls `login()` from `src/infra/auth.js`.
 - **Code Reference**: 
-  - `auth.ui.view.js`: Handles form submission and displays the error returned by the auth service.
+  - `auth.ui.view.js`: Handles form submission, displays a loader during the request, and renders the error message.
   - `infra/auth.js`: Implements the `Basic` auth fetch to `/api/auth/signin`. If the status is not 200, it returns a failed Result with an "Invalid credentials" message.
+  - `auth.core.js`: Normalizes backend error messages into user-friendly strings.
 
 ### Valid Login & Layout
 > **Q: Does the profile page consist of three sections as required?**
 - **Answer**: Yes. The Dashboard is divided into:
-  1. **User Section**: Identity, email, campus, and level.
-  2. **XP Section**: Total XP and detailed XP progress.
-  3. **Audit Section**: Audit ratio, total up/down, and role distribution (Captain/Partner/Auditor).
+  1. **User Section**: Identity, email, campus, and Role Distribution (Captain/Partner/Auditor).
+  2. **XP Section**: Total XP, Level, and detailed XP progress.
+  3. **Audit Section**: Audit ratio, total up/down, and detailed audit history.
 - **Code Reference**: See `renderUserSection`, `renderXPSection`, and `renderAuditSection` in `src/features/dashboard/dashboard.ui.view.renderers.js`.
 
 ### Content Accuracy (GraphiQL)
@@ -28,7 +29,7 @@ This document provide detailed answers and code references for every question in
 
 ### Graphical Statistics
 > **Q: Does the profile include a fourth section dedicated to graphical statistics?**
-- **Answer**: Yes. The **Analytics** section (accessible via the Dashboard tab) contains 4 distinct SVG charts.
+- **Answer**: Yes. The **Statistics** section (accessible via the Dashboard tab) contains 4 distinct SVG charts grouped by "XP Analytics" and "Audit & Results".
 - **Code Reference**: `src/features/dashboard/dashboard.ui.view.renderers.js:renderGraphs()` orchestrates the rendering of all four charts.
 
 ### SVG Implementation
@@ -45,7 +46,7 @@ This document provide detailed answers and code references for every question in
 - **Logic**:
   - `Object.groupBy()` is used to aggregate XP by project name.
   - `Temporal` API ensures accurate time-axis scaling for the line chart.
-  - Native SVG path generators (`M`, `L`, `A` commands) translate data points to screen pixels.
+  - Native SVG path generators translate data points to screen pixels using geometric formulas.
 
 ### Hosting
 > **Q: Is the profile successfully accessible and hosted online?**
@@ -56,8 +57,8 @@ This document provide detailed answers and code references for every question in
 - **Answer**: Yes. Clicking the Logout button triggers `infra.auth:logout()`, which:
   1. Clears the JWT from memory and `sessionStorage`.
   2. Dispatches a global `auth:logout` event.
-  3. All UI slices reset their state (clearing personal data) and return to the login screen.
-- **Code Reference**: `src/infra/auth.js:logout()` and the `auth:logout` listener in `src/app.js`.
+  3. All UI slices reset their state (clearing personal data, resetting inputs) and return to the login screen.
+- **Code Reference**: `src/features/auth/auth.ui.view.js:performLogout()` and the `auth:logout` listener in `src/features/shell/shell.ui.view.js`.
 
 ---
 
@@ -68,7 +69,7 @@ This document provide detailed answers and code references for every question in
 - **Answer**: Yes.
   - **Normal**: `fetchUserInfo` in `dashboard.api.js`.
   - **Nested**: `fetchUserRoleStats` in `dashboard.api.js` (nests `group`, `object`, and `members`).
-  - **Arguments**: All queries use variables (e.g., `where: { userId: { _eq: $userId } }`).
+  - **Arguments**: `fetchXPTransactions` uses `where: { userId: { _eq: $userId } }`.
 - **Code Reference**: `src/features/dashboard/dashboard.api.js`.
 
 ---
@@ -77,14 +78,16 @@ This document provide detailed answers and code references for every question in
 
 ### Additional Information
 - **Collaborations Tab**: A full leaderboard of all school peers with live search, paging, and role filtering.
-- **Project Detail Overlays**: Click any activity or chart segment to see a detailed drill-down of that specific project, including team members and exact XP/grade.
+- **Project Detail Overlays**: Click any project in the "Recent Projects" list to see a detailed drill-down, including team members and exact XP/grade.
 - **Skills Breakdown**: A visual list of the user's top technical skills aggregated from transactions.
+- **Theme Switching**: Full support for Light and Dark modes with persistent storage.
 
 ### Extra Graphs
 - We provided **4 graphs** (Line, Bar, Donut, Pie) instead of the minimum 2.
 
 ### Coding Practices
 - **Clean Architecture**: Decoupled layers (API, Core, View, Infra).
-- **ES2026 Standards**: Uses `Temporal`, `Object.groupBy()`, Immutable Arrays, and `using` declarations.
+- **ES2026 Standards**: Uses `Temporal`, `Object.groupBy()`, `Promise.try()`, Immutable Arrays, and `using` declarations.
 - **Performance**: Parallel fetching (`Promise.all`) and lazy-loading of the collaborations list.
 - **Security**: Strict CSP, Trusted Types, and no `localStorage` for sensitive tokens.
+- **Accessibility**: ARIA labels, keyboard navigation for tabs, and semantic HTML structure.
