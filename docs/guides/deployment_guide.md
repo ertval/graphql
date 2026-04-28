@@ -107,7 +107,7 @@ Cross-Origin-Resource-Policy: same-origin
 
 1. `connect-src` must allow `https://platform.zone01.gr` for GraphQL/auth requests.
 2. `style-src` and `font-src` allow Google Fonts used by `index.html`.
-3. Avoid adding `'unsafe-inline'` to `script-src`; this app does not need inline scripts.
+3. Avoid adding `'unsafe-inline'` to `script-src`; this app uses one small inline script for anti-flicker theme loading.
 4. If you add analytics or CDNs later, explicitly extend CSP for those domains.
 
 ### Netlify
@@ -186,15 +186,25 @@ src/
          collaborations.core.js
          collaborations.ui.view.js
          collaborations.ui.popup.js
-         ...
+         collaborations.ui.view.filters.js
+         collaborations.ui.view.pagination.js
+         collaborations.ui.view.table.js
       dashboard/
          dashboard.api.js
          dashboard.core.js
          dashboard.ui.view.js
          dashboard.ui.view.renderers.js
-         dashboard.ui.charts.*.js
-         ...
+         dashboard.ui.charts.bar.js
+         dashboard.ui.charts.donut.js
+         dashboard.ui.charts.line.js
+         dashboard.ui.charts.pie.js
+         dashboard.ui.charts.helpers.js
+         dashboard.ui.popup.js
+         dashboard.ui.popup.audit.js
+         dashboard.ui.popup.roles.js
+         dashboard.ui.popup.activity.js
       shell/
+         shell.theme.js
          shell.ui.view.js
    infra/
       auth.js
