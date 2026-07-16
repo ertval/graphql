@@ -1,6 +1,16 @@
 # GraphQL Profile
 
-School progression stats and student collaborator metrics are scattered across multiple internal tools with no unified dashboard. This app provides a single-pane view of XP analytics, audit ratios, and partner metrics by querying a GraphQL API — all in vanilla JS with zero external dependencies.
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES2026-F7DF1E?style=flat-square&logo=javascript&logoColor=black)]()
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org)
+[![Playwright CI](https://img.shields.io/github/actions/workflow/status/ertval/graphql/playwright.yml?style=flat-square&logo=playwright&logoColor=white)](https://github.com/ertval/graphql/actions)
+
+---
+
+**Problem:** School progression stats and student collaborator metrics are scattered across multiple internal tools with no unified dashboard.
+
+**Solution:** A single-pane view of XP analytics, audit ratios, and partner metrics by querying a GraphQL API—built in vanilla JS with zero external dependencies.
+
+---
 
 ## 🚀 Features
 
