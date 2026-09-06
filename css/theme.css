@@ -84,6 +84,9 @@
 	--border-success-faint: rgba(16, 185, 129, 0.2);
 	--border-danger-faint: rgba(251, 113, 133, 0.2);
 	--border-danger-light: rgba(251, 113, 133, 0.3);
+	--accent-rgb: 14, 165, 233;
+	--accent-glow: rgba(var(--accent-rgb), 0.35);
+	--accent-border-glow: rgba(var(--accent-rgb), 0.25);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -125,6 +128,9 @@
 	--border-success-faint: rgba(16, 185, 129, 0.15);
 	--border-danger-faint: rgba(251, 113, 133, 0.15);
 	--border-danger-light: rgba(251, 113, 133, 0.25);
+	--accent-rgb: 14, 165, 233;
+	--accent-glow: rgba(var(--accent-rgb), 0.2);
+	--accent-border-glow: rgba(var(--accent-rgb), 0.2);
 
 	/* Shimmer background */
 	--shimmer-bg: linear-gradient(
@@ -132,5 +138,139 @@
 		rgba(15, 23, 42, 0.03) 25%,
 		rgba(15, 23, 42, 0.06) 50%,
 		rgba(15, 23, 42, 0.03) 75%
+	);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SYNTHWAVE THEME — Cyberpunk Neon Sunset & Electric Ultraviolet
+   ══════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="synthwave"] {
+	/* ── Colors ── */
+	--bg-primary: #0a0614;
+	--bg-secondary: #140924;
+	--bg-card: rgba(24, 12, 44, 0.65);
+	--bg-card-hover: rgba(34, 18, 62, 0.78);
+	--glass-border: rgba(236, 72, 153, 0.2);
+	--glass-shadow: rgba(10, 6, 20, 0.6);
+
+	--text-primary: #fdf4ff;
+	--text-secondary: #e9d5ff;
+	--text-muted: #c084fc;
+
+	/* Neon Fuchsia → Ultraviolet gradient */
+	--accent-start: #f43f5e;
+	--accent-end: #8b5cf6;
+	--accent-rgb: 236, 72, 153;
+	--accent-gradient: linear-gradient(
+		135deg,
+		var(--accent-start),
+		var(--accent-end)
+	);
+	--accent-glow: rgba(236, 72, 153, 0.38);
+	--accent-border-glow: rgba(236, 72, 153, 0.25);
+
+	/* State colours */
+	--success: #10b981;
+	--danger: #ff0055;
+	--warning: #fbbf24;
+	--info: #ec4899;
+
+	/* ── Extended Semantic Variables (Synthwave) ── */
+	--bg-nav: rgba(10, 6, 20, 0.9);
+	--bg-footer: rgba(10, 6, 20, 0.6);
+	--bg-tabs: rgba(236, 72, 153, 0.06);
+	--bg-tab-hover: rgba(236, 72, 153, 0.12);
+	--bg-input: rgba(236, 72, 153, 0.05);
+	--bg-item: rgba(236, 72, 153, 0.07);
+	--bg-item-soft: rgba(236, 72, 153, 0.03);
+	--bg-track: rgba(236, 72, 153, 0.08);
+	--bg-tooltip: rgba(24, 12, 44, 0.98);
+	--border-subtle: rgba(236, 72, 153, 0.12);
+	--border-input: rgba(236, 72, 153, 0.18);
+	--graph-axis: rgba(233, 213, 255, 0.18);
+	--graph-grid: rgba(236, 72, 153, 0.06);
+	--bg-overlay: rgba(10, 6, 20, 0.7);
+	--bg-accent-faint: rgba(236, 72, 153, 0.08);
+	--bg-success-faint: rgba(16, 185, 129, 0.1);
+	--bg-danger-faint: rgba(255, 0, 85, 0.1);
+	--border-accent-light: rgba(236, 72, 153, 0.16);
+	--border-success-faint: rgba(16, 185, 129, 0.2);
+	--border-danger-faint: rgba(255, 0, 85, 0.25);
+	--border-danger-light: rgba(255, 0, 85, 0.35);
+
+	/* Shimmer background */
+	--shimmer-bg: linear-gradient(
+		90deg,
+		rgba(236, 72, 153, 0.04) 25%,
+		rgba(139, 92, 246, 0.09) 50%,
+		rgba(236, 72, 153, 0.04) 75%
+	);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MATRIX THEME — Hacker Terminal Void & Emerald Circuit
+   ══════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="matrix"] {
+	/* ── Colors ── */
+	--bg-primary: #030a06;
+	--bg-secondary: #07170e;
+	--bg-card: rgba(8, 26, 16, 0.65);
+	--bg-card-hover: rgba(12, 38, 23, 0.78);
+	--glass-border: rgba(16, 185, 129, 0.2);
+	--glass-shadow: rgba(3, 10, 6, 0.6);
+
+	--text-primary: #ecfdf5;
+	--text-secondary: #a7f3d0;
+	--text-muted: #6ee7b7;
+
+	/* Terminal Emerald → Cyan-Teal gradient */
+	--accent-start: #10b981;
+	--accent-end: #06b6d4;
+	--accent-rgb: 16, 185, 129;
+	--accent-gradient: linear-gradient(
+		135deg,
+		var(--accent-start),
+		var(--accent-end)
+	);
+	--accent-glow: rgba(16, 185, 129, 0.38);
+	--accent-border-glow: rgba(16, 185, 129, 0.25);
+
+	/* State colours */
+	--success: #34d399;
+	--danger: #f43f5e;
+	--warning: #facc15;
+	--info: #2dd4bf;
+
+	/* ── Extended Semantic Variables (Matrix) ── */
+	--bg-nav: rgba(3, 10, 6, 0.9);
+	--bg-footer: rgba(3, 10, 6, 0.6);
+	--bg-tabs: rgba(16, 185, 129, 0.06);
+	--bg-tab-hover: rgba(16, 185, 129, 0.12);
+	--bg-input: rgba(16, 185, 129, 0.05);
+	--bg-item: rgba(16, 185, 129, 0.07);
+	--bg-item-soft: rgba(16, 185, 129, 0.03);
+	--bg-track: rgba(16, 185, 129, 0.08);
+	--bg-tooltip: rgba(8, 26, 16, 0.98);
+	--border-subtle: rgba(16, 185, 129, 0.12);
+	--border-input: rgba(16, 185, 129, 0.18);
+	--graph-axis: rgba(167, 243, 208, 0.18);
+	--graph-grid: rgba(16, 185, 129, 0.06);
+	--bg-overlay: rgba(3, 10, 6, 0.7);
+	--bg-accent-faint: rgba(16, 185, 129, 0.08);
+	--bg-success-faint: rgba(52, 211, 153, 0.1);
+	--bg-danger-faint: rgba(244, 63, 94, 0.1);
+	--border-accent-light: rgba(16, 185, 129, 0.16);
+	--border-success-faint: rgba(52, 211, 153, 0.2);
+	--border-danger-faint: rgba(244, 63, 94, 0.25);
+	--border-danger-light: rgba(244, 63, 94, 0.35);
+
+	/* Shimmer background */
+	--shimmer-bg: linear-gradient(
+		90deg,
+		rgba(16, 185, 129, 0.04) 25%,
+		rgba(6, 182, 212, 0.09) 50%,
+		rgba(16, 185, 129, 0.04) 75%
 	);
 }

@@ -101,8 +101,8 @@ export const renderProjectBarChart = (container, transactions) => {
 		y2: "0%",
 	});
 	barGrad.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#0ea5e9" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#06b6d4" }),
+		svgEl("stop", { offset: "0%", "stop-color": "var(--accent-start)" }),
+		svgEl("stop", { offset: "100%", "stop-color": "var(--accent-end)" }),
 	);
 	defs.append(barGrad);
 	svg.append(defs);

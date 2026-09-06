@@ -72,8 +72,8 @@ export const renderXPLineChart = (container, transactions) => {
 		y2: "0%",
 	});
 	lineGrad.append(
-		svgEl("stop", { offset: "0%", "stop-color": "#0ea5e9" }),
-		svgEl("stop", { offset: "100%", "stop-color": "#06b6d4" }),
+		svgEl("stop", { offset: "0%", "stop-color": "var(--accent-start)" }),
+		svgEl("stop", { offset: "100%", "stop-color": "var(--accent-end)" }),
 	);
 	const areaGrad = svgEl("linearGradient", {
 		id: "area-gradient",
@@ -85,12 +85,12 @@ export const renderXPLineChart = (container, transactions) => {
 	areaGrad.append(
 		svgEl("stop", {
 			offset: "0%",
-			"stop-color": "#0ea5e9",
+			"stop-color": "var(--accent-start)",
 			"stop-opacity": "0.3",
 		}),
 		svgEl("stop", {
 			offset: "100%",
-			"stop-color": "#0ea5e9",
+			"stop-color": "var(--accent-start)",
 			"stop-opacity": "0.0",
 		}),
 	);

@@ -123,51 +123,109 @@
 	}
 }
 
-/* ── Theme Toggle ── */
+/* ── Theme Toggle (4-Theme Morphing Switcher) ── */
 .btn-theme-toggle {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
+	position: relative;
+	width: 38px;
+	height: 38px;
 	padding: 0;
 	background: var(--bg-tabs);
 	border: 1px solid var(--glass-border);
 	border-radius: var(--radius-sm);
 	color: var(--text-secondary);
 	cursor: pointer;
-	transition: all var(--transition-fast);
+	overflow: hidden;
+	transition:
+		background var(--transition-fast),
+		border-color var(--transition-fast),
+		box-shadow var(--transition-base),
+		color var(--transition-fast),
+		transform var(--transition-fast);
 }
 
 .btn-theme-toggle:hover {
 	background: var(--bg-tab-hover);
 	color: var(--text-primary);
+	border-color: var(--accent-start);
+	box-shadow: 0 0 18px var(--accent-glow);
 	transform: translateY(-1px);
 }
 
-.btn-theme-toggle .icon-sun,
-.btn-theme-toggle .icon-moon {
+.btn-theme-toggle:active {
+	transform: scale(0.92);
+}
+
+.btn-theme-toggle.theme-spin {
+	animation: themeButtonPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes themeButtonPop {
+	0% {
+		transform: scale(0.88);
+	}
+	55% {
+		transform: scale(1.12);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+.btn-theme-toggle .theme-icon {
 	position: absolute;
+	width: 20px;
+	height: 20px;
+	pointer-events: none;
+	opacity: 0;
+	transform: scale(0);
 	transition:
-		transform var(--transition-base),
-		opacity var(--transition-base);
+		transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+		opacity 0.28s ease,
+		color var(--transition-fast);
 }
 
-/* Toggle Logic in CSS */
-:root[data-theme="light"] .icon-sun {
-	opacity: 0;
-	transform: rotate(90deg) scale(0);
-}
-:root[data-theme="light"] .icon-moon {
+/* Default Theme (Dark / Ocean): Moon Active */
+.btn-theme-toggle .icon-moon {
 	opacity: 1;
-	transform: rotate(0) scale(1);
+	transform: rotate(0deg) scale(1);
+	color: #38bdf8;
 }
 
-:root:not([data-theme="light"]) .icon-sun {
-	opacity: 1;
-	transform: rotate(0) scale(1);
-}
-:root:not([data-theme="light"]) .icon-moon {
+/* Light Theme (Day): Sun Active */
+:root[data-theme="light"] .btn-theme-toggle .icon-moon {
 	opacity: 0;
-	transform: rotate(-90deg) scale(0);
+	transform: rotate(-100deg) scale(0);
+}
+
+:root[data-theme="light"] .btn-theme-toggle .icon-sun {
+	opacity: 1;
+	transform: rotate(0deg) scale(1);
+	color: #f59e0b;
+}
+
+/* Synthwave Theme (Neon): Cyber Sunset Active */
+:root[data-theme="synthwave"] .btn-theme-toggle .icon-moon {
+	opacity: 0;
+	transform: rotate(-100deg) scale(0);
+}
+
+:root[data-theme="synthwave"] .btn-theme-toggle .icon-synthwave {
+	opacity: 1;
+	transform: rotate(0deg) scale(1);
+	color: #f43f5e;
+}
+
+/* Matrix Theme (Cyber): Terminal Prompt Active */
+:root[data-theme="matrix"] .btn-theme-toggle .icon-moon {
+	opacity: 0;
+	transform: rotate(-100deg) scale(0);
+}
+
+:root[data-theme="matrix"] .btn-theme-toggle .icon-matrix {
+	opacity: 1;
+	transform: rotate(0deg) scale(1);
+	color: #10b981;
 }
