@@ -1,7 +1,6 @@
 # GraphQL Profile
 
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES2026-F7DF1E?style=flat-square&logo=javascript&logoColor=black)]()
-[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org)
 [![Playwright CI](https://img.shields.io/github/actions/workflow/status/ertval/graphql/playwright.yml?style=flat-square&logo=playwright&logoColor=white)](https://github.com/ertval/graphql/actions)
 
 ---
@@ -35,11 +34,12 @@
 ## 📂 Project Structure
 
 ```text
+├── index.html              # SPA entry point
 ├── src/
 │   ├── features/           # Domain-driven vertical slices (Screaming Architecture)
 │   │   ├── auth/           # Authentication logic and login view
-│   │   ├── collaborations/ # Collaborations leaderboard and profiles
-│   │   ├── dashboard/      # Main stats, charts, and activity
+│   │   ├── collaborations/ # Collaborations leaderboard, filters, and profiles
+│   │   ├── dashboard/      # Main stats, SVG charts, and activity
 │   │   └── shell/          # Navigation, theme management, and app-wide UI layout
 │   ├── infra/              # Technical adapters (Auth, GraphQL, UI helpers, Result pattern)
 │   ├── shared/             # Shared UI components (popups)
@@ -52,9 +52,15 @@
 │   ├── dashboard.css       # Stats and activity layout
 │   ├── graphs.css          # SVG chart specific styling
 │   └── collaborations.css  # Tables and filters
+├── tests/
+│   ├── audit/              # Audit compliance and verification specs
+│   ├── runtime/            # End-to-end integration flows
+│   └── *.spec.mjs          # Unit and architectural boundary tests
 └── docs/
     ├── audit.md            # Requirement checklist
     ├── audit_answers.md    # Detailed guide for audit verification
+    ├── requirements.md     # Project functional specifications
+    ├── audits/             # Security, architecture, and quality reports
     └── guides/             # Architecture, Security, and Learning materials
 ```
 
@@ -73,8 +79,13 @@ Then open `http://localhost:3000` in your browser.
 ## 🧪 Testing
 
 ```bash
-# Run all Playwright tests
-npx playwright test
+# Run all verification tests (lint + unit + audit + e2e)
+npm test
+
+# Run individual test suites
+npm run test:unit
+npm run test:audit
+npm run test:e2e
 
 # Run Biome linting/formatting
 npm run lint
