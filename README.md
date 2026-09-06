@@ -1,6 +1,16 @@
 # GraphQL Profile
 
-A vanilla JavaScript web application that displays a user's school progression and statistics by querying a GraphQL API endpoint. Built using ES2026 standards, Clean Architecture, and programmatic SVG generation — all without external libraries.
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES2026-F7DF1E?style=flat-square&logo=javascript&logoColor=black)]()
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org)
+[![Playwright CI](https://img.shields.io/github/actions/workflow/status/ertval/graphql/playwright.yml?style=flat-square&logo=playwright&logoColor=white)](https://github.com/ertval/graphql/actions)
+
+---
+
+**Problem:** School progression stats and student collaborator metrics are scattered across multiple internal tools with no unified dashboard.
+
+**Solution:** A single-pane view of XP analytics, audit ratios, and partner metrics by querying a GraphQL API—built in vanilla JS with zero external dependencies.
+
+---
 
 ## 🚀 Features
 
@@ -17,14 +27,10 @@ A vanilla JavaScript web application that displays a user's school progression a
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Vanilla JavaScript (ES2026 Modules) |
-| Architecture | Feature-First (Screaming Architecture), Clean Architecture |
-| Charts | Native SVG (zero external libs) |
-| APIs | `Temporal` API, `Object.groupBy()`, `Promise.try()`, Immutable Arrays (`.toSorted()`) |
-| Patterns | Result Pattern (ok/fail), Data Decoupling (Domain/Adapters) |
-| Linting | Biome (Unified Fast Lint/Format) |
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=flat-square&logo=graphql&logoColor=white)](https://graphql.org)
+[![SVG](https://img.shields.io/badge/SVG-FFB13B?style=flat-square&logo=svg&logoColor=black)](https://www.w3.org/Graphics/SVG/)
+[![CI](https://img.shields.io/github/actions/workflow/status/ertval/graphql/playwright.yml?style=flat-square&logo=github&logoColor=white)](https://github.com/ertval/graphql/actions)
 
 ## 📂 Project Structure
 
@@ -64,7 +70,8 @@ python -m http.server 3000
 ```
 Then open `http://localhost:3000` in your browser.
 
-### Run tests
+## 🧪 Testing
+
 ```bash
 # Run all Playwright tests
 npx playwright test
@@ -74,6 +81,19 @@ npm run lint
 ```
 
 ## 🔄 Data Flows
+
+```mermaid
+graph LR
+    A[User Browser] --> B[auth.ui.view]
+    B --> C[infra.auth:login]
+    C --> D[Global Event: auth:login]
+    D --> E[dashboard.api]
+    D --> F[collaborations.api]
+    E --> G[dashboard.core]
+    G --> H[SVG Renderers]
+    F --> I[collaborations.core]
+    I --> J[Immutable Filters]
+```
 
 The application follows a **Decoupled Event-Driven Architecture**, ensuring feature slices communicate without tight coupling:
 
@@ -113,5 +133,8 @@ Since the application is 100% static and relies on client-side JS and a remote A
 - **Screaming Architecture**: Folder structure reflects the product domain.
 - **Modern JavaScript**: Extensive use of `Temporal`, `Object.groupBy()`, `Promise.try()`, `Symbol.dispose` cleanup patterns, and `CustomEvents`.
 - **Security First**: CSP + Trusted Types, no `localStorage` for JWT, and sanitised error handling.
-- **Clean Architecture**: Domain logic is isolated from technical infrastructure and UI side-effects.
+- Clean Architecture: Domain logic is isolated from technical infrastructure and UI side-effects.
 
+## Related
+- [CV / Portfolio](https://ertval.github.io)
+- [LinkedIn](https://linkedin.com/in/ertval)
